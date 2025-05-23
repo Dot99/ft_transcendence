@@ -17,7 +17,6 @@ export function getAllUsers(lang = "en") {
 
 export function getUserById(id, lang = "en") {
 	return new Promise((resolve, reject) => {
-		console.log("ID:", id);
 		db.get("SELECT * FROM users WHERE id = ?", [id], (err, row) => {
 			if (err) {
 				console.error("DB error:", err);
@@ -304,7 +303,7 @@ export function deleteFriend(userId, friendId, lang = "en") {
 export function blockUser(userId, blockId, lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.run(
-			"INSERT INTO blocked_users (user_id, blocked_id) VALUES (?, ?)",
+			"INSERT INTO blocked_users (user_id, blocked_user_id) VALUES (?, ?)",
 			[userId, blockId],
 			function (err) {
 				if (err) {
@@ -326,7 +325,7 @@ export function blockUser(userId, blockId, lang = "en") {
 export function unblockUser(userId, blockId, lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.run(
-			"DELETE FROM blocked_users WHERE user_id = ? AND blocked_id = ?",
+			"DELETE FROM blocked_users WHERE user_id = ? AND blocked_user_id = ?",
 			[userId, blockId],
 			function (err) {
 				if (err) {
@@ -348,7 +347,7 @@ export function unblockUser(userId, blockId, lang = "en") {
 export function getBlockedUsers(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.all(
-			"SELECT * FROM users WHERE id IN (SELECT blocked_id FROM blocked_users WHERE user_id = ?)",
+			"SELECT * FROM users WHERE id IN (SELECT blocked_user_id FROM blocked_users WHERE user_id = ?)",
 			[userId],
 			(err, rows) => {
 				if (err) {

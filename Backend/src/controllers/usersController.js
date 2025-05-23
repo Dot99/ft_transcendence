@@ -1,6 +1,5 @@
 import { UserNotFoundError } from "../errors/userNotFoundError.js";
 import * as userService from "../services/usersServices.js";
-//TODO: OS CONTROLERS NAO ESTAO COMPATIVEIS COM SQLITE3, ALTERAR TUDO BASEADO NO "getAllUsers"
 
 /**
  * @description Controller to get all users
@@ -38,7 +37,7 @@ const getAllUsers = async (request, reply, lang) => {
 const getUserById = async (request, reply, lang) => {
 	try {
 		console.log("Request params:");
-		const { id } = request.params;
+		const id = request.params.id;
 		const result = await userService.getUserById(id, request.lang);
 
 		if (!result.success) {
@@ -63,7 +62,7 @@ const getUserById = async (request, reply, lang) => {
  */
 const getUserByUsername = async (request, reply, lang) => {
 	try {
-		const { username } = request.params;
+		const username = request.params.username;
 		const result = await userService.getUserByUsername(username, request.lang);
 
 		if (!result.success) {
@@ -124,7 +123,7 @@ const createUser = async (request, reply, lang) => {
  */
 const updateUser = async (request, reply, lang) => {
 	try {
-		const { id } = request.params;
+		const id = request.params.id;
 		const result = await userService.updateUserById(
 			id,
 			request.body,
@@ -154,7 +153,7 @@ const updateUser = async (request, reply, lang) => {
  */
 const deleteUser = async (request, reply, lang) => {
 	try {
-		const { id } = request.params;
+		const id = request.params.id;
 		const result = await userService.deleteUserById(id, request.lang);
 		if (!result.success) {
 			throw new UserNotFoundError(result.message);
@@ -315,6 +314,7 @@ const logout = async (request, reply, lang) => {
  */
 const getUserFriends = async (request, reply, lang) => {
 	try {
+		request.user = { id: 1 };
 		const user = request.user;
 		if (!user?.id) {
 			throw new UserNotFoundError("User not found");
@@ -350,7 +350,7 @@ const addFriend = async (request, reply, lang) => {
 		if (!user?.id) {
 			throw new UserNotFoundError("User not found");
 		}
-		const { friendId } = request.params;
+		const friendId = request.params.id;
 		if (!friendId) {
 			return reply
 				.code(400)
@@ -385,7 +385,7 @@ const deleteFriend = async (request, reply, lang) => {
 		if (!user?.id) {
 			throw new UserNotFoundError("User not found");
 		}
-		const { friendId } = request.params;
+		const friendId = request.params.friendId;
 		if (!friendId) {
 			return reply
 				.code(400)
@@ -424,7 +424,7 @@ const blockUser = async (request, reply, lang) => {
 		if (!user?.id) {
 			throw new UserNotFoundError("User not found");
 		}
-		const { blockId } = request.params;
+		const blockId = request.params.id;
 		if (!blockId) {
 			return reply.code(400).send({ message: "No block ID provided" });
 		}
@@ -457,7 +457,7 @@ const unblockUser = async (request, reply, lang) => {
 		if (!user?.id) {
 			throw new UserNotFoundError("User not found");
 		}
-		const { blockId } = request.params;
+		const blockId = request.params.id;
 		if (!blockId) {
 			return reply
 				.code(400)
