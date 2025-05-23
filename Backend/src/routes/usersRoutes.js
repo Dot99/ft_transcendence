@@ -92,7 +92,7 @@ export default async function (fastify, opts) {
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
 	 */
-	fastify.put("/users/:id", {
+	fastify.put("/users", {
 		schema: {
 			params: paramsJsonSchema,
 		},
@@ -113,7 +113,7 @@ export default async function (fastify, opts) {
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
 	 */
-	fastify.delete("/users/:id", {
+	fastify.delete("/users", {
 		schema: {
 			params: paramsJsonSchema,
 		},
@@ -151,7 +151,7 @@ export default async function (fastify, opts) {
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
 	 */
-	fastify.post("/users/:id/avatar", {
+	fastify.post("/users/avatar", {
 		prehandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.uploadAvatar(request, reply, request.lang),
@@ -207,7 +207,7 @@ export default async function (fastify, opts) {
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
 	 */
-	fastify.get("/users/:id/friends", {
+	fastify.get("/users/friends", {
 		schema: {
 			params: paramsJsonSchema,
 		},
@@ -252,7 +252,7 @@ export default async function (fastify, opts) {
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
 	 */
-	fastify.delete("/users/:id/friends/:friendId", {
+	fastify.delete("/users/friends/:friendId", {
 		schema: {
 			params: paramsJsonSchema,
 		},
@@ -313,7 +313,7 @@ export default async function (fastify, opts) {
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
 	 */
-	fastify.get("/users/:id/blocked", {
+	fastify.get("/users/blocked", {
 		schema: {
 			params: paramsJsonSchema,
 		},
