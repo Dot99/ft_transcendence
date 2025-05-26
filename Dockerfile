@@ -11,6 +11,10 @@ RUN npm install
 # Copy app source
 COPY . .
 
+# Copy database file
+RUN mkdir -p /db
+COPY Backend/db/data.db Backend/db/data.db
+
 # Expose port
 EXPOSE 3000
 
