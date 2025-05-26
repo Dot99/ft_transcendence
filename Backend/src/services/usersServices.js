@@ -174,7 +174,6 @@ export function uploadAvatar(userId, avatar, lang = "en") {
 	});
 }
 
-//TODO: bcrypt.hash(password, saltRounds) for hashing password
 export async function login(username, password, fastify, lang = "en") {
 	return new Promise(async (resolve) => {
 		if (!username || !password) {
@@ -212,6 +211,38 @@ export async function login(username, password, fastify, lang = "en") {
 		});
 
 		resolve({ success: true, user, token });
+	});
+}
+
+export function register(username, password, country, fastify, lang = "en") {
+	return new Promise(async (resolve) => {
+		if (!username || !password || !country) {
+			return resolve({ success: false, message: messages[lang].missingFields });
+		}
+
+		const hashedPassword = await bcrypt.hash(password, 10);
+		const dateJoined = new Date().toISOString();
+
+		const sql = `INSERT INTO users (username, password, country, date_joined) VALUES (?, ?, ?, ?)`;
+
+		db.run(
+			sql,
+			[username, hashedPassword, country, dateJoined],
+			function (err) {
+				if (err) {
+					console.error("Error creating user:", err);
+					return resolve({
+						success: false,
+						message: messages[lang].failCreateUser,
+					});
+				}
+
+				const userId = this.lastID;
+				const token = fastify.jwt.sign({ id: userId, username });
+
+				resolve({ success: true, userId, token });
+			}
+		);
 	});
 }
 
