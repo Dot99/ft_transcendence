@@ -2,11 +2,11 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import AutoLoad from "@fastify/autoload"; // Automatically load routes
 import fastifyJwt from "@fastify/jwt"; // JWT authentication
-import websocket from "@fastify/websocket"; // WebSocket support
 import { fileURLToPath } from "url"; // Import fileURLToPath to get the current directory
 import { dirname, join } from "path"; // Import dirname and join from path to handle file paths
 import dotenv from "dotenv"; // Load environment variables from .env file
 import authMiddleware from "./middleware/authMiddleware.js";
+import fastifyStatic from "@fastify/static";
 
 dotenv.config();
 
@@ -29,18 +29,13 @@ await fastify.register(AutoLoad, {
 	options: { prefix: "/api" },
 });
 
-fastify.get("/", async (request, reply) => {
-	return reply.send("🚀 ft_transcendence backend is running!");
+await fastify.register(fastifyStatic, {
+	root: "/app/Frontend/public",
+	prefix: "/",
 });
 
-await fastify.register(websocket);
-
 fastify.setNotFoundHandler((request, reply) => {
-	reply.status(404).send({
-		message: "Route not found",
-		url: request.url,
-		method: request.method,
-	});
+	reply.sendFile("index.html");
 });
 
 fastify.setErrorHandler((error, request, reply) => {
@@ -66,13 +61,4 @@ fastify.setErrorHandler((error, request, reply) => {
 	});
 });
 
-fastify.listen(
-	{ port: process.env.PORT || 3000, host: "0.0.0.0" },
-	(err, address) => {
-		if (err) {
-			console.error(err);
-			process.exit(1);
-		}
-		console.log(`Server listening at ${address}`);
-	}
-);
+await fastify.listen({ port: process.env.PORT || 3000, host: "0.0.0.0" });

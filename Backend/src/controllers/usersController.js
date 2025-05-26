@@ -257,7 +257,13 @@ const login = async (request, reply, lang) => {
 				.code(400)
 				.send({ success: false, message: "Username and password required" });
 		}
-		const result = await userService.login(username, password, request.lang);
+		const saltRounds = 10;
+		const hashedPassword = bcrypt.hash(password, saltRounds);
+		const result = await userService.login(
+			username,
+			hashedPassword,
+			request.lang
+		);
 		if (!result.success) {
 			return reply.code(401).send({ success: false, message: result.message });
 		}
