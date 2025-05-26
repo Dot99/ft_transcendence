@@ -1,3 +1,4 @@
+import fastify from "fastify";
 import { UserNotFoundError } from "../errors/userNotFoundError.js";
 import * as userService from "../services/usersServices.js";
 
@@ -257,7 +258,12 @@ const login = async (request, reply, lang) => {
 				.code(400)
 				.send({ success: false, message: "Username and password required" });
 		}
-		const result = await userService.login(username, password, request.lang);
+		const result = await userService.login(
+			username,
+			password,
+			request.server,
+			request.lang
+		);
 		if (!result.success) {
 			return reply.code(401).send({ success: false, message: result.message });
 		}
@@ -265,6 +271,7 @@ const login = async (request, reply, lang) => {
 			success: true,
 			message: "User logged in successfully",
 			userId: result.userId,
+			token: result.token,
 		});
 	} catch (err) {
 		console.error("Handler error:", err);
@@ -284,11 +291,9 @@ const register = async (request, reply, lang) => {
 				message: "Username, password, and country required",
 			});
 		}
-		const saltRounds = 10;
-		const hashedPassword = await bcrypt.hash(password, saltRounds);
 		const result = await userService.register(
 			username,
-			hashedPassword,
+			password,
 			country,
 			request.lang
 		);
