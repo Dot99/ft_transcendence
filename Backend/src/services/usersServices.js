@@ -68,7 +68,10 @@ export function createUser(username, password, country, lang = "en") {
 		db.run(sql, [username, password, country, dateJoined], function (err) {
 			if (err) {
 				console.error("Error creating user:", err);
-				return resolve({ success: false, message: "Failed to create user" });
+				return resolve({
+					success: false,
+					message: messages[lang].failCreateUser,
+				});
 			}
 
 			console.log("User created with ID:", this.lastID);
@@ -368,7 +371,7 @@ export function getBlockedUsers(userId, lang = "en") {
 
 export function getUserMatches(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		db.all("SELECT * FROM matches WHERE user_id = ?", [userId], (err, rows) => {
+		db.all("SELECT * FROM match_history WHERE player1 = ? OR player2 = ?", [userId], (err, rows) => {
 			if (err) {
 				console.error("DB error:", err);
 				return reject(err);
@@ -383,7 +386,7 @@ export function getUserMatches(userId, lang = "en") {
 
 export function getUserStats(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		db.get("SELECT * FROM stats WHERE user_id = ?", [userId], (err, row) => {
+		db.get("SELECT * FROM stats WHERE player_id = ?", [userId], (err, row) => {
 			if (err) {
 				console.error("DB error:", err);
 				return reject(err);
