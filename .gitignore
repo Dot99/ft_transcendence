@@ -3,3 +3,9 @@ Backend/node_modules
 Backend/package-lock.json
 Backend/tests
 Backend/data.db
+Frontend/node_modules
+
+#TODO: CHECK THIS LATER
+Frontend/.env
+Frontend/docker-compose.yml
+Frontend/backend
