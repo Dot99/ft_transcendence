@@ -1,9 +1,10 @@
 import db from "../../db/dataBase.js";
 import { messages } from "../locales/messages.js";
 
+
 export function getAllGames() {
 	return new Promise((resolve, reject) => {
-		db.all("SELECT * FROM games", (err, rows) => {
+		db.all("SELECT * FROM match_history", (err, rows) => {
 			if (err) {
 				reject({ success: false, error: err });
 			} else {
@@ -15,7 +16,7 @@ export function getAllGames() {
 
 export function getGameById(id) {
 	return new Promise((resolve, reject) => {
-		db.get("SELECT * FROM games WHERE id = ?", [id], (err, row) => {
+		db.get("SELECT * FROM match_history WHERE id = ?", [id], (err, row) => {
 			if (err) {
 				reject({ success: false, error: err });
 			}
@@ -29,7 +30,7 @@ export function getGameById(id) {
 
 export function getGamesByUserId(userId) {
 	return new Promise((resolve, reject) => {
-		db.all("SELECT * FROM games WHERE userId = ?", [userId], (err, rows) => {
+		db.all("SELECT * FROM match_history WHERE player1 = ? OR player2 = ?", [userId], (err, rows) => {
 			if (err) {
 				reject({ success: false, error: err });
 			}

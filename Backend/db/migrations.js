@@ -17,14 +17,14 @@ export default function runMigrations(db) {
     )
   `);
 
-  // Gameplay
+  // status
   db.run(`
-    CREATE TABLE IF NOT EXISTS gameplay (
+    CREATE TABLE IF NOT EXISTS status (
       player_id INTEGER PRIMARY KEY,
       total_matches INTEGER DEFAULT 0,
       matches_won INTEGER DEFAULT 0,
       matches_lost INTEGER DEFAULT 0,
-      avg_score REAL DEFAULT 0,
+      average_score REAL DEFAULT 0.0,
       win_streak_max INTEGER DEFAULT 0,
       tournaments_won INTEGER DEFAULT 0,
       leaderboard_position INTEGER,
@@ -36,24 +36,12 @@ export default function runMigrations(db) {
   db.run(`
     CREATE TABLE IF NOT EXISTS match_history (
       match_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      player_id INTEGER NOT NULL,
-      opponent_id INTEGER NOT NULL,
-      match_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-      result TEXT CHECK(result IN ('win', 'loss', 'draw')) NOT NULL,
-      player_score INTEGER NOT NULL,
-      opponent_score INTEGER NOT NULL,
-      FOREIGN KEY (player_id) REFERENCES users(id),
-      FOREIGN KEY (opponent_id) REFERENCES users(id)
-    )
-  `);
-
-  // Games
-  db.run(`
-    CREATE TABLE IF NOT EXISTS games (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
       player1 INTEGER NOT NULL,
       player2 INTEGER NOT NULL,
+      match_date DATETIME DEFAULT CURRENT_TIMESTAMP,
       winner INTEGER,
+      player1_score INTEGER NOT NULL,
+      player2_score INTEGER NOT NULL,
       FOREIGN KEY (player1) REFERENCES users(id),
       FOREIGN KEY (player2) REFERENCES users(id),
       FOREIGN KEY (winner) REFERENCES users(id)
