@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend/db:/app/db:Z
+      - ./public:/app/public:Z
+    environment:
+      - NODE_ENV=production
+    networks:
+      - app-network
+
+volumes:
+  stats-data:                        
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge

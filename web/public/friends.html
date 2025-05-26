@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Friends</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/style.css">
+</head>
+<script>
+  const userId = 1;
+
+  async function loadFriends() {
+    const res = await fetch(`/api/user/${userId}/friends`);
+    const friends = await res.json();
+    const friendsList = document.getElementById('friendsList');
+    friendsList.innerHTML = '';
+
+    if (friends.length === 0) {
+      friendsList.innerHTML = '<div class="text-white">No friends found.</div>';
+      return;
+    }
+
+    friends.forEach(friend => {
+      friendsList.innerHTML += `
+        <div class="flex items-center border-2 border-[#4CF190] p-2 space-x-3 w-full cursor-pointer"
+             onclick="openInviteModal('${friend.id}', '${friend.username}')">
+          <img src="images/floppy_disk.svg" alt="icon" class="w-5 h-5 text-[#4CF190]" />
+          <span class="text-white">${friend.username}</span>
+        </div>
+      `;
+    });
+  }
+
+  window.addEventListener('DOMContentLoaded', loadFriends);
+
+  let selectedFriendId = null;
+  let selectedFriendName = null;
+
+  function openInviteModal(friendId, friendName) {
+    selectedFriendId = friendId;
+    selectedFriendName = friendName;
+    document.getElementById('inviteFriendName').textContent = friendName;
+    document.getElementById('inviteModal').style.display = 'flex';
+  }
+
+  function closeInviteModal() {
+    document.getElementById('inviteModal').style.display = 'none';
+  }
+
+  function inviteToGame() {
+    closeInviteModal();
+    const invitedMsg = document.getElementById('friendInvite');
+    invitedMsg.classList.remove('hidden');
+    invitedMsg.classList.add('show');
+    setTimeout(() => {
+      invitedMsg.classList.remove('show');
+      setTimeout(() => {
+        invitedMsg.classList.add('hidden');
+      }, 400);
+    }, 2000);
+  }
+
+  function addFriend() {
+    const input = document.getElementById('friendInput');
+    const friendName = input.value.trim();
+    if (!friendName) return;
+    // TODO: Add friend logic
+
+    input.value = '';
+
+    // Show the "Friend request sent" temp message
+    const msg = document.getElementById('friendAdded');
+    msg.classList.remove('hidden');
+    msg.classList.add('show');
+    setTimeout(() => {
+      msg.classList.remove('show');
+      setTimeout(() => {
+        msg.classList.add('hidden');
+      }, 400);
+    }, 2000);
+  }
+</script>
+<body class="flex items-center justify-center min-h-screen index-page" style="font-family: 'Press Start 2P', cursive;">
+  <!-- Decorative Elements -->
+  <img src="images/computer.svg" class="fixed bottom-14 right-28 w-64 floating" alt="paddle">
+
+    <div class="absolute top-12 left-20 text-left space-y-16 z-50">
+    <!-- Title -->
+    <div class="flex items-start justify-start space-x-4">
+        <h1 class="text-4xl text-[#4CF190]">FRIENDS</h1>
+    </div>
+    <!-- Friends List -->
+    <div class="scrollable-container mt-4 w-96 space-y-3 pr-2" id="friendsList">
+    <!-- Example Friend placeholder -->
+    <div class="flex items-center border-2 border-[#4CF190] p-2 space-x-5">
+        <img src="images/floppy_disk.svg" alt="icon" class="w-8 h-8 text-[#4CF190]" />
+        <span class="text-white">Friend Name</span>
+    </div>
+    </div>
+    </div>
+
+    <!-- Input + Button Container -->
+    <div class="absolute bottom-8 left-20 flex items-center ">
+    <!-- Add Friend Button -->
+    <button
+        onclick="addFriend()"
+        class="friends-btn w-60 h-20 text-1xl hover:brightness-110 transition-all">ADD FRIEND</button>
+
+    <!-- Input Area -->
+    <div class="bg-[#0101A6] h-10 p-1 mt-3">
+        <div class="border-2 border-white p-1 h-full flex items-center px-3">
+        <input
+            id="friendInput"
+            type="text"
+            placeholder="Enter name"
+            class="bg-transparent text-white text-center placeholder-gray-400 outline-none w-48"
+        />
+        </div>
+    </div>
+    <!-- Friend Added -->
+    <div id="friendAdded" class="fixed top-6 right-6 px-6 py-4 retro-border text-[#4CF190] bg-[#001B26] z-[1001] hidden">
+    Friend request sent!
+    </div>
+    <!-- Friend Invited -->
+    <div id="friendInvite" class="fixed top-6 right-6 px-6 py-4 retro-border text-[#4CF190] bg-[#001B26] z-[1001] hidden">
+      Friend invited!
+    </div>
+    </div>
+  </div>
+
+  <!-- Invite Modal -->
+  <div id="inviteModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Invite Friend to a Game</div>
+      <div class="modal-body">
+        <span id="inviteFriendName" class="retro-text"></span>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn" onclick="inviteToGame()">Invite</button>
+        <button class="modal-btn" onclick="closeInviteModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
