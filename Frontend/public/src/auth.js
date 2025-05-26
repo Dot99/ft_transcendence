@@ -11,6 +11,7 @@ async function login() {
 			body: JSON.stringify({ username, password }), // send raw password
 		});
 		const data = await response.json();
+		console.log("Login response:", data);
 		if (response.ok && data.token) {
 			localStorage.setItem("jwt", data.token);
 			showLoginSuccessTempMsg?.();
@@ -26,14 +27,15 @@ async function login() {
 async function register() {
 	const username = document.getElementById("loginUsernameInput").value.trim();
 	const password = document.getElementById("loginPasswordInput").value.trim();
-
+	const locale = navigator.language || navigator.userLanguage;
+	const [lang, country] = locale.split("-");
 	try {
 		const response = await fetch("/api/register", {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
 			},
-			body: JSON.stringify({ username, password }), // send raw password
+			body: JSON.stringify({ username, password, lang, country }),
 		});
 		const data = await response.json();
 		if (response.ok && data.token) {
