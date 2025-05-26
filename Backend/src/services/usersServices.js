@@ -68,7 +68,10 @@ export function createUser(username, password, country, lang = "en") {
 		db.run(sql, [username, password, country, dateJoined], function (err) {
 			if (err) {
 				console.error("Error creating user:", err);
-				return resolve({ success: false, message: "Failed to create user" });
+				return resolve({
+					success: false,
+					message: messages[lang].failCreateUser,
+				});
 			}
 
 			console.log("User created with ID:", this.lastID);
