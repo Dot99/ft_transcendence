@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles/style.css">
+  <script src="/src/auth.js"></script>
 </head>
 <body class="flex items-center justify-center min-h-screen index-page" style="font-family: 'Press Start 2P', cursive;">
   <!-- Decorative Elements -->
@@ -69,14 +70,14 @@
           id="loginPopupLoginBtn"
           class="menu-button flex-1 h-20 text-base py-2"
           style="min-width:0;"
-          onclick="mockLogin()"
+          onclick="login()"
           disabled
         >Login</button>
         <button
           id="loginPopupSignInBtn"
           class="menu-button flex-1 h-20 text-base py-2"
           style="min-width:0;"
-          onclick="mockSignIn()"
+          onclick="register()"
           disabled
         >Sign In</button>
       </div>

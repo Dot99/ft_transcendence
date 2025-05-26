@@ -7,6 +7,7 @@ services:
     volumes:
       - .:/app
       - /app/node_modules
+      - ./Frontend/public:/app/Frontend/public
     networks:
       - ft_transcendence-network
 
