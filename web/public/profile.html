@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Profile</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/style.css">
+</head>
+<body class="p-6 text-gray-100">
+  <div id="deleteModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        Delete Account
+      </div>
+      <div class="text-gray-200 mb-4">
+        Are you sure you want to delete your account? This action cannot be undone.
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn" onclick="closeDeleteModal()">CANCEL</button>
+        <button class="modal-btn" onclick="confirmDelete()">DELETE</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-7xl mx-auto">
+    <!-- Main Profile Card -->
+    <div class="retro-border p-6 mb-6">
+      <div class="profile-section">
+        <!-- Left side - Avatar -->
+        <div class="profile-left">
+          <div class="avatar-container">
+            <img id="pfp" src="" alt="Avatar" />
+          </div>
+        </div>
+
+        <!-- Middle - User info -->
+        <div class="profile-info">
+          <h1 id="name" class="profile-name">Power Guido</h1>
+          <h2 id="username" class="profile-username">@powerguido</h2>
+          <div class="profile-details">
+            <div id="email" class="profile-email">powerguido@gmail.com</div>
+            <div class="profile-country">
+              <img id="flag" src="" alt="Flag" class="w-6 h-5 rounded-sm border border-green-400" />
+              <span id="country" class="text-sm text-gray-400">PT</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time Played Section -->
+        <div class="time-played-section">
+          <div class="hours-played">
+            <span id="hoursPlayed"></span>
+            <span class="text-sm">hours played</span>
+          </div>
+          <a onclick="window.location.href='/friends'" class="friends-btn">FRIENDS</a>
+        </div>
+
+        <!-- Delete and Arcade Section -->
+        <div class="delete-arcade-section">
+          <button class="delete-btn">DELETE ACCOUNT</button>
+          <img src="images/arcade.svg" alt="Arcade" class="arcade-image" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Overview -->
+    <div class="retro-border p-6 mb-6">
+      <div class="section-header">
+        <h2 class="text-xl font-bold">Performance Overview</h2>
+      </div>
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div class="stat-box p-4">
+          <div class="text-gray-400 text-sm mb-2">Matches</div>
+          <div id="totalMatches" class="text-2xl retro-text"></div>
+        </div>
+        <div class="stat-box p-4">
+          <div class="text-gray-400 text-sm mb-2">Wins</div>
+          <div id="matchesWon" class="text-2xl retro-text"></div>
+        </div>
+        <div class="stat-box p-4">
+          <div class="text-gray-400 text-sm mb-2">Losses</div>
+          <div id="matchesLost" class="text-2xl retro-text"></div>
+        </div>
+        <div class="stat-box p-4">
+          <div class="text-gray-400 text-sm mb-2">Avg Score</div>
+          <div id="avgScore" class="text-2xl retro-text"></div>
+        </div>
+        <div class="stat-box p-4">
+          <div class="text-gray-400 text-sm mb-2">Win Streak</div>
+          <div id="winStreak" class="text-2xl retro-text"></div>
+        </div>
+        <div class="stat-box p-4">
+          <div class="text-gray-400 text-sm mb-2">Tournaments Won</div>
+          <div id="tournaments" class="text-2xl retro-text"></div>
+        </div>        
+      </div>
+      <div class="gold-box p-4 text-center gold-border">
+        <div class="text-gray-400 text-sm mb-2">🏆 Leaderboard Rank</div>
+        <div id="leaderboard" class="text-3xl gold-text"></div>
+      </div>
+    </div>
+
+    <!-- Split View -->
+    <div class="split-view">
+      <!-- LEFT column -->
+      <div class="left-column space-y-6">
+        
+        <!-- Recent Matches -->
+        <div class="retro-border p-6">
+          <div class="section-header">
+            <h2 class="text-xl font-bold">Recent Matches</h2>
+          </div>
+          <div class="matches-container scrollable-container" id="matchTableBody">
+            <!-- Match entries populated by JS -->
+          </div>
+        </div>
+
+        <!-- Past Tournaments -->
+        <div class="retro-border p-6">
+          <div class="section-header">
+            <h2 class="text-xl font-bold">Past Tournaments</h2>
+          </div>
+          <div class="space-y-2 scrollable-container" id="tournamentTableBody">
+            <!-- Past tournaments populated by JS -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT column -->
+      <div class="right-column space-y-6">
+        
+        <!-- Upcoming Matches -->
+        <div class="retro-border p-6">
+          <div class="section-header">
+            <h2 class="text-xl font-bold">Upcoming Matches</h2>
+          </div>
+          <div id="upcomingMatches" class="space-y-2 scrollable-container">
+            <!-- Upcoming matches populated by JS -->
+          </div>
+        </div>
+
+        <!-- Current Tournament -->
+        <div class="retro-border p-6">
+          <div class="section-header">
+            <h2 class="text-xl font-bold">Current Tournament</h2>
+          </div>
+          <div class="tournament-header">
+            <div id="currTournamentName" class="tournament-name"></div>
+            <div class="text-sm text-gray-400">Position: <span id="currTournamentPosition" class="gold-text"></span></div>
+          </div>
+          <div id="currTournamentMatches" class="space-y-2 scrollable-container">
+            <!-- Tournament matches populated by JS -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  <script>
+    const userId = 1;
+
+    async function loadDashboardData() {
+      const [userRes, matchRes, tourRes, upcomingRes] = await Promise.all([
+        fetch(`/api/user/${userId}`),
+        fetch(`/api/user/${userId}/matches`),
+        fetch(`/api/user/${userId}/tournaments`),
+        fetch(`/api/tournaments/upcoming`)
+      ]);
+
+      const userData = await userRes.json();
+      const matches = await matchRes.json();
+      const tournaments = await tourRes.json();
+      const upcoming = await upcomingRes.json();
+
+      // Update profile info
+      document.getElementById('username').textContent = `@${userData.username}`;
+      document.getElementById('country').textContent = userData.country;
+      document.getElementById('name').textContent = userData.name;
+      document.getElementById('email').textContent = userData.email;
+      if (userData.pfp) {
+        document.getElementById('pfp').src = `/images/${userData.pfp}`;
+      }
+
+      // Update stats
+      document.getElementById('totalMatches').textContent = userData.total_matches;
+      document.getElementById('matchesWon').textContent = userData.matches_won;
+      document.getElementById('matchesLost').textContent = userData.matches_lost;
+      document.getElementById('avgScore').textContent = userData.avg_score;
+      document.getElementById('winStreak').textContent = userData.win_streak;
+      document.getElementById('tournaments').textContent = userData.tournaments_won;
+      document.getElementById('leaderboard').textContent = userData.leaderboard_position;
+      document.getElementById('hoursPlayed').textContent = userData.total_play_time/3600;
+
+      const countryCode = getCountryCode(userData.country || '');
+      document.getElementById('flag').src = `https://flagcdn.com/w40/${countryCode}.png`;
+
+      // Recent matches
+      const matchContainer = document.getElementById('matchTableBody');
+      matchContainer.innerHTML = '';
+      
+      matches.forEach(match => {
+        const div = document.createElement('div');
+        div.className = `p-3 rounded ${match.player_score > match.opponent_score ? 'match-win' : 'match-loss'}`;
+        div.innerHTML = `
+          <div class="flex justify-between items-center">
+            <div class="flex items-center gap-4">
+              <span class="text-sm">#${match.match_id}</span>
+              <span class="text-sm">${match.opponent_username}</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span class="text-sm">${match.player_score} - ${match.opponent_score}</span>
+              <span class="text-xs text-gray-400">${new Date(match.match_date).toLocaleDateString()}</span>
+            </div>
+          </div>
+        `;
+        matchContainer.appendChild(div);
+      });
+
+      // Upcoming matches
+      const upcomingList = document.getElementById('upcomingMatches');
+      upcomingList.innerHTML = '';
+      upcoming.filter(m => m.player_id == userId || m.opponent_id == userId).forEach(match => {
+        const div = document.createElement('div');
+        div.className = 'stat-box p-3 rounded';
+        div.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span class="text-sm">${match.player_name} vs ${match.opponent_name}</span>
+            <span class="text-xs text-gray-400">${match.scheduled_date.split('T')[0]}</span>
+          </div>
+        `;
+        upcomingList.appendChild(div);
+      });
+
+      // Current tournament
+      const currTour = tournaments.find(t => t.status === 'ongoing');
+      if (currTour) {
+        document.getElementById('currTournamentName').textContent = currTour.name || 'Unnamed Tournament';
+        document.getElementById('currTournamentPosition').textContent = currTour.rank || '-';
+        
+        const currMatches = document.getElementById('currTournamentMatches');
+        currMatches.innerHTML = '';
+        currTour.matches.forEach(match => {
+          const div = document.createElement('div');
+          div.className = `stat-box p-3 rounded`;
+          div.innerHTML = `
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-4">
+                <span class="text-sm">#${match.match_id}</span>
+                <span class="text-sm">${match.opponent_username}</span>
+              </div>
+              <span class="text-sm">${match.player_score} - ${match.opponent_score}</span>
+            </div>
+          `;
+          currMatches.appendChild(div);
+        });
+      }
+
+      // Past tournaments
+      const tourBody = document.getElementById('tournamentTableBody');
+      tourBody.innerHTML = '';
+      tournaments.filter(t => t.status === 'finished').forEach(t => {
+        const div = document.createElement('div');
+        div.className = 'stat-box p-3 rounded';
+        div.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span class="text-sm">${t.name}</span>
+            <div class="flex items-center gap-4">
+              <span class="text-sm">#${t.rank || '-'}</span>
+              <span class="text-xs text-gray-400">${t.matches_played || 0} matches</span>
+            </div>
+          </div>
+        `;
+        tourBody.appendChild(div);
+      });
+    }
+
+    function getCountryCode(countryName) {
+      const countryMap = { usa: 'us', uk: 'gb', canada: 'ca', france: 'fr', germany: 'de', portugal: 'pt' };
+      return countryMap[countryName.toLowerCase()] || 'pt';
+    }
+
+    window.onload = loadDashboardData;
+
+    function showDeleteModal() {
+      document.getElementById('deleteModal').style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('deleteModal').style.display = 'none';
+    }
+
+    function confirmDelete() {
+      //delete account logic
+      console.log('Account deletion confirmed');
+      closeDeleteModal();
+      alert('Your account has been deleted');
+      window.location.href = '/';
+    }
+
+    //Handler to delete button
+    document.querySelector('.delete-btn').addEventListener('click', showDeleteModal);
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+      const modal = document.getElementById('deleteModal');
+      if (event.target === modal) {
+        closeDeleteModal();
+      }
+    }
+  </script>
+</body>
+</html>
