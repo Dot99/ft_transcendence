@@ -217,7 +217,10 @@ export function register(username, password, country, fastify, lang = "en") {
 		if (!username || !password || !country) {
 			return resolve({ success: false, message: messages[lang].missingFields });
 		}
-
+		const existingUser = await getUserByUsername(username, lang);
+		if (existingUser && existingUser.success) {
+			return resolve({ success: false, message: messages[lang].userExists });
+		}
 		const hashedPassword = await bcrypt.hash(password, 10);
 		const dateJoined = new Date().toISOString();
 

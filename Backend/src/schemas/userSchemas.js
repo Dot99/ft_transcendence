@@ -4,7 +4,7 @@ const paramsJsonSchema = {
 		id: {
 			type: "integer",
 			minimum: 1,
-			maximum: 2147483647
+			maximum: 2147483647,
 		},
 		username: {
 			type: "string",
@@ -33,8 +33,8 @@ const bodyUserSchema = {
 		},
 		country: {
 			type: "string",
-			minLength: parseInt(process.env.COUNTRY_MIN_LENGTH),
-			maxLength: parseInt(process.env.COUNTRY_MAX_LENGTH),
+			minLength: parseInt(process.env.LANG_MIN_LENGTH),
+			maxLength: parseInt(process.env.LANG_MAX_LENGTH),
 		},
 	},
 	required: ["username", "password", "country"],
