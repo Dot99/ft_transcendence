@@ -14,6 +14,7 @@ async function login() {
 		if (response.ok && data.token) {
 			localStorage.setItem("jwt", data.token);
 			showLoginSuccessTempMsg?.();
+			navigateTo("/profile");
 		} else {
 			throw new Error("Login failed: " + (data?.message || "Unknown error"));
 		}
@@ -26,6 +27,9 @@ async function login() {
 async function register() {
 	const username = document.getElementById("loginUsernameInput").value.trim();
 	const password = document.getElementById("loginPasswordInput").value.trim();
+	const locale = navigator.language || navigator.userLanguage;
+	const [lang, country] = locale.split("-");
+	const errorElement = document.getElementById("loginErrorMsg");
 
 	try {
 		const response = await fetch("/api/register", {
@@ -33,12 +37,14 @@ async function register() {
 			headers: {
 				"Content-Type": "application/json",
 			},
-			body: JSON.stringify({ username, password }), // send raw password
+			body: JSON.stringify({ username, password, lang, country }),
 		});
 		const data = await response.json();
 		if (response.ok && data.token) {
 			localStorage.setItem("jwt", data.token);
 			showRegisterSuccessTempMsg?.();
+			errorElement.textContent = "";
+			navigateTo("/profile");
 		} else {
 			throw new Error(
 				"Registration failed: " + (data?.message || "Unknown error")
@@ -46,7 +52,8 @@ async function register() {
 		}
 	} catch (error) {
 		console.error("Registration failed:", error);
-		alert("Registration failed. Please try again.");
+		errorElement.textContent = error.message;
+		errorElement.style.display = "block";
 	}
 }
 

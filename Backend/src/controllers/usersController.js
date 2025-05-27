@@ -1,3 +1,4 @@
+import fastify from "fastify";
 import { UserNotFoundError } from "../errors/userNotFoundError.js";
 import * as userService from "../services/usersServices.js";
 
@@ -257,11 +258,10 @@ const login = async (request, reply, lang) => {
 				.code(400)
 				.send({ success: false, message: "Username and password required" });
 		}
-		const saltRounds = 10;
-		const hashedPassword = bcrypt.hash(password, saltRounds);
 		const result = await userService.login(
 			username,
-			hashedPassword,
+			password,
+			request.server,
 			request.lang
 		);
 		if (!result.success) {
@@ -270,6 +270,39 @@ const login = async (request, reply, lang) => {
 		reply.code(200).send({
 			success: true,
 			message: "User logged in successfully",
+			userId: result.userId,
+			token: result.token,
+		});
+	} catch (err) {
+		console.error("Handler error:", err);
+		reply.code(500).send({
+			success: false,
+			error: err.message,
+		});
+	}
+};
+
+const register = async (request, reply, lang) => {
+	try {
+		const { username, password, country } = request.body;
+		if (!username || !password || !country) {
+			return reply.code(400).send({
+				success: false,
+				message: "Username, password, and country required",
+			});
+		}
+		const result = await userService.register(
+			username,
+			password,
+			country,
+			request.lang
+		);
+		if (!result.success) {
+			return reply.code(400).send({ success: false, message: result.message });
+		}
+		reply.code(201).send({
+			success: true,
+			message: "User registered successfully",
 			userId: result.userId,
 		});
 	} catch (err) {
@@ -709,6 +742,7 @@ export default {
 	getCurrentUser,
 	uploadAvatar,
 	login,
+	register,
 	logout,
 	getUserFriends,
 	addFriend,
