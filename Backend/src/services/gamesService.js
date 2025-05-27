@@ -50,8 +50,7 @@ export function getRecentGamesByUserId(userId) {
 		db.all(
 			`SELECT * FROM match_history 
 			 WHERE player1 = ? OR player2 = ? 
-			 ORDER BY match_date DESC 
-			 LIMIT 3`,
+			 ORDER BY match_date DESC`,
 			[userId, userId],
 			(err, rows) => {
 				if (err) {

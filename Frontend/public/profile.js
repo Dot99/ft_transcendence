@@ -153,12 +153,12 @@ function loadProfilePage() {
     `;
 
 	// Close modal when clicking outside
-	window.onclick = function (event) {
-		const modal = document.getElementById("deleteModal");
-		if (event.target === modal) {
-			closeDeleteModal();
-		}
-	};
+	// window.onclick = function (event) {
+	// 	const modal = document.getElementById("deleteModal");
+	// 	if (event.target === modal) {
+	// 		closeDeleteModal();
+	// 	}
+	// };
 
 	// Load dashboard data
 	loadDashboardData();
@@ -189,8 +189,6 @@ async function loadDashboardData() {
 	// Update stats
 	const statsRes = await fetch(`/api/users/${userId}/status`);
 	const statsData = await statsRes.json();
-	console.log("statsData", statsData.status);
-	console.log("statsRes", JSON.stringify(statsData, null, 2));
 	document.getElementById("totalMatches").textContent =
 		statsData.status.total_matches;
 	document.getElementById("matchesWon").textContent =
@@ -201,7 +199,6 @@ async function loadDashboardData() {
 		statsData.status.average_score;
 	document.getElementById("winStreak").textContent =
 		statsData.status.win_streak_max;
-
 	document.getElementById("tournaments").textContent =
 		statsData.status.tournaments_won;
 	document.getElementById("leaderboard").textContent =
@@ -209,9 +206,63 @@ async function loadDashboardData() {
 	document.getElementById("hoursPlayed").textContent = (
 		userData.user.total_play_time / 3600
 	).toFixed(2);
+
+
 	const recentMatch = await fetch(`/api/games/users/${userId}/recent`);
-	console.log("recentMatch", JSON.stringify(recentMatch, null, 2));
-	document.getElementById("matchTableBody").textContent = recentMatch;
+  const recentMatchData = await recentMatch.json();
+  console.log("recentMatchData", recentMatchData);
+
+  const container = document.getElementById("matchTableBody");
+  container.innerHTML = "";
+  
+  for (const match of recentMatchData.games) {
+    const player1Res = await fetch(`/api/users/${match.player1}`);
+    const player1Data = await player1Res.json();
+    const player1Name = player1Data.user.username;
+  
+    const player2Res = await fetch(`/api/users/${match.player2}`);
+    const player2Data = await player2Res.json();
+    const player2Name = player2Data.user.username;
+    const matchDate = new Date(match.match_date);
+    const formattedDate = matchDate
+    .toLocaleString("pt-PT", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+    .replace(",", "");
+    
+    let winnerName = "-";
+    if (match.winner) {
+      const winnerRes = await fetch(`/api/users/${match.winner}`);
+      const winnerData = await winnerRes.json();
+      winnerName = winnerData.user.username;
+    }
+  
+    const matchElement = document.createElement("div");
+    matchElement.className = "match-entry flex justify-between items-center p-2 border-b border-green-500";  
+  
+    matchElement.innerHTML = `
+      <div>
+        <div class="font-bold text-green-400">${formattedDate}</div>
+        <div class="text-sm text-gray-400">
+          ${player1Name} vs ${player2Name}
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="text-sm text-green-400">
+          Score: ${match.player1_score} - ${match.player2_score}
+        </div>
+        <div class="text-sm text-yellow-400">
+          Winner: ${winnerName}
+        </div>
+      </div>
+    `;
+  
+    container.appendChild(matchElement);
+  };
 }
 
 function showDeleteModal() {
