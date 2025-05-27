@@ -1,5 +1,4 @@
 function loadProfilePage() {
-	console.log("loadProfilePage is defined");
 	const app = document.getElementById("app");
 	app.innerHTML = `
         <div id="deleteModal" class="modal">
@@ -152,17 +151,6 @@ function loadProfilePage() {
       </div>
     </div>
     `;
-
-	// Add event listeners for modal buttons
-	document
-		.getElementById("cancelDeleteBtn")
-		.addEventListener("click", closeDeleteModal);
-	document
-		.getElementById("confirmDeleteBtn")
-		.addEventListener("click", confirmDelete);
-	document
-		.querySelector(".delete-btn")
-		.addEventListener("click", showDeleteModal);
 
 	// Close modal when clicking outside
 	window.onclick = function (event) {

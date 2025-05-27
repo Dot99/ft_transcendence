@@ -13,7 +13,7 @@ COPY . .
 
 # Copy database file
 RUN mkdir -p /db
-COPY db/data.db /db/data.db
+COPY ./Backend/db/data.db Backend/db/data.db
 
 # Expose port
 EXPOSE 3000

@@ -10,8 +10,6 @@ function navigateTo(path) {
 	loadRoute(path); // Load the corresponding route
 }
 
-console.log("Routes object:", routes);
-
 function loadRoute(path) {
 	const route = routes[path] || loadNotFoundPage; // Fallback to a 404 page
 	route();

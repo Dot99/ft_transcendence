@@ -13,8 +13,11 @@ async function login() {
 		const data = await response.json();
 		if (response.ok && data.token) {
 			localStorage.setItem("jwt", data.token);
+			closeLoginModal();
 			showLoginSuccessTempMsg?.();
-			navigateTo("/profile");
+			setTimeout(() => {
+				navigateTo("/profile"); //TODO: CHANGE TO INTERMEDIATE PAGE
+			}, 50);
 		} else {
 			throw new Error("Login failed: " + (data?.message || "Unknown error"));
 		}
@@ -40,11 +43,13 @@ async function register() {
 			body: JSON.stringify({ username, password, lang, country }),
 		});
 		const data = await response.json();
-		if (response.ok && data.token) {
+		if (response.ok && data.success) {
 			localStorage.setItem("jwt", data.token);
 			showRegisterSuccessTempMsg?.();
 			errorElement.textContent = "";
-			navigateTo("/profile");
+			setTimeout(() => {
+				navigateTo("/profile"); //TODO: CHANGE TO INTERMEDIATE PAGE
+			}, 50);
 		} else {
 			throw new Error(
 				"Registration failed: " + (data?.message || "Unknown error")

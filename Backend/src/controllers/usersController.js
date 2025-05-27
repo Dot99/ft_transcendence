@@ -37,7 +37,6 @@ const getAllUsers = async (request, reply, lang) => {
  */
 const getUserById = async (request, reply, lang) => {
 	try {
-		console.log("Request params:");
 		const id = request.params.id;
 		const result = await userService.getUserById(id, request.lang);
 
@@ -295,6 +294,7 @@ const register = async (request, reply, lang) => {
 			username,
 			password,
 			country,
+			request.server,
 			request.lang
 		);
 		if (!result.success) {
@@ -304,6 +304,7 @@ const register = async (request, reply, lang) => {
 			success: true,
 			message: "User registered successfully",
 			userId: result.userId,
+			token: result.token,
 		});
 	} catch (err) {
 		console.error("Handler error:", err);
