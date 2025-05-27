@@ -2,7 +2,7 @@ import sqlite3 from 'sqlite3';
 import runMigrations from './migrations.js';
 sqlite3.verbose();
 
-const db = new sqlite3.Database('data.db', (err) => {
+const db = new sqlite3.Database('/db/data.db', (err) => {
   if (err) {
     console.error('Error connecting', err.message);
   } else {
