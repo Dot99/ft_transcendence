@@ -11,10 +11,10 @@ async function login() {
 			body: JSON.stringify({ username, password }), // send raw password
 		});
 		const data = await response.json();
-		console.log("Login response:", data);
 		if (response.ok && data.token) {
 			localStorage.setItem("jwt", data.token);
 			showLoginSuccessTempMsg?.();
+			navigateTo("/profile");
 		} else {
 			throw new Error("Login failed: " + (data?.message || "Unknown error"));
 		}
@@ -29,6 +29,8 @@ async function register() {
 	const password = document.getElementById("loginPasswordInput").value.trim();
 	const locale = navigator.language || navigator.userLanguage;
 	const [lang, country] = locale.split("-");
+	const errorElement = document.getElementById("loginErrorMsg");
+
 	try {
 		const response = await fetch("/api/register", {
 			method: "POST",
@@ -41,6 +43,8 @@ async function register() {
 		if (response.ok && data.token) {
 			localStorage.setItem("jwt", data.token);
 			showRegisterSuccessTempMsg?.();
+			errorElement.textContent = "";
+			navigateTo("/profile");
 		} else {
 			throw new Error(
 				"Registration failed: " + (data?.message || "Unknown error")
@@ -48,7 +52,8 @@ async function register() {
 		}
 	} catch (error) {
 		console.error("Registration failed:", error);
-		alert("Registration failed. Please try again.");
+		errorElement.textContent = error.message;
+		errorElement.style.display = "block";
 	}
 }
 
