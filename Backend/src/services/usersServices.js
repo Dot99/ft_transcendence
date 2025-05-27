@@ -223,7 +223,7 @@ export function register(username, password, country, fastify, lang = "en") {
 		}
 		const hashedPassword = await bcrypt.hash(password, 10);
 		const dateJoined = new Date().toISOString();
-
+		const jwt = fastify.jwt; 
 		const sql = `INSERT INTO users (username, password, country, date_joined) VALUES (?, ?, ?, ?)`;
 		db.run(
 			sql,
@@ -238,7 +238,7 @@ export function register(username, password, country, fastify, lang = "en") {
 				}
 
 				const userId = this.lastID;
-				const token = fastify.jwt.sign({ id: userId, username });
+				const token = jwt.sign({ id: userId, username });
 
 				resolve({ success: true, userId, token });
 			}
@@ -432,7 +432,7 @@ export function getUserStats(userId, lang = "en") {
 
 export function getUserStatus(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		db.get("SELECT * FROM status WHERE user_id = ?", [userId], (err, row) => {
+		db.get("SELECT * FROM status WHERE player_id = ?", [userId], (err, row) => {
 			if (err) {
 				console.error("DB error:", err);
 				return reject(err);
@@ -445,6 +445,75 @@ export function getUserStatus(userId, lang = "en") {
 			}
 			resolve({ success: true, status: row });
 		});
+	});
+}
+
+export function updateUserStatus(db, userId, lang = "en") {
+	return new Promise((resolve, reject) => {
+		db.get(
+			`SELECT COUNT(*) as count FROM match_history WHERE player1 = ? OR player2 = ?`,
+			[userId, userId],
+			(err, totalMatchesRes) => {
+				if (err) return reject(err);
+				const totalMatches = totalMatchesRes.count;
+
+				db.get(
+					`SELECT COUNT(*) as count FROM match_history WHERE winner = ?`,
+					[userId],
+					(err, matchesWonRes) => {
+						if (err) return reject(err);
+						const matchesWon = matchesWonRes.count;
+						const matchesLost = totalMatches - matchesWon;
+
+						db.get(
+							`SELECT 
+								SUM(CASE WHEN player1 = ? THEN player1_score ELSE 0 END) +
+								SUM(CASE WHEN player2 = ? THEN player2_score ELSE 0 END) as total_score,
+								COUNT(*) as total
+							 FROM match_history
+							 WHERE player1 = ? OR player2 = ?`,
+							[userId, userId, userId, userId],
+							(err, scoresRes) => {
+								if (err) return reject(err);
+
+								const totalScore = scoresRes.total_score || 0;
+								const total = scoresRes.total || 0;
+								const avgScore = total > 0 ? totalScore / total : 0;
+
+								const winStreakMax = 0;
+								const tournamentsWon = 0;
+
+								db.run(
+									`INSERT INTO status (
+										player_id, total_matches, matches_won, matches_lost,
+										average_score, win_streak_max, tournaments_won
+									) VALUES (?, ?, ?, ?, ?, ?, ?)
+									ON CONFLICT(player_id) DO UPDATE SET
+										total_matches = excluded.total_matches,
+										matches_won = excluded.matches_won,
+										matches_lost = excluded.matches_lost,
+										average_score = excluded.average_score,
+										win_streak_max = excluded.win_streak_max,
+										tournaments_won = excluded.tournaments_won
+									`,
+									[
+										userId, totalMatches, matchesWon, matchesLost,
+										avgScore, winStreakMax, tournamentsWon
+									],
+									function (err) {
+										if (err) {
+											console.error("DB error:", err);
+											return reject(err);
+										}
+										return resolve({ success: true });
+									}
+								);
+							}
+						);
+					}
+				);
+			}
+		);
 	});
 }
 

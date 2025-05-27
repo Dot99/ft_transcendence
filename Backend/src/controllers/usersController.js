@@ -37,7 +37,6 @@ const getAllUsers = async (request, reply, lang) => {
  */
 const getUserById = async (request, reply, lang) => {
 	try {
-		console.log("Request params:");
 		const id = request.params.id;
 		const result = await userService.getUserById(id, request.lang);
 
@@ -625,11 +624,10 @@ const getUserStats = async (request, reply, lang) => {
  */
 const getUserStatus = async (request, reply, lang) => {
 	try {
-		const user = request.user;
-		if (!user?.id) {
-			throw new UserNotFoundError("User not found");
-		}
-		const result = await userService.getUserStatus(user.id, request.lang);
+		const id = request.params.id;
+		const result = await userService.getUserStatus(id, request.lang);
+
+		console.log("getUserStatus result:", result);
 		if (!result.success) {
 			return reply.code(404).send({ success: true, message: result.message });
 		}

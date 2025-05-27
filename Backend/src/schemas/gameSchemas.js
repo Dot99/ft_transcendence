@@ -2,12 +2,14 @@ const paramsJsonSchema = {
 	type: "object",
 	properties: {
 		id: {
-			type: "string",
-			format: "uuid",
+			type: "integer",
+			minimum: 1,
+			maximum: 2147483647,
 		},
 		gameId: {
-			type: "string",
-			format: "uuid",
+			type: "integer",
+			minimum: 1,
+			maximum: 2147483647,
 		},
 	},
 };

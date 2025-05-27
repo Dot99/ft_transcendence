@@ -117,7 +117,7 @@ function loadProfilePage() {
           </div>
           <div class="space-y-2 scrollable-container" id="tournamentTableBody">
             <!-- Past tournaments populated by JS -->
-          </div>
+          </div>matchSatsRes
         </div>
 
       </div>
@@ -152,57 +152,69 @@ function loadProfilePage() {
       </div>
     </div>
     `;
-
+    
 	// Add event listeners for modal buttons
-	document
-		.getElementById("cancelDeleteBtn")
-		.addEventListener("click", closeDeleteModal);
-	document
-		.getElementById("confirmDeleteBtn")
-		.addEventListener("click", confirmDelete);
-	document
-		.querySelector(".delete-btn")
-		.addEventListener("click", showDeleteModal);
-
-	// Close modal when clicking outside
-	window.onclick = function (event) {
-		const modal = document.getElementById("deleteModal");
-		if (event.target === modal) {
-			closeDeleteModal();
-		}
-	};
-
-	// Load dashboard data
-	loadDashboardData();
+	// document
+  // .getElementById("cancelDeleteBtn")
+  // .addEventListener("click", closeDeleteModal);
+	// document
+	// 	.getElementById("confirmDeleteBtn")
+	// 	.addEventListener("click", confirmDelete);
+	// document
+	// 	.querySelector(".delete-btn")
+	// 	.addEventListener("click", showDeleteModal);
+  
+	// // Close modal when clicking outside
+	// window.onclick = function (event) {
+    // 	const modal = document.getElementById("deleteModal");
+    // 	if (event.target === modal) {
+      // 		closeDeleteModal();
+      // 	}
+      // };
+      
+      // Load dashboard data
+    loadDashboardData();
 }
 
 async function loadDashboardData() {
+
 	// Fetch user data and populate the profile page
 	const userId = 1; // Replace with dynamic user ID
-	const userRes = await fetch(`/api/user/${userId}`);
+	const userRes = await fetch(`/api/users/${userId}`);
 	const userData = await userRes.json();
+  console.log ("userData", userData.user);
 
 	// Update profile info
-	document.getElementById("username").textContent = `@${userData.username}`;
-	document.getElementById("country").textContent = userData.country;
-	document.getElementById("name").textContent = userData.name;
-	document.getElementById("email").textContent = userData.email;
-	if (userData.pfp) {
-		document.getElementById("pfp").src = `/images/${userData.pfp}`;
+	document.getElementById("username").textContent = `@${userData.user.username}`;
+	document.getElementById("country").textContent = userData.user.country;
+  const countryCode = userData.user.country.toLowerCase();
+  document.getElementById("flag").src = `https://flagcdn.com/w40/${countryCode}.png`;
+	document.getElementById("name").textContent = userData.user.name;
+	document.getElementById("email").textContent = userData.user.email;
+	if (userData.user.pfp) {
+		document.getElementById("pfp").src = `/images/${userData.user.pfp}`;
 	}
 
 	// Update stats
-	document.getElementById("totalMatches").textContent = userData.total_matches;
-	document.getElementById("matchesWon").textContent = userData.matches_won;
-	document.getElementById("matchesLost").textContent = userData.matches_lost;
-	document.getElementById("avgScore").textContent = userData.avg_score;
-	document.getElementById("winStreak").textContent = userData.win_streak;
-	document.getElementById("tournaments").textContent = userData.tournaments_won;
-	document.getElementById("leaderboard").textContent =
-		userData.leaderboard_position;
+  const statsRes = await fetch(`/api/users/${userId}/status`);
+  const statsData = await statsRes.json();
+  console.log("statsData", statsData.status);
+  console.log("statsRes", JSON.stringify(statsData, null, 2));
+	document.getElementById("totalMatches").textContent = statsData.status.total_matches;
+	document.getElementById("matchesWon").textContent = statsData.status.matches_won;
+	document.getElementById("matchesLost").textContent = statsData.status.matches_lost;
+	document.getElementById("avgScore").textContent = statsData.status.average_score;
+	document.getElementById("winStreak").textContent = statsData.status.win_streak_max;
+
+	document.getElementById("tournaments").textContent = statsData.status.tournaments_won;
+	document.getElementById("leaderboard").textContent = statsData.status.leaderboard_position;
 	document.getElementById("hoursPlayed").textContent = (
-		userData.total_play_time / 3600
+		userData.user.total_play_time / 3600
 	).toFixed(2);
+  const recentMatch = await fetch(`/api/games/users/${userId}/recent`);
+  console.log("recentMatch", JSON.stringify(recentMatch, null, 2));
+  document.getElementById("matchTableBody").textContent = recentMatch;
+
 }
 
 function showDeleteModal() {

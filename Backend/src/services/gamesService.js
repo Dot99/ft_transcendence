@@ -1,9 +1,10 @@
 import db from "../../db/dataBase.js";
 import { messages } from "../locales/messages.js";
 
+
 export function getAllGames() {
 	return new Promise((resolve, reject) => {
-		db.all("SELECT * FROM games", (err, rows) => {
+		db.all("SELECT * FROM match_history", (err, rows) => {
 			if (err) {
 				reject({ success: false, error: err });
 			} else {
@@ -15,11 +16,11 @@ export function getAllGames() {
 
 export function getGameById(id) {
 	return new Promise((resolve, reject) => {
-		db.get("SELECT * FROM games WHERE id = ?", [id], (err, row) => {
+		db.get("SELECT * FROM match_history WHERE match_id = ?", [id], (err, row) => {
 			if (err) {
 				reject({ success: false, error: err });
 			}
-			if (row.length === 0) {
+			if (!row) {
 				return resolve({ success: false, message: "Game not found" });
 			}
 			resolve({ success: true, game: row, message: "Game found" });
@@ -29,11 +30,11 @@ export function getGameById(id) {
 
 export function getGamesByUserId(userId) {
 	return new Promise((resolve, reject) => {
-		db.all("SELECT * FROM games WHERE userId = ?", [userId], (err, rows) => {
+		db.all("SELECT * FROM match_history WHERE player1 = ? OR player2 = ?", [userId], (err, rows) => {
 			if (err) {
 				reject({ success: false, error: err });
 			}
-			if (rows.length === 0) {
+			if (!rows) {
 				return resolve({
 					success: false,
 					message: "No games found for this user",
@@ -41,5 +42,29 @@ export function getGamesByUserId(userId) {
 			}
 			resolve({ success: true, games: rows, message: "Games found" });
 		});
+	});
+}
+
+export function getRecentGamesByUserId(userId) {
+	return new Promise((resolve, reject) => {
+		db.all(
+			`SELECT * FROM match_history 
+			 WHERE player1 = ? OR player2 = ? 
+			 ORDER BY match_date DESC 
+			 LIMIT 3`,
+			[userId, userId],
+			(err, rows) => {
+				if (err) {
+					return reject({ success: false, error: err });
+				}
+				if (!rows || rows.length === 0) {
+					return resolve({
+						success: false,
+						message: "No games found for this user",
+					});
+				}
+				resolve({ success: true, games: rows, message: "Games found" });
+			}
+		);
 	});
 }

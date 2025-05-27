@@ -42,4 +42,54 @@ export default async function (fastify, opts) {
 				request.lang
 			),
 	});
+	/**
+	 * @name getGameByUserid
+	 * @description Get a game by user id
+	 * @route GET /games/users/{id}
+	 * @group Games
+	 * @param {string} id - User id
+	 * @returns {Array} 200 - An array of games
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 404 - User not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.get("/games/users/:id", {
+		schema: {
+			params: paramsJsonSchema,
+		},
+		// prehandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await gamesController.getGamesByUserId(
+				request,
+				reply,
+				request.params.id,
+				request.lang
+			),
+	});
+	/**
+	 * @name getRecentGamesByUserId
+	 * @description Get recent games by user id
+	 * @route GET /games/users/{id}/recent
+	 * @group Games
+	 * @param {string} id - User id
+	 * @returns {Array} 200 - An array of recent games
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 404 - User not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.get("/games/users/:id/recent", {
+		schema: {
+			params: paramsJsonSchema,
+		},
+		// prehandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await gamesController.getRecentGamesByUserId(
+				request,
+				reply,
+				request.params.id,
+				request.lang
+			),
+	});
 }

@@ -401,7 +401,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		// prehandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.getUserStatus(request, reply, request.lang),
 	});

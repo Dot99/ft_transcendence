@@ -1,3 +1,4 @@
+import { json } from "express";
 import * as gameService from "../services/gamesService.js";
 
 /**
@@ -54,25 +55,51 @@ const getGameById = async (req, res) => {
  * @returns {Promise<void>}
  * @throws {Error} - If there is an error retrieving the games
  */
-const getGamesByUserId = async (req, res) => {
+const getGamesByUserId = async (request, reply, lang) => {
 	try {
-		const { userId } = req.params;
-		const result = gameService.getGamesByUserId(userId);
+		const userId  = request.params.id;
+		const result = await gameService.getGamesByUserId(userId, request.lang);
 		if (!result.success) {
-			return res.code(404).send({ message: result.message });
+			return reply.code(404).send(result);
 		}
-		reply.send(result.games);
+
+		reply.send({success: true, games: result.games});
 	} catch (error) {
-		console.error("Handler error:", err);
+		console.error("Handler error:", error);
 		reply.code(500).send({
 			success: false,
-			error: err.message,
+			error: error.message,
 		});
 	}
 };
+
+/* * @description Get recent games by user ID
+ * @param {Object} req - The request object
+ * @param {Object} res - The response object
+ * @returns {Promise<void>}
+ * @throws {Error} - If there is an error retrieving the recent games
+ */
+const getRecentGamesByUserId = async (request, reply) => {
+	try {
+		const userId = request.params.id;
+		const result = await gameService.getRecentGamesByUserId(userId);
+		if (!result.success) {
+			return reply.code(404).send(result);
+		}
+
+		reply.send({success: true, games: result.games});
+	} catch (error) {
+		console.error("Handler error:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+}
 
 export default {
 	getAllGames,
 	getGameById,
 	getGamesByUserId,
+	getRecentGamesByUserId
 };
