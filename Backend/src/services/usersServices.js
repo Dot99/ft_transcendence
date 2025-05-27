@@ -180,25 +180,14 @@ export async function login(username, password, fastify, lang = "en") {
 			return resolve({ success: false, message: messages[lang].missingFields });
 		}
 		const user = await getUserByUsername(username, lang);
-		if (!user || user.user.is_oauth_only) {
+		//if (!user || user.user.is_oauth_only) { //TODO: CHECK THIS
+		if (!user) {
 			return resolve({ success: false, message: messages[lang].invalidLogin });
 		}
-
 		// Verify password with bcrypt
-
 		const validPassword = await bcrypt.compare(password, user.user.password);
 		if (!validPassword) {
 			return resolve({ success: false, message: messages[lang].invalidLogin });
-		}
-
-		// If user has 2FA enabled, require second step
-		if (user.user.twofa_enabled) {
-			return resolve({
-				success: true,
-				twofa: true,
-				userId: user.user.id,
-				message: messages[lang].twofaRequired,
-			});
 		}
 
 		// Create JWT
@@ -207,6 +196,17 @@ export async function login(username, password, fastify, lang = "en") {
 			username: user.user.username,
 			email: user.user.email,
 		});
+
+		// If user has 2FA enabled, require second step
+		if (user.user.twofa_enabled) {
+			return resolve({
+				success: true,
+				twofa: true,
+				userId: user.user.id,
+				token: token,
+				message: messages[lang].twofaRequired,
+			});
+		}
 
 		resolve({ success: true, user, token });
 	});
@@ -223,7 +223,7 @@ export function register(username, password, country, fastify, lang = "en") {
 		}
 		const hashedPassword = await bcrypt.hash(password, 10);
 		const dateJoined = new Date().toISOString();
-		const jwt = fastify.jwt; 
+		const jwt = fastify.jwt;
 		const sql = `INSERT INTO users (username, password, country, date_joined) VALUES (?, ?, ?, ?)`;
 		db.run(
 			sql,
@@ -238,9 +238,13 @@ export function register(username, password, country, fastify, lang = "en") {
 				}
 
 				const userId = this.lastID;
-				const token = jwt.sign({ id: userId, username });
+				const token = fastify.jwt.sign({
+					id: userId,
+					username: username,
+					email: null,
+				});
 
-				resolve({ success: true, userId, token });
+				resolve({ success: true, userId: userId, token: token });
 			}
 		);
 	});
@@ -402,16 +406,20 @@ export function getBlockedUsers(userId, lang = "en") {
 
 export function getUserMatches(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		db.all("SELECT * FROM matches WHERE user_id = ?", [userId], (err, rows) => {
-			if (err) {
-				console.error("DB error:", err);
-				return reject(err);
+		db.all(
+			"SELECT * FROM match_history WHERE player1 = ? OR player2 = ?",
+			[userId],
+			(err, rows) => {
+				if (err) {
+					console.error("DB error:", err);
+					return reject(err);
+				}
+				if (!rows || rows.length === 0) {
+					return resolve({ success: false, message: messages[lang].noMatches });
+				}
+				resolve({ success: true, matches: rows });
 			}
-			if (!rows || rows.length === 0) {
-				return resolve({ success: false, message: messages[lang].noMatches });
-			}
-			resolve({ success: true, matches: rows });
-		});
+		);
 	});
 }
 
@@ -497,8 +505,13 @@ export function updateUserStatus(db, userId, lang = "en") {
 										tournaments_won = excluded.tournaments_won
 									`,
 									[
-										userId, totalMatches, matchesWon, matchesLost,
-										avgScore, winStreakMax, tournamentsWon
+										userId,
+										totalMatches,
+										matchesWon,
+										matchesLost,
+										avgScore,
+										winStreakMax,
+										tournamentsWon,
 									],
 									function (err) {
 										if (err) {

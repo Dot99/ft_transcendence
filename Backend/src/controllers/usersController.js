@@ -294,6 +294,7 @@ const register = async (request, reply, lang) => {
 			username,
 			password,
 			country,
+			request.server,
 			request.lang
 		);
 		if (!result.success) {
@@ -303,6 +304,7 @@ const register = async (request, reply, lang) => {
 			success: true,
 			message: "User registered successfully",
 			userId: result.userId,
+			token: result.token,
 		});
 	} catch (err) {
 		console.error("Handler error:", err);
