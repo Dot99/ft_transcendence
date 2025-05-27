@@ -181,7 +181,7 @@ export async function login(username, password, fastify, lang = "en") {
 		}
 		const user = await getUserByUsername(username, lang);
 		//if (!user || user.user.is_oauth_only) { //TODO: CHECK THIS
-		if (!user) {
+		if (!user.success) {
 			return resolve({ success: false, message: messages[lang].invalidLogin });
 		}
 		// Verify password with bcrypt
