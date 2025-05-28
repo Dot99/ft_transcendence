@@ -190,19 +190,19 @@ async function loadDashboardData() {
 	const statsData = await statsRes.json();
   console.log("statsData", statsData);
 	document.getElementById("totalMatches").textContent =
-		statsData.status.total_matches;
+		statsData.stats.total_matches;
 	document.getElementById("matchesWon").textContent =
-		statsData.status.matches_won;
+		statsData.stats.matches_won;
 	document.getElementById("matchesLost").textContent =
-		statsData.status.matches_lost;
+		statsData.stats.matches_lost;
 	document.getElementById("avgScore").textContent =
-		statsData.status.average_score;
+		statsData.stats.average_score;
 	document.getElementById("winStreak").textContent =
-		statsData.status.win_streak_max;
+		statsData.stats.win_streak_max;
 	document.getElementById("tournaments").textContent =
-		statsData.status.tournaments_won;
+		statsData.stats.tournaments_won;
 	document.getElementById("leaderboard").textContent =
-		statsData.status.leaderboard_position;
+		statsData.stats.leaderboard_position;
 	document.getElementById("hoursPlayed").textContent = (
 		userData.user.total_play_time / 3600
 	).toFixed(2);
@@ -210,7 +210,6 @@ async function loadDashboardData() {
 
 	const recentMatch = await fetch(`/api/games/users/${userId}/recent`);
   const recentMatchData = await recentMatch.json();
-  console.log("recentMatchData", recentMatchData);
 
   const container = document.getElementById("matchTableBody");
   container.innerHTML = "";

@@ -595,11 +595,8 @@ const getUserMatches = async (request, reply, lang) => {
  */
 const getUserStats = async (request, reply, lang) => {
 	try {
-		const user = request.user;
-		if (!user?.id) {
-			throw new UserNotFoundError("User not found");
-		}
-		const result = await userService.getUserStats(user.id, request.lang);
+		const id = request.params.id;
+		const result = await userService.getUserStats(id, request.lang);
 		if (!result.success) {
 			return reply.code(404).send({ success: false, message: result.message });
 		}
