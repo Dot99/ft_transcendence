@@ -17,9 +17,9 @@ export default function runMigrations(db) {
     )
   `);
 
-  // status
+  // stats
   db.run(`
-    CREATE TABLE IF NOT EXISTS status (
+    CREATE TABLE IF NOT EXISTS stats (
       player_id INTEGER PRIMARY KEY,
       total_matches INTEGER DEFAULT 0,
       matches_won INTEGER DEFAULT 0,
@@ -86,8 +86,8 @@ export default function runMigrations(db) {
   CREATE TABLE IF NOT EXISTS tournaments (
     tournament_id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    start_date TEXT,
-    end_date TEXT
+    start_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    end_date DATETIME
   )`);
 
   // Tournament Players
@@ -108,15 +108,15 @@ export default function runMigrations(db) {
   CREATE TABLE IF NOT EXISTS tournament_matches (
     match_id INTEGER PRIMARY KEY AUTOINCREMENT,
     tournament_id INTEGER,
-    player_id INTEGER,
-    opponent_id INTEGER,
+    player1 INTEGER,
+    player2 INTEGER,
     result TEXT,
     player_score INTEGER,
     opponent_score INTEGER,
     match_date TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tournament_id) REFERENCES tournaments(tournament_id),
-    FOREIGN KEY (player_id) REFERENCES users(id),
-    FOREIGN KEY (opponent_id) REFERENCES users(id)
+    FOREIGN KEY (player1) REFERENCES users(id),
+    FOREIGN KEY (player2) REFERENCES users(id)
   )`);
 
   // Upcoming Tournament Matches
@@ -124,11 +124,11 @@ export default function runMigrations(db) {
   CREATE TABLE IF NOT EXISTS upcoming_tournament_matches (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tournament_id INTEGER,
-    player_id INTEGER,
-    opponent_id INTEGER,
-    scheduled_date TEXT,
+    player1 INTEGER,
+    player2 INTEGER,
+    scheduled_date DATETIME,
     FOREIGN KEY (tournament_id) REFERENCES tournaments(tournament_id),
-    FOREIGN KEY (player_id) REFERENCES users(id),
-    FOREIGN KEY (opponent_id) REFERENCES users(id)
+    FOREIGN KEY (player1) REFERENCES users(id),
+    FOREIGN KEY (player2) REFERENCES users(id)
   )`);
 }

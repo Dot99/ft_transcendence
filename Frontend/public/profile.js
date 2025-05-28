@@ -169,7 +169,6 @@ async function loadDashboardData() {
 	const userId = 1; // Replace with dynamic user ID
 	const userRes = await fetch(`/api/users/${userId}`);
 	const userData = await userRes.json();
-	console.log("userData", userData.user);
 
 	// Update profile info
 	document.getElementById(
@@ -187,8 +186,9 @@ async function loadDashboardData() {
 	}
 
 	// Update stats
-	const statsRes = await fetch(`/api/users/${userId}/status`);
+	const statsRes = await fetch(`/api/users/${userId}/stats`);
 	const statsData = await statsRes.json();
+  console.log("statsData", statsData);
 	document.getElementById("totalMatches").textContent =
 		statsData.status.total_matches;
 	document.getElementById("matchesWon").textContent =

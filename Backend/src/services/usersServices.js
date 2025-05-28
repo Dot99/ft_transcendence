@@ -425,7 +425,7 @@ export function getUserMatches(userId, lang = "en") {
 
 export function getUserStats(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		db.get("SELECT * FROM stats WHERE user_id = ?", [userId], (err, row) => {
+		db.get("SELECT * FROM stats WHERE player_id = ?", [userId], (err, row) => {
 			if (err) {
 				console.error("DB error:", err);
 				return reject(err);
@@ -456,7 +456,7 @@ export function getUserStatus(userId, lang = "en") {
 	});
 }
 
-export function updateUserStatus(db, userId, lang = "en") {
+export function updateUserStats(db, userId, lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.get(
 			`SELECT COUNT(*) as count FROM match_history WHERE player1 = ? OR player2 = ?`,
@@ -492,7 +492,7 @@ export function updateUserStatus(db, userId, lang = "en") {
 								const tournamentsWon = 0;
 
 								db.run(
-									`INSERT INTO status (
+									`INSERT INTO stats (
 										player_id, total_matches, matches_won, matches_lost,
 										average_score, win_streak_max, tournaments_won
 									) VALUES (?, ?, ?, ?, ?, ?, ?)
