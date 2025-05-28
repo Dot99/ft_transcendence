@@ -92,4 +92,130 @@ export default async function (fastify, opts) {
 				request.lang
 			),
 	});
+	/**
+	 * @name getPastTournamentsByUserId
+	 * @description Get past tournaments by user id
+	 * @route GET /games/users/{id}/tournaments/past
+	 * @group Games
+	 * @param {string} id - User id
+	 * @returns {Array} 200 - An array of past tournaments
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 404 - User not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.get("/tournaments/users/:id/past", {
+		schema: {
+			params: paramsJsonSchema,
+		},
+		// prehandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await gamesController.getPastTournamentsByUserId(
+				request,
+				reply,
+				request.params.id,
+				request.lang
+			),
+	});
+	/**
+	 * @name getUpcomingTournamentsByUserId
+	 * @description Get upcoming tournaments by user id
+	 * @route GET /games/users/{id}/tournaments/upcoming
+	 * @group Games
+	 * @param {string} id - User id
+	 * @returns {Array} 200 - An array of upcoming tournaments
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 404 - User not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.get("/tournaments/users/:id/upcoming", {
+		schema: {
+			params: paramsJsonSchema,
+		},
+		// prehandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await gamesController.getUpcomingTournamentsByUserId(
+				request,
+				reply,
+				request.params.id,
+				request.lang
+			),
+	});
+	/**
+	 * @name getTournamentById
+	 * @description Get a tournament by id
+	 * @route GET /games/tournaments/{id}
+	 * @group Games
+	 * @param {string} id - Tournament id
+	 * @returns {Object} 200 - A tournament object
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 404 - Tournament not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.get("/tournaments/:id", {
+		schema: {
+			params: paramsJsonSchema,
+		},
+		prehandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await gamesController.getTournamentById(
+				request,
+				reply,
+				request.params.id,
+				request.lang
+			),
+	});
+	/**
+	 * @name getTournamentMatchesById
+	 * @description Get tournament matches by id
+	 * @route GET /games/tournaments/{id}/matches
+	 * @group Games
+	 * @param {string} id - Tournament id
+	 * @returns {Array} 200 - An array of tournament matches
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 404 - Tournament not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.get("/tournaments/:id/matches", {
+		schema: {
+			params: paramsJsonSchema,
+		},
+		prehandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await gamesController.getUpcomingTournamentMatchesById(
+				request,
+				reply,
+				request.params.id,
+				request.lang
+			),
+	});
+	/**
+	 * @name getTournamentPlayersById
+	 * @description Get tournament players by id
+	 * @route GET /games/tournaments/{id}/players
+	 * @group Games
+	 * @param {string} id - Tournament id
+	 * @returns {Array} 200 - An array of tournament players
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 404 - Tournament not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.get("/tournaments/:id/players", {
+		schema: {
+			params: paramsJsonSchema,
+		},
+		prehandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await gamesController.getTournamentPlayersById(
+				request,
+				reply,
+				request.params.id,
+				request.lang
+			),
+	});
+	
 }

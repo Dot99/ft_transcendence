@@ -261,7 +261,42 @@ async function loadDashboardData() {
     `;
   
     container.appendChild(matchElement);
+    await loadPastTournaments(userId);
   };
+}
+async function loadPastTournaments(userId) {
+  const res = await fetch(`/api/tournaments/users/${userId}/past`);
+  console.log("res", res);
+  const data = await res.json();
+  console.log("Past Tournaments Data:", data);
+  const container = document.getElementById("tournamentTableBody");
+  container.innerHTML = ""; // limpa conteúdo anterior
+
+  data.tournaments.forEach(tournament => {
+    const date = new Date(tournament.date);
+    const formattedDate = date
+      .toLocaleString("pt-PT", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+      .replace(",", ""); // remove vírgula
+
+    const div = document.createElement("div");
+    div.className = "p-2 border border-green-500 rounded";
+
+    div.innerHTML = `
+      <div class="flex justify-between items-center">
+        <span class="text-green-300 font-semibold">${tournament.name}</span>
+        <span class="text-sm text-gray-400">${formattedDate}</span>
+      </div>
+      <div class="text-sm text-yellow-400">Position: ${tournament.position}</div>
+    `;
+
+    container.appendChild(div);
+  });
 }
 
 function showDeleteModal() {
