@@ -626,9 +626,8 @@ const getUserStatus = async (request, reply, lang) => {
 		const id = request.params.id;
 		const result = await userService.getUserStatus(id, request.lang);
 
-		console.log("getUserStatus result:", result);
 		if (!result.success) {
-			return reply.code(404).send({ success: true, message: result.message });
+			return reply.code(404).send({ success: false, message: result.message });
 		}
 		reply.code(200).send({
 			success: true,

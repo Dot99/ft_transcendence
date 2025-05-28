@@ -116,8 +116,8 @@ function loadHomePage() {
   `;
 
 	// Add event listeners for modals
-	document.getElementById("loginPopupLoginBtn");
-	document.getElementById("loginPopupSignInBtn");
+	const loginBtn = document.getElementById("loginPopupLoginBtn");
+	const signInBtn = document.getElementById("loginPopupSignInBtn");
 	if (loginBtn) {
 		loginBtn.removeEventListener("click", login);
 		loginBtn.addEventListener("click", login);

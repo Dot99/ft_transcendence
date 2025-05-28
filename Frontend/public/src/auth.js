@@ -1,6 +1,7 @@
 async function login() {
 	const username = document.getElementById("loginUsernameInput").value.trim();
 	const password = document.getElementById("loginPasswordInput").value.trim();
+	const errorElement = document.getElementById("loginErrorMsg");
 
 	try {
 		const response = await fetch("/api/login", {
@@ -8,13 +9,14 @@ async function login() {
 			headers: {
 				"Content-Type": "application/json",
 			},
-			body: JSON.stringify({ username, password }), // send raw password
+			body: JSON.stringify({ username, password }),
 		});
 		const data = await response.json();
 		if (response.ok && data.token) {
 			localStorage.setItem("jwt", data.token);
 			closeLoginModal();
 			showLoginSuccessTempMsg?.();
+			errorElement.textContent = "";
 			setTimeout(() => {
 				navigateTo("/profile"); //TODO: CHANGE TO INTERMEDIATE PAGE
 			}, 50);
@@ -23,7 +25,8 @@ async function login() {
 		}
 	} catch (error) {
 		console.error("Login failed:", error);
-		alert("Login failed. Please try again.");
+		errorElement.textContent = error.message;
+		errorElement.style.display = "block";
 	}
 }
 
