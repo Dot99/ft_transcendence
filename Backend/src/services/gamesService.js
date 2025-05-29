@@ -71,9 +71,11 @@ export function getRecentGamesByUserId(userId) {
 export function getPastTournamentsByUserId(userId) {
 	return new Promise((resolve, reject) => {
 		db.all(
-			`SELECT * FROM tournaments_players
-			 WHERE player_id = ? 
-			 ORDER BY tournament_date DESC`,
+			`SELECT tp.*, t.name AS tournament_name, t.start_date AS tournament_date
+				FROM tournament_players tp
+				JOIN tournaments t ON tp.tournament_id = t.tournament_id
+				WHERE tp.player_id = ?
+				ORDER BY t.start_date DESC;`,
 			[userId],
 			(err, rows) => {
 				if (err) {

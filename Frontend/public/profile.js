@@ -116,7 +116,7 @@ function loadProfilePage() {
           </div>
           <div class="space-y-2 scrollable-container" id="tournamentTableBody">
             <!-- Past tournaments populated by JS -->
-          </div>matchSatsRes
+          </div>
         </div>
 
       </div>
@@ -264,16 +264,16 @@ async function loadDashboardData() {
     await loadPastTournaments(userId);
   };
 }
-async function loadPastTournaments(userId) {
-  const res = await fetch(`/api/tournaments/users/${userId}/past`);
-  console.log("res", res);
+
+async function loadUpComingMatchesById(tournamentId) {
+  const res = await fetch(`/api/tournaments/${tournamentId}/matches`);
   const data = await res.json();
-  console.log("Past Tournaments Data:", data);
-  const container = document.getElementById("tournamentTableBody");
-  container.innerHTML = ""; // limpa conteúdo anterior
+  console.log("UpComingMatches Data:", data);
+  const container = document.getElementById("upcomingMatches");
+  container.innerHTML = "";
 
   data.tournaments.forEach(tournament => {
-    const date = new Date(tournament.date);
+    const date = new Date(tournament.tournament_date);
     const formattedDate = date
       .toLocaleString("pt-PT", {
         day: "2-digit",
@@ -282,21 +282,58 @@ async function loadPastTournaments(userId) {
         hour: "2-digit",
         minute: "2-digit",
       })
-      .replace(",", ""); // remove vírgula
+      .replace(",", "");
 
     const div = document.createElement("div");
     div.className = "p-2 border border-green-500 rounded";
 
     div.innerHTML = `
       <div class="flex justify-between items-center">
-        <span class="text-green-300 font-semibold">${tournament.name}</span>
+        <span class="text-green-300 font-semibold">${tournament.tournament_name}</span>
         <span class="text-sm text-gray-400">${formattedDate}</span>
       </div>
-      <div class="text-sm text-yellow-400">Position: ${tournament.position}</div>
+      <div class="text-sm text-yellow-400">Position: ${tournament.current_position}</div>
     `;
 
     container.appendChild(div);
   });
+}
+
+async function loadPastTournaments(userId) {
+  const res = await fetch(`/api/tournaments/users/${userId}/past`);
+  const data = await res.json();
+  const container = document.getElementById("tournamentTableBody");
+  container.innerHTML = "";
+  
+  data.tournaments.forEach(tournament => {
+    const date = new Date(tournament.tournament_date);
+    const formattedDate = date
+    .toLocaleString("pt-PT", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      })
+      .replace(",", "");
+      
+      const div = document.createElement("div");
+      div.className = "p-2 border border-green-500 rounded";
+    console.log("Tournament:", tournament);
+    div.innerHTML = `
+    <div class="flex justify-between items-center">
+    <span class="text-green-300 font-semibold">${tournament.tournament_name}</span>
+    <span class="text-sm text-gray-400">${formattedDate}</span>
+    </div>
+    <div class="text-sm text-yellow-400">Position: ${tournament.current_position}</div>
+    `;
+    
+    container.appendChild(div);
+  });
+  for (const tournament of data.tournaments) {
+  await loadUpComingMatchesById(tournament.tournament_id);
+  }
+
 }
 
 function showDeleteModal() {

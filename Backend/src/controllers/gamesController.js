@@ -206,8 +206,8 @@ const getTournamentById = async (request, reply) => {
  */
 const getUpcomingTournamentMatchesById = async (request, reply) => {
 	try {
-		const userId = request.params.id;
-		const result = await gameService.getTournamentMatchesById(userId);
+		const tournamentId = request.params.id;
+		const result = await gameService.getUpcomingTournamentMatchesById(tournamentId);
 		if (!result.success) {
 			return reply.code(404).send(result);
 		}
