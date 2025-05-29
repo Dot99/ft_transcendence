@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import AutoLoad from "@fastify/autoload"; // Automatically load routes
 import fastifyJwt from "@fastify/jwt"; // JWT authentication
+import googleOAuth2 from "@fastify/oauth2"; // OAuth2 support
 import { fileURLToPath } from "url"; // Import fileURLToPath to get the current directory
 import { dirname, join } from "path"; // Import dirname and join from path to handle file paths
 import dotenv from "dotenv"; // Load environment variables from .env file
@@ -23,6 +24,29 @@ await fastify.register(fastifyJwt, {
 });
 
 await fastify.register(authMiddleware);
+
+await fastify.register(googleOAuth2, {
+	name: "googleOAuth2",
+	credentials: {
+		client: {
+			id: process.env.GOOGLE_CLIENT_ID,
+			secret: process.env.GOOGLE_CLIENT_SECRET,
+		},
+		auth: {
+			authorizeHost: "https://accounts.google.com",
+			authorizePath: "/o/oauth2/v2/auth",
+			tokenHost: "https://oauth2.googleapis.com",
+			tokenPath: "/token",
+		},
+	},
+	startRedirectPath: "/api/auth/google",
+	callbackUri: process.env.GOOGLE_REDIRECT_URI,
+	scope: [
+		"openid",
+		"https://www.googleapis.com/auth/userinfo.profile",
+		"https://www.googleapis.com/auth/userinfo.email",
+	],
+});
 
 await fastify.register(AutoLoad, {
 	dir: join(__dirname, "routes"),

@@ -140,21 +140,6 @@ function closeLoginModal() {
 	toggleLoginPopupButtons(); // Reset button state
 }
 
-function handleGoogleSignIn() {
-	// TODO: Google sign-in logic
-	closeLoginModal();
-	openSetUsernameModal();
-}
-
-function mockLogin() {
-	// TODO: Login logic
-	showLoginSuccessTempMsg();
-}
-function mockSignIn() {
-	// TODO: Sign in logic
-	showLoginSuccessTempMsg();
-}
-
 function showLoginSuccessTempMsg() {
 	closeLoginModal();
 	const msg = document.getElementById("loginSuccessMsg");
