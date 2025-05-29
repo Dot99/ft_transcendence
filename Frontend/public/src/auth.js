@@ -85,3 +85,54 @@ async function logout() {
 		alert("Logout failed. Please try again.");
 	}
 }
+
+function handleGoogleSignIn(googleUser) {
+	// const width = 500;
+	// const height = 600;
+	// const left = (window.innerWidth - width) / 2;
+	// const top = (window.innerHeight - height) / 2;
+
+	// const popup = window.open(
+	// 	"/auth/google",
+	// 	"GoogleSignIn",
+	// 	`width=${width},height=${height},top=${top},left=${left}`
+	// );
+
+	// if (!popup) {
+	// 	alert("Please allow popups for this site");
+	// 	return;
+	// }
+
+	// // Listen for message from popup
+	// window.addEventListener("message", function handler(event) {
+	// 	console.log("Received message from popup:", event);
+	// 	if (event.origin !== window.origin) return;
+	// 	if (!event.data || typeof event.data !== "object") return;
+
+	// 	const { token, twofa, userId, error } = event.data;
+
+	// 	if (error) {
+	// 		alert("Sign-in failed. Please try again.");
+	// 		window.removeEventListener("message", handler);
+	// 		return;
+	// 	}
+
+	// 	if (!token) {
+	// 		alert("Sign-in failed. No token received.");
+	// 		window.removeEventListener("message", handler);
+	// 		return;
+	// 	}
+
+	// 	localStorage.setItem("jwt", token);
+	// 	window.removeEventListener("message", handler);
+
+	// 	closeLoginModal();
+
+	// 	if (twofa) {
+	// 		openTwoFAModal(userId);
+	// 	} else {
+	// 		openSetUsernameModal();
+	// 	}
+	// });
+	window.location.href = "/api/auth/google";
+}

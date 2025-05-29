@@ -1,5 +1,5 @@
 services:
-  backend:
+  ft_transcendence:
     build: .
     ports:
       - "3000:3000"

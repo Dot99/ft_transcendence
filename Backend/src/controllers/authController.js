@@ -10,12 +10,13 @@ import { handleGoogleCallback } from "../services/authService.js";
  * @description This function is called when the user is redirected back to the application after authentication with Google.
  * It handles the callback, retrieves the user information, and sends a token back to the client.
  */
-export async function googleOAuthCallback(request, reply) {
+export async function googleOAuthCallback(request, reply, fastify) {
 	try {
-		const result = await handleGoogleCallback(request, request.server);
-		reply.code(200).send({ token });
+		const result = await handleGoogleCallback(request, fastify);
+		//reply.code(200).send({ token });
+		reply.redirect("/profile");
 	} catch (error) {
-		request.log.error(error);
+		reply.log.error(error);
 		reply.status(500).send({ error: "Authentication failed" });
 	}
 }
