@@ -1,3 +1,4 @@
+import e from "express";
 import db from "../../db/dataBase.js";
 
 // Helper to promisify db.get
@@ -28,6 +29,7 @@ function dbRun(sql, params = []) {
 
 export async function handleGoogleCallback(request, fastify) {
 	try {
+		let exists = false;
 		const tokenResponse =
 			await fastify.googleOAuth2.getAccessTokenFromAuthorizationCodeFlow(
 				request
@@ -41,7 +43,6 @@ export async function handleGoogleCallback(request, fastify) {
 			user = await dbGet("SELECT * FROM users WHERE email = ?", [
 				profile.email,
 			]);
-
 			if (user) {
 				await dbRun(
 					`
@@ -53,6 +54,7 @@ export async function handleGoogleCallback(request, fastify) {
 				);
 			}
 		}
+		if (user) exists = true;
 		// Still not found? Create new user
 		if (!user) {
 			const result = await dbRun(
@@ -61,7 +63,7 @@ export async function handleGoogleCallback(request, fastify) {
 			VALUES (?, ?, ?, ?, ?, ?)
 			`,
 				[
-					profile.name,
+					"Unknown",
 					profile.email,
 					profile.picture,
 					profile.sub,
@@ -71,21 +73,17 @@ export async function handleGoogleCallback(request, fastify) {
 			);
 			user = await dbGet("SELECT * FROM users WHERE id = ?", [result.lastID]);
 		}
-		// Check 2FA
-		if (user.twofa_enabled) {
-			return {
-				twofa: true,
-				userId: user.id,
-				message: "2FA required",
-			};
-		}
-		// Generate JWT token
-		const jwtToken = fastify.jwt.sign({
+		const token = fastify.jwt.sign({
 			id: user.id,
 			username: user.username,
 			email: user.email,
 		});
-		return { token: jwtToken };
+		return {
+			token,
+			userId: user.id,
+			twofa: !!user.twofa_enabled,
+			exists: exists,
+		};
 	} catch (error) {
 		console.error("Error in handleGoogleCallback:", error);
 		throw new Error("Authentication failed");
