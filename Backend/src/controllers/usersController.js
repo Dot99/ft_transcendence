@@ -315,6 +315,50 @@ const register = async (request, reply, lang) => {
 	}
 };
 
+const registerUsername = async (request, reply, lang) => {
+	try {
+		const { token, username, lang } = request.body;
+		if (!username || !token) {
+			return reply
+				.code(400)
+				.send({ success: false, message: "Username required" });
+		}
+		let decoded;
+		try {
+			decoded = request.server.jwt.verify(token);
+		} catch (err) {
+			return reply.code(401).send({ success: false, message: "Invalid token" });
+		}
+		const userId = decoded.id;
+		if (!username || !userId) {
+			return reply.code(400).send({
+				success: false,
+				message: "Username and valid token required",
+			});
+		}
+		const result = await userService.registerUsername(
+			userId,
+			username,
+			request.server,
+			lang || "en"
+		);
+		if (!result.success) {
+			return reply.code(400).send({ success: false, message: result.message });
+		}
+		reply.code(200).send({
+			success: true,
+			message: "Username registered successfully",
+			userId: result.userId,
+		});
+	} catch (err) {
+		console.error("Handler error:", err);
+		reply.code(500).send({
+			success: false,
+			error: err.message,
+		});
+	}
+};
+
 //TODO: CHECK LATER IF USING SESSION
 /**
  * @description Controller to log out a user
@@ -742,6 +786,7 @@ export default {
 	uploadAvatar,
 	login,
 	register,
+	registerUsername,
 	logout,
 	getUserFriends,
 	addFriend,

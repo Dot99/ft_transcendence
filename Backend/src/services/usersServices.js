@@ -250,6 +250,40 @@ export function register(username, password, country, fastify, lang = "en") {
 	});
 }
 
+export function registerUsername(userId, username, fastify, lang = "en") {
+	return new Promise(async (resolve) => {
+		if (!userId || !username) {
+			return resolve({ success: false, message: messages[lang].missingFields });
+		}
+		const existingUser = await getUserByUsername(username, lang);
+		if (!existingUser) {
+			return resolve({ success: false, message: messages[lang].userExists });
+		}
+		const sql = `UPDATE users SET username = ? WHERE id = ?`;
+		db.run(sql, [username, userId], function (err) {
+			if (err) {
+				console.error("Error updating username:", err);
+				return resolve({
+					success: false,
+					message: messages[lang].failUpdateUsername,
+				});
+			}
+			if (this.changes === 0) {
+				return resolve({
+					success: false,
+					message: messages[lang].userNotFound,
+				});
+			}
+			const token = fastify.jwt.sign({
+				id: userId,
+				username: username,
+				email: null,
+			});
+			resolve({ success: true, userId: userId, token: token });
+		});
+	});
+}
+
 export function logout(token, fastify, lang = "en") {
 	return new Promise((resolve) => {
 		if (!token) {

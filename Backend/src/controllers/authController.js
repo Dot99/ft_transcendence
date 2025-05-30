@@ -13,8 +13,13 @@ import { handleGoogleCallback } from "../services/authService.js";
 export async function googleOAuthCallback(request, reply, fastify) {
 	try {
 		const result = await handleGoogleCallback(request, fastify);
-		//reply.code(200).send({ token });
-		reply.redirect("/profile");
+		const params = new URLSearchParams({
+			token: result.token,
+			userId: result.userId.toString(),
+			twofa: result.twofa.toString(),
+			google_id: result.exists.toString(),
+		}).toString();
+		reply.redirect(`/?${params}`);
 	} catch (error) {
 		reply.log.error(error);
 		reply.status(500).send({ error: "Authentication failed" });

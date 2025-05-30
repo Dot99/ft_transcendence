@@ -196,6 +196,23 @@ export default async function (fastify, opts) {
 			await usersController.register(request, reply, request.lang),
 	});
 	/**
+	 * @name registerUsername
+	 * @description Register username
+	 * @route POST /register/username
+	 * @group Auth - Authentication operations about users
+	 * @param {User} user.body - user object
+	 * @returns {User} 200 - User object
+	 * @returns {Error} 400 - Bad request
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 404 - User not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.post("/register/username", {
+		handler: async (request, reply) =>
+			await usersController.registerUsername(request, reply, request.lang),
+	});
+	/**
 	 * @name logout
 	 * @description Logout user
 	 * @route POST /logout
