@@ -1,9 +1,9 @@
 .env
-node_modules
-package-lock.json
-Backend/tests
 data.db
+Backend/node_modules
+Backend/package-lock.json
+Backend/data.db
+Frontend/node_modules
+Frontend/package-lock.json
+Frontend/dist
 
-
-#TODO: CHECK THIS LATER
-Frontend/backend
