@@ -82,64 +82,57 @@
     }, 2000);
   }
 </script>
-<body class="flex items-center justify-center min-h-screen index-page" style="font-family: 'Press Start 2P', cursive;">
+<body class="flex items-center justify-center min-h-screen bg-[#001B26]" style="font-family: 'Press Start 2P', cursive;">
   <!-- Decorative Elements -->
-  <img src="images/computer.svg" class="fixed bottom-14 right-28 w-64 floating" alt="paddle">
+  <img src="images/computer.svg" class="fixed bottom-14 right-28 w-64 animate-[float_3s_ease-in-out_infinite]" alt="paddle">
 
-    <div class="absolute top-12 left-20 text-left space-y-16 z-50">
+  <div class="absolute top-12 left-20 text-left space-y-16 z-50">
     <!-- Title -->
     <div class="flex items-start justify-start space-x-4">
-        <h1 class="text-4xl text-[#4CF190]">FRIENDS</h1>
+      <h1 class="text-4xl text-[#4CF190]">FRIENDS</h1>
     </div>
     <!-- Friends List -->
-    <div class="scrollable-container mt-4 w-96 space-y-3 pr-2" id="friendsList">
-    <!-- Example Friend placeholder -->
-    <div class="flex items-center border-2 border-[#4CF190] p-2 space-x-5">
+    <div class="mt-4 w-96 space-y-3 pr-2 max-h-[calc(100vh/4)] overflow-y-auto scrollbar-thin scrollbar-thumb-[#4CF190] scrollbar-track-[rgba(76,241,144,0.1)]" id="friendsList">
+      <!-- Example Friend placeholder -->
+      <div class="flex items-center border-2 border-[#4CF190] p-2 space-x-5 hover:bg-[rgba(76,241,144,0.1)] cursor-pointer">
         <img src="images/floppy_disk.svg" alt="icon" class="w-8 h-8 text-[#4CF190]" />
         <span class="text-white">Friend Name</span>
+      </div>
     </div>
-    </div>
-    </div>
+  </div>
 
-    <!-- Input + Button Container -->
-    <div class="absolute bottom-8 left-20 flex items-center ">
+  <!-- Input + Button Container -->
+  <div class="absolute bottom-8 left-20 flex items-center">
     <!-- Add Friend Button -->
-    <button
-        onclick="addFriend()"
-        class="friends-btn w-60 h-20 text-1xl hover:brightness-110 transition-all">ADD FRIEND</button>
+    <button onclick="addFriend()" class="menu-button w-60 h-20 text-xl hover:brightness-110 transition-all">ADD FRIEND</button>
 
     <!-- Input Area -->
     <div class="bg-[#0101A6] h-10 p-1 mt-3">
-        <div class="border-2 border-white p-1 h-full flex items-center px-3">
-        <input
-            id="friendInput"
-            type="text"
-            placeholder="Enter name"
-            class="bg-transparent text-white text-center placeholder-gray-400 outline-none w-48"
-        />
-        </div>
+      <div class="border-2 border-white p-1 h-full flex items-center px-3">
+        <input id="friendInput" type="text" placeholder="Enter name" class="bg-transparent text-white text-center placeholder-gray-400 outline-none w-48" />
+      </div>
     </div>
+
     <!-- Friend Added -->
-    <div id="friendAdded" class="fixed top-6 right-6 px-6 py-4 retro-border text-[#4CF190] bg-[#001B26] z-[1001] hidden">
-    Friend request sent!
+    <div id="friendAdded" class="fixed top-6 right-6 px-6 py-4 bg-[#001B26] border-2 border-[#4CF190] text-[#4CF190] z-[1001] hidden">
+      Friend request sent!
     </div>
+
     <!-- Friend Invited -->
-    <div id="friendInvite" class="fixed top-6 right-6 px-6 py-4 retro-border text-[#4CF190] bg-[#001B26] z-[1001] hidden">
+    <div id="friendInvite" class="fixed top-6 right-6 px-6 py-4 bg-[#001B26] border-2 border-[#4CF190] text-[#4CF190] z-[1001] hidden">
       Friend invited!
-    </div>
     </div>
   </div>
 
   <!-- Invite Modal -->
-  <div id="inviteModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">Invite Friend to a Game</div>
-      <div class="modal-body">
-        <span id="inviteFriendName" class="retro-text"></span>
+  <div id="inviteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="bg-[#001B26] p-6 rounded-xl border-2 border-[#4CF190] max-w-md w-full">
+      <div class="text-2xl text-[#4CF190] font-bold mb-4">
+        Invite <span id="inviteFriendName"></span> to play?
       </div>
-      <div class="modal-buttons">
-        <button class="modal-btn" onclick="inviteToGame()">Invite</button>
-        <button class="modal-btn" onclick="closeInviteModal()">Cancel</button>
+      <div class="flex justify-end space-x-4">
+        <button onclick="closeInviteModal()" class="menu-button px-6 py-2">CANCEL</button>
+        <button onclick="sendInvite()" class="menu-button px-6 py-2">INVITE</button>
       </div>
     </div>
   </div>
