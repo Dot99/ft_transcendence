@@ -19,7 +19,10 @@ export async function googleOAuthCallback(request, reply, fastify) {
 			twofa: result.twofa.toString(),
 			google_id: result.exists.toString(),
 		}).toString();
-		reply.redirect(`/?${params}`);
+
+		// Redirect to frontend with the token
+		const frontendUrl = process.env.FRONTEND_URL || "http://127.0.0.1:8080";
+		reply.redirect(`${frontendUrl}/?${params}`);
 	} catch (error) {
 		reply.log.error(error);
 		reply.status(500).send({ error: "Authentication failed" });

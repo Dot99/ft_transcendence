@@ -1,14 +1,27 @@
 services:
-  ft_transcendence:
-    build: .
+  frontend:
+    build: 
+      context: ./Frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./Frontend:/app
+      - /app/node_modules
+    networks:
+      - ft_transcendence-network
+    depends_on:
+      - backend
+
+  backend:
+    build: 
+      context: ./Backend
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     env_file: .env
     volumes:
-      - .:/app
+      - ./Backend:/app
       - /app/node_modules
       - ./Backend/db/data.db:/db/data.db
-      - ./Frontend/public:/app/Frontend/public
     networks:
       - ft_transcendence-network
 

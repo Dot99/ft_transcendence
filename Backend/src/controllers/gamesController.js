@@ -1,4 +1,3 @@
-import { json } from "express";
 import * as gameService from "../services/gamesService.js";
 
 /**
@@ -57,13 +56,13 @@ const getGameById = async (req, res) => {
  */
 const getGamesByUserId = async (request, reply, lang) => {
 	try {
-		const userId  = request.params.id;
+		const userId = request.params.id;
 		const result = await gameService.getGamesByUserId(userId, request.lang);
 		if (!result.success) {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, games: result.games});
+		reply.send({ success: true, games: result.games });
 	} catch (error) {
 		console.error("Handler error:", error);
 		reply.code(500).send({
@@ -87,7 +86,7 @@ const getRecentGamesByUserId = async (request, reply) => {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, games: result.games});
+		reply.send({ success: true, games: result.games });
 	} catch (error) {
 		console.error("Handler error:", error);
 		reply.code(500).send({
@@ -95,7 +94,7 @@ const getRecentGamesByUserId = async (request, reply) => {
 			error: error.message,
 		});
 	}
-}
+};
 
 /**
  * @description Get past tournaments by user ID

@@ -11,12 +11,19 @@ import fastifyStatic from "@fastify/static";
 
 dotenv.config();
 
-const fastify = Fastify();
+const fastify = Fastify({
+	logger: false,
+});
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 await fastify.register(cors, {
 	origin: process.env.FRONTEND_URL,
+	methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
+	allowedHeaders: ["Content-Type", "Authorization"],
 	credentials: true,
+	exposedHeaders: ["Content-Range", "X-Content-Range"],
+	maxAge: 600,
 });
 
 await fastify.register(fastifyJwt, {
