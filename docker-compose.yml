@@ -6,10 +6,11 @@ services:
     volumes:
       - ./Frontend:/app
       - /app/node_modules
-    networks:
-      - ft_transcendence-network
+    command: sh -c "npm run build"
     depends_on:
       - backend
+    networks:
+      - ft_transcendence-network
 
   backend:
     build: 
@@ -17,14 +18,16 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
-    env_file: .env
     volumes:
       - ./Backend:/app
+      - ./Frontend/dist:/app/Frontend/dist
       - /app/node_modules
       - ./Backend/db/data.db:/db/data.db
+    env_file: Backend/.env
     networks:
       - ft_transcendence-network
 
 networks:
   ft_transcendence-network:
     driver: bridge
+

@@ -4,7 +4,8 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon --watch src src/index.js"
+    "dev": "nodemon --watch src src/index.js",
+    "build": "node src/index.js"
   },
   "dependencies": {
     "@fastify/autoload": "^6.3.0",

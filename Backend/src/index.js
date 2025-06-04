@@ -61,7 +61,7 @@ await fastify.register(AutoLoad, {
 });
 
 await fastify.register(fastifyStatic, {
-	root: "/app/Frontend/public",
+	root: "/app/Frontend/dist",
 	prefix: "/",
 });
 
