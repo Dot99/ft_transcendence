@@ -1,4 +1,3 @@
-import e from "express";
 import db from "../../db/dataBase.js";
 
 // Helper to promisify db.get
@@ -86,6 +85,11 @@ export async function handleGoogleCallback(request, fastify) {
 		};
 	} catch (error) {
 		console.error("Error in handleGoogleCallback:", error);
+		console.error("Error details:", {
+			message: error.message,
+			stack: error.stack,
+			request: request.query,
+		});
 		throw new Error("Authentication failed");
 	}
 }

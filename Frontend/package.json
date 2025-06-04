@@ -1,0 +1,20 @@
+{
+    "name": "frontend",
+    "main": "dist/index.ts",
+    "scripts": {
+        "build": "tsc && cp src/index.html dist/index.html && cp -r src/images dist/images",
+        "watch": "tsc -w",
+        "dev": "ts-node-dev --respawn --transpile-only src/index.ts"
+    },
+    "devDependencies": {
+        "@tsconfig/recommended": "1.0.1",
+        "@types/jest": "27.0.2",
+        "@types/node": "^22.15.29",
+        "autoprefixer": "^10.4.21",
+        "jest": "27.3.1",
+        "postcss": "^8.5.4",
+        "tailwindcss": "^4.1.8",
+        "ts-node-dev": "^2.0.0",
+        "typescript": "^5.8.3"
+    }
+}

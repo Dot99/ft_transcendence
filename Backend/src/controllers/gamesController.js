@@ -1,4 +1,3 @@
-import { json } from "express";
 import * as gameService from "../services/gamesService.js";
 
 /**
@@ -57,13 +56,13 @@ const getGameById = async (req, res) => {
  */
 const getGamesByUserId = async (request, reply, lang) => {
 	try {
-		const userId  = request.params.id;
+		const userId = request.params.id;
 		const result = await gameService.getGamesByUserId(userId, request.lang);
 		if (!result.success) {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, games: result.games});
+		reply.send({ success: true, games: result.games });
 	} catch (error) {
 		console.error("Handler error:", error);
 		reply.code(500).send({
@@ -87,7 +86,7 @@ const getRecentGamesByUserId = async (request, reply) => {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, games: result.games});
+		reply.send({ success: true, games: result.games });
 	} catch (error) {
 		console.error("Handler error:", error);
 		reply.code(500).send({
@@ -95,7 +94,7 @@ const getRecentGamesByUserId = async (request, reply) => {
 			error: error.message,
 		});
 	}
-}
+};
 
 /**
  * @description Get past tournaments by user ID
@@ -112,7 +111,7 @@ const getPastTournamentsByUserId = async (request, reply) => {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, tournaments: result.tournaments});
+		reply.send({ success: true, tournaments: result.tournaments });
 	} catch (error) {
 		console.error("Handler error:", error);
 		reply.code(500).send({
@@ -120,7 +119,7 @@ const getPastTournamentsByUserId = async (request, reply) => {
 			error: error.message,
 		});
 	}
-}
+};
 
 /**
  * @description Get upcoming tournaments by user ID
@@ -137,7 +136,7 @@ const getUpcomingTournamentsByUserId = async (request, reply) => {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, tournaments: result.tournaments});
+		reply.send({ success: true, tournaments: result.tournaments });
 	} catch (error) {
 		console.error("Handler error:", error);
 		reply.code(500).send({
@@ -145,7 +144,7 @@ const getUpcomingTournamentsByUserId = async (request, reply) => {
 			error: error.message,
 		});
 	}
-}
+};
 
 /**
  * @description Get all tournaments by user ID
@@ -162,7 +161,7 @@ const getAllTournamentsByUserId = async (request, reply) => {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, tournaments: result.tournaments});
+		reply.send({ success: true, tournaments: result.tournaments });
 	} catch (error) {
 		console.error("Handler error:", error);
 		reply.code(500).send({
@@ -170,7 +169,7 @@ const getAllTournamentsByUserId = async (request, reply) => {
 			error: error.message,
 		});
 	}
-}
+};
 
 /**
  * @description Get tournament by ID
@@ -187,7 +186,7 @@ const getTournamentById = async (request, reply) => {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, tournament: result.tournament});
+		reply.send({ success: true, tournament: result.tournament });
 	} catch (error) {
 		console.error("Handler error:", error);
 		reply.code(500).send({
@@ -195,7 +194,7 @@ const getTournamentById = async (request, reply) => {
 			error: error.message,
 		});
 	}
-}
+};
 
 /**
  * @description Get upcoming tournament matches by user ID
@@ -212,7 +211,7 @@ const getUpcomingTournamentMatchesById = async (request, reply) => {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, matches: result.matches});
+		reply.send({ success: true, matches: result.matches });
 	} catch (error) {
 		console.error("Handler error:", error);
 		reply.code(500).send({
@@ -220,17 +219,11 @@ const getUpcomingTournamentMatchesById = async (request, reply) => {
 			error: error.message,
 		});
 	}
-}
-
+};
 
 export default {
 	getAllGames,
 	getGameById,
 	getGamesByUserId,
 	getRecentGamesByUserId,
-	getPastTournamentsByUserId,
-	getUpcomingTournamentsByUserId,
-	getAllTournamentsByUserId,
-	getTournamentById,
-	getUpcomingTournamentMatchesById
 };

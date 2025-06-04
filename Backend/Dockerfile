@@ -13,9 +13,9 @@ COPY . .
 
 # Copy database file
 RUN mkdir -p /db
-COPY Backend/db/data.db Backend/db/data.db
+COPY db/data.db db/data.db
 
 # Expose port
 EXPOSE 3000
 
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "build"]
