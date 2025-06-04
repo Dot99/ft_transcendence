@@ -1,5 +1,5 @@
+import { loadHomePage } from './index.js';
 import { profileTemplate } from './templates/profileTemplate.js';
-import { navigateTo } from './utils/router.js';
 
 // Types
 interface UserData {
@@ -42,7 +42,7 @@ const handleConfirmDelete = async (): Promise<void> => {
         });
         if (response.ok) {
             localStorage.removeItem('jwt');
-            navigateTo('/');
+            loadHomePage()
         } else {
             throw new Error('Failed to delete account');
         }
@@ -53,7 +53,8 @@ const handleConfirmDelete = async (): Promise<void> => {
 };
 
 const handleFriendsClick = (): void => {
-    navigateTo('/friends');
+    console.log("FRIENDS")
+    //navigateTo('/friends');
 };
 
 // UI Functions

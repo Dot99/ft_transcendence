@@ -35,12 +35,12 @@ export const homeTemplate = `
                 <div>
                     <input type="password" id="loginPasswordInput" placeholder="Password" class="w-full p-2 bg-[#002B3B] border border-[#4CF190] rounded text-white">
                 </div>
-                <div id="loginErrorMsg" class="text-red-500 hidden"></div>
-                <div class="flex space-x-4">
-                    <button id="loginPopupLoginBtn" class="menu-button flex-1" disabled>LOGIN</button>
-                    <button id="loginPopupSignInBtn" class="menu-button flex-1" disabled>SIGN UP</button>
+                <div id="loginErrorMsg" class="text-red-500 text-sm hidden"></div>
+                <div class="flex mb-4 gap-4">
+                    <button id="loginPopupLoginBtn" class="flex-1 h-12 bg-green-800 enabled:hover:bg-green-700 text-white py-2 rounded focus:outline-none" disabled>LOGIN</button>
+                    <button id="loginPopupSignInBtn" class="flex-1 h-12 bg-green-800 enabled:hover:bg-green-700 text-white py-2 rounded focus:outline-none" disabled>SIGN UP</button>
                 </div>
-                <div class="relative">
+                <div class="relative mb-2">
                     <div class="absolute inset-0 flex items-center">
                         <div class="w-full border-t border-gray-600"></div>
                     </div>
@@ -49,7 +49,7 @@ export const homeTemplate = `
                     </div>
                 </div>
                 <button id="googleSignInBtn" class="w-full p-2 bg-white text-gray-800 rounded flex items-center justify-center space-x-2">
-                    <img src="/images/google-icon.png" alt="Google" class="w-5 h-5">
+                    <img src="https://www.google.com/favicon.ico" alt="Google" class="w-5 h-5">
                     <span>Sign in with Google</span>
                 </button>
             </div>
@@ -67,7 +67,7 @@ export const homeTemplate = `
                 <div>
                     <input type="text" id="newUsernameInput" placeholder="Choose a username" class="w-full p-2 bg-[#002B3B] border border-[#4CF190] rounded text-white">
                 </div>
-                <button id="usernameLoginBtn" class="menu-button w-full" disabled>SET USERNAME</button>
+                <button id="usernameLoginBtn" class="w-full h-12 bg-green-800 enabled:hover:bg-green-700 text-white py-2 rounded" disabled>SET USERNAME</button>
             </div>
         </div>
     </div>

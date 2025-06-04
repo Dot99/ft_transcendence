@@ -46,8 +46,8 @@ export const loadHomePage = (): void => {
 
     // Add event listeners
     getElement<HTMLButtonElement>('loginBtn').addEventListener('click', openLoginModal);
-    getElement<HTMLButtonElement>('playBtn').addEventListener('click', () => navigateTo('/play'));
-    getElement<HTMLButtonElement>('profileBtn').addEventListener('click', () => navigateTo('/profile'));
+    //getElement<HTMLButtonElement>('playBtn').addEventListener('click', () => navigateTo('/play'));
+    //getElement<HTMLButtonElement>('profileBtn').addEventListener('click', () => navigateTo('/profile'));
     getElement<HTMLButtonElement>('closeLoginModalBtn').addEventListener('click', closeLoginModal);
     getElement<HTMLButtonElement>('loginPopupLoginBtn').addEventListener('click', handleLogin);
     getElement<HTMLButtonElement>('loginPopupSignInBtn').addEventListener('click', handleRegister);
@@ -154,11 +154,6 @@ const toggleLoginPopupButtons = (): void => {
     const enabled = username.length > 0 && password.length > 0;
     loginBtn.disabled = !enabled;
     signInBtn.disabled = !enabled;
-};
-
-// Navigation
-const navigateTo = (path: string): void => {
-    window.location.href = path;
 };
 
 // Initialize
