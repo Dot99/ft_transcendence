@@ -158,3 +158,21 @@ export function getUpcomingTournamentMatchesById(tournamentId) {
 		);
 	});
 }
+
+export function getTournamentPlayersById(tournamentId, userId) {
+	return new Promise((resolve, reject) => {
+		db.all(
+			"SELECT * FROM tournament_players WHERE tournament_id = ? AND player_id = ?",
+			[tournamentId, userId],
+			(err, rows) => {
+				if (err) {
+					reject({ success: false, error: err });
+				}
+				if (!rows || rows.length === 0) {
+					return resolve({ success: false, message: "No players found for this tournament" });
+				}
+				resolve({ success: true, players: rows, message: "Players found" });
+			}
+		);
+	});
+}

@@ -28,6 +28,8 @@ export default function runMigrations(db) {
       win_streak_max INTEGER DEFAULT 0,
       tournaments_won INTEGER DEFAULT 0,
       leaderboard_position INTEGER,
+      current_tournament INTEGER,
+      FOREIGN KEY (current_tournament) REFERENCES tournaments(tournament_id),
       FOREIGN KEY (player_id) REFERENCES users(id)
     )
   `);
@@ -110,9 +112,9 @@ export default function runMigrations(db) {
     tournament_id INTEGER,
     player1 INTEGER,
     player2 INTEGER,
-    result TEXT,
-    player_score INTEGER,
-    opponent_score INTEGER,
+    Winner INTEGER,
+    player1_score INTEGER,
+    player2_score INTEGER,
     match_date TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (tournament_id) REFERENCES tournaments(tournament_id),
     FOREIGN KEY (player1) REFERENCES users(id),

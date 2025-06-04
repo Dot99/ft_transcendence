@@ -264,16 +264,26 @@ async function loadDashboardData() {
     await loadPastTournaments(userId);
   };
 }
+function getOpponentId(match, userId) {
+  return match.player1 === userId ? match.player2 : match.player1;
+}
 
-async function loadUpComingMatchesById(tournamentId) {
+async function loadUpComingMatchesById(tournamentId, userId) {
+  const tournamentRes = await fetch(`/api/tournaments/${tournamentId}`);
+  const tournament_data = await tournamentRes.json();
+  console.log("Upcoming Tournament:",tournament_data);
   const res = await fetch(`/api/tournaments/${tournamentId}/matches`);
   const data = await res.json();
-  console.log("UpComingMatches Data:", data);
+  console.log("matches", data.matches);
+
   const container = document.getElementById("upcomingMatches");
   container.innerHTML = "";
+  for (const match of data.matches) {
+    const opponent_id = getOpponentId(match, userId);
+    const opponentRes = await fetch(`/api/users/${opponent_id}`);
+    const opponent_data = await opponentRes.json();
 
-  data.tournaments.forEach(tournament => {
-    const date = new Date(tournament.tournament_date);
+    const date = new Date(match.scheduled_date);
     const formattedDate = date
       .toLocaleString("pt-PT", {
         day: "2-digit",
@@ -286,22 +296,22 @@ async function loadUpComingMatchesById(tournamentId) {
 
     const div = document.createElement("div");
     div.className = "p-2 border border-green-500 rounded";
-
     div.innerHTML = `
       <div class="flex justify-between items-center">
-        <span class="text-green-300 font-semibold">${tournament.tournament_name}</span>
+        <span class="text-green-300 font-semibold">${tournament_data.tournament.name}</span>
         <span class="text-sm text-gray-400">${formattedDate}</span>
       </div>
-      <div class="text-sm text-yellow-400">Position: ${tournament.current_position}</div>
+      <div class="text-sm text-yellow-400">Opponent: ${opponent_data.user.username ?? "Desconhecido"}</div>
     `;
 
     container.appendChild(div);
-  });
+  }
 }
 
 async function loadPastTournaments(userId) {
   const res = await fetch(`/api/tournaments/users/${userId}/past`);
   const data = await res.json();
+
   const container = document.getElementById("tournamentTableBody");
   container.innerHTML = "";
   
@@ -316,10 +326,8 @@ async function loadPastTournaments(userId) {
       minute: "2-digit",
       })
       .replace(",", "");
-      
       const div = document.createElement("div");
       div.className = "p-2 border border-green-500 rounded";
-    console.log("Tournament:", tournament);
     div.innerHTML = `
     <div class="flex justify-between items-center">
     <span class="text-green-300 font-semibold">${tournament.tournament_name}</span>
@@ -331,7 +339,22 @@ async function loadPastTournaments(userId) {
     container.appendChild(div);
   });
   for (const tournament of data.tournaments) {
-  await loadUpComingMatchesById(tournament.tournament_id);
+    await loadUpComingMatchesById(tournament.tournament_id, userId);
+  }
+  const statsRes = await fetch(`/api/users/${userId}/stats`);
+  const statsData = await statsRes.json();
+  console.log("statsData", statsData);
+  tournamentRes = await fetch(`/api/tournaments/${statsData.stats.current_tournament}`);
+  tournament_data = await tournamentRes.json();
+  console.log("Current Tournament:", tournament_data);
+  const positionRes = await fetch(`/api/tournaments/${tournament_data.tournament.tournament_id}/players/${userId}`);
+  const positionData = await positionRes.json();
+  console.log("Position Data:", positionData);
+  const player = positionData.players.find((p) => p.player_id === userId);
+  if (player) {
+    document.getElementById("currTournamentPosition").textContent = player.current_position;
+  } else {
+    document.getElementById("currTournamentPosition").textContent = "-";
   }
 
 }
