@@ -21,7 +21,7 @@ export async function googleOAuthCallback(request, reply, fastify) {
 		}).toString();
 
 		// Redirect to frontend with the token
-		const frontendUrl = process.env.FRONTEND_URL || "http://127.0.0.1:8080";
+		const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 		reply.redirect(`${frontendUrl}/?${params}`);
 	} catch (error) {
 		reply.log.error(error);

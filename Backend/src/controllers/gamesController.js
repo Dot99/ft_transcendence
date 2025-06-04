@@ -111,7 +111,7 @@ const getPastTournamentsByUserId = async (request, reply) => {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, tournaments: result.tournaments});
+		reply.send({ success: true, tournaments: result.tournaments });
 	} catch (error) {
 		console.error("Handler error:", error);
 		reply.code(500).send({
@@ -119,7 +119,7 @@ const getPastTournamentsByUserId = async (request, reply) => {
 			error: error.message,
 		});
 	}
-}
+};
 
 /**
  * @description Get upcoming tournaments by user ID
@@ -136,7 +136,7 @@ const getUpcomingTournamentsByUserId = async (request, reply) => {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, tournaments: result.tournaments});
+		reply.send({ success: true, tournaments: result.tournaments });
 	} catch (error) {
 		console.error("Handler error:", error);
 		reply.code(500).send({
@@ -144,7 +144,7 @@ const getUpcomingTournamentsByUserId = async (request, reply) => {
 			error: error.message,
 		});
 	}
-}
+};
 
 /**
  * @description Get all tournaments by user ID
@@ -161,7 +161,7 @@ const getAllTournamentsByUserId = async (request, reply) => {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, tournaments: result.tournaments});
+		reply.send({ success: true, tournaments: result.tournaments });
 	} catch (error) {
 		console.error("Handler error:", error);
 		reply.code(500).send({
@@ -169,7 +169,7 @@ const getAllTournamentsByUserId = async (request, reply) => {
 			error: error.message,
 		});
 	}
-}
+};
 
 /**
  * @description Get tournament by ID
@@ -186,7 +186,7 @@ const getTournamentById = async (request, reply) => {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, tournament: result.tournament});
+		reply.send({ success: true, tournament: result.tournament });
 	} catch (error) {
 		console.error("Handler error:", error);
 		reply.code(500).send({
@@ -194,7 +194,7 @@ const getTournamentById = async (request, reply) => {
 			error: error.message,
 		});
 	}
-}
+};
 
 /**
  * @description Get upcoming tournament matches by user ID
@@ -211,7 +211,7 @@ const getUpcomingTournamentMatchesById = async (request, reply) => {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, matches: result.matches});
+		reply.send({ success: true, matches: result.matches });
 	} catch (error) {
 		console.error("Handler error:", error);
 		reply.code(500).send({

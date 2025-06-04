@@ -1,20 +1,15 @@
-# Use Node.js as the base image
+# Frontend/Dockerfile
 FROM node:20-alpine
 
-# Install TypeScript globally
-RUN npm install -g typescript
-
-# Set working directory
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
 
-# Copy source files
 COPY . .
 
-# Run TypeScript compilation
-CMD ["tsc"] 
+# Build with TypeScript
+RUN npm run build
+
+# Just keep the container alive (you won’t expose this directly)
+CMD ["tail", "-f", "/dev/null"]
