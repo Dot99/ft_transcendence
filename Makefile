@@ -8,7 +8,7 @@ RED = \033[0;31m
 NC = \033[0m # No Color
 
 # Default target
-all: status
+all: deploy
 
 # Check status of services
 status:
@@ -17,6 +17,13 @@ status:
 	@cd $(FRONTEND_DIR) && npm list --depth=0
 	@echo "$(GREEN)Backend:$(NC)"
 	@cd $(BACKEND_DIR) && npm list --depth=0
+	@echo "$(GREEN)Docker containers:$(NC)"
+	@docker ps -a
+	@echo "$(GREEN)Docker images:$(NC)"
+	@docker images
+	@echo "$(GREEN)Docker volumes:$(NC)"
+	@docker volume ls
+	@echo "$(GREEN)Project status check complete!$(NC)"
 
 # Clean build artifacts
 clean:
