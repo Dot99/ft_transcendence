@@ -66,7 +66,6 @@ export const login = async (): Promise<void> => {
         const data: LoginResponse = await response.json();
         if (data.token) {
             localStorage.setItem('jwt', data.token);
-            closeLoginModal();
             showLoginSuccessTempMsg();
             setInputError(usernameInput, false);
             setInputError(passwordInput, false);
@@ -206,14 +205,6 @@ export const usernameGoogle = async (username: string): Promise<void> => {
 export const handleGoogleSignIn = (): void => {
     // Use the API_BASE_URL constant instead of hardcoding the URL
     window.location.replace(`${API_BASE_URL}/auth/google`);
-};
-
-// UI Functions
-const closeLoginModal = (): void => {
-    const modal = getElement<HTMLElement>('loginModal');
-    modal.style.display = 'none';
-    getElement<HTMLInputElement>('loginUsernameInput').value = '';
-    getElement<HTMLInputElement>('loginPasswordInput').value = '';
 };
 
 const showLoginSuccessTempMsg = (): void => {

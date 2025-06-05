@@ -46,10 +46,7 @@ export const loadHomePage = (): void => {
     app.innerHTML = homeTemplate;
 
     // Add event listeners
-    getElement<HTMLButtonElement>('loginBtn').addEventListener('click', openLoginModal);
-    //getElement<HTMLButtonElement>('playBtn').addEventListener('click', () => navigateTo('/play'));
     //getElement<HTMLButtonElement>('profileBtn').addEventListener('click', () => navigateTo('/profile'));
-    getElement<HTMLButtonElement>('closeLoginModalBtn').addEventListener('click', closeLoginModal);
     getElement<HTMLButtonElement>('loginPopupLoginBtn').addEventListener('click', handleLogin);
     getElement<HTMLButtonElement>('loginPopupSignInBtn').addEventListener('click', handleRegister);
     getElement<HTMLButtonElement>('googleSignInBtn').addEventListener('click', handleGoogleSignIn);
@@ -94,29 +91,8 @@ const openLoginModal = (): void => {
     getElement<HTMLElement>('loginModal').style.display = 'flex';
 };
 
-const closeLoginModal = (): void => {
-    getElement<HTMLElement>('loginModal').style.display = 'none';
-    getElement<HTMLInputElement>('loginUsernameInput').value = '';
-    getElement<HTMLInputElement>('loginPasswordInput').value = '';
-    toggleLoginPopupButtons();
-};
-
 const showLoginSuccessTempMsg = (): void => {
-    closeLoginModal();
     const msg = getElement<HTMLElement>('loginSuccessMsg');
-    msg.classList.remove('hidden');
-    msg.classList.add('show');
-    setTimeout(() => {
-        msg.classList.remove('show');
-        setTimeout(() => {
-            msg.classList.add('hidden');
-        }, 400);
-    }, 2000);
-};
-
-const showRegisterSuccessTempMsg = (): void => {
-    closeLoginModal();
-    const msg = getElement<HTMLElement>('registerSuccessMsg');
     msg.classList.remove('hidden');
     msg.classList.add('show');
     setTimeout(() => {

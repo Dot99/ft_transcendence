@@ -1,32 +1,17 @@
 export const homeTemplate = `
 <div class="min-h-screen bg-[#001B26] text-white">
-    <!-- Navigation -->
-    <nav class="container mx-auto px-4 py-6">
-        <div class="flex justify-between items-center">
-            <div class="text-2xl font-bold text-[#4CF190]">PONG</div>
-            <div class="space-x-4">
-                <button id="loginBtn" class="menu-button">LOGIN</button>
-                <button id="playBtn" class="menu-button">PLAY</button>
-                <button id="profileBtn" class="menu-button">PROFILE</button>
-            </div>
-        </div>
-    </nav>
-
     <!-- Hero Section -->
     <div class="container mx-auto px-4 py-16">
         <div class="text-center">
             <h1 class="text-6xl font-bold text-[#4CF190] mb-6">Welcome to PONG</h1>
             <p class="text-xl text-gray-400 mb-8">The ultimate multiplayer ping pong experience</p>
-            <button id="startGameBtn" class="menu-button text-xl px-8 py-4">START GAME</button>
         </div>
     </div>
 
-    <!-- Login Modal -->
-    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+    <div class="container mx-auto px-4 py-8 flex justify-center">
         <div class="bg-[#001B26] p-8 rounded-xl border-2 border-[#4CF190] max-w-md w-full">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl text-[#4CF190] font-bold">Login</h2>
-                <button id="closeLoginModalBtn" class="text-gray-400 hover:text-white">&times;</button>
             </div>
             <div class="space-y-4">
                 <div>
@@ -56,7 +41,23 @@ export const homeTemplate = `
         </div>
     </div>
 
-    <!-- Set Username Modal -->
+    <!-- Two Factor Authentication Modal -->
+    <div id="twoFAModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-[#001B26] p-8 rounded-xl border-2 border-[#4CF190] max-w-md w-full">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl text-[#4CF190] font-bold">Two-Factor Authentication</h2>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <input type="text" id="twoFACodeInput" placeholder="Enter 2FA code" class="w-full p-2 bg-[#002B3B] border border-[#4CF190] rounded text-white" maxlength="6" autocomplete="one-time-code">
+                </div>
+                <div id="twoFAErrorMsg" class="text-red-500 text-sm hidden"></div>
+                <button id="twoFASubmitBtn" class="w-full h-12 bg-green-800 enabled:hover:bg-green-700 text-white py-2 rounded" disabled>VERIFY</button>
+            </div>
+        </div>
+    </div>
+    <!-- End Two Factor Authentication Modal -->
+
     <div id="setUsernameModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
         <div class="bg-[#001B26] p-8 rounded-xl border-2 border-[#4CF190] max-w-md w-full">
             <div class="flex justify-between items-center mb-6">
@@ -80,4 +81,4 @@ export const homeTemplate = `
         Registration successful!
     </div>
 </div>
-`; 
+`;
