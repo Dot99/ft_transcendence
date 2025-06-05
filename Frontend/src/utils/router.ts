@@ -19,12 +19,6 @@ const routes: Routes = {
     // '/friends': loadFriendsPage,
 };
 
-// Navigation functions
-export const navigateTo = (path: string): void => {
-    history.pushState({}, '', path); // Update the URL without reloading
-    loadRoute(path); // Load the corresponding route
-};
-
 const loadRoute = (path: string): void => {
     const route = routes[path] || loadNotFoundPage; // Fallback to a 404 page
     route();
@@ -38,7 +32,7 @@ const loadNotFoundPage = (): void => {
             <div class="flex flex-col items-center justify-center min-h-screen">
                 <h1 class="text-4xl text-[#4CF190] mb-4">404</h1>
                 <p class="text-gray-400 mb-8">Page not found</p>
-                <button onclick="navigateTo('/')" class="menu-button">Go Home</button>
+                <button onclick="loadProfilePage()" class="menu-button">Go Home</button>
             </div>
         `;
     }

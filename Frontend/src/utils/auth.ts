@@ -1,4 +1,3 @@
-import { navigateTo } from './router.js';
 import { loadProfilePage } from '../profile.js';
 
 // Types
@@ -25,9 +24,21 @@ const getElement = <T extends HTMLElement>(id: string): T => {
 };
 
 // Authentication functions
+const setInputError = (input: HTMLInputElement, hasError: boolean): void => {
+    if (hasError) {
+        input.classList.remove('border-[#4CF190]');
+        input.classList.add('border-red-500', 'bg-red-900/20');
+    } else {
+        input.classList.remove('border-red-500', 'bg-red-900/20');
+        input.classList.add('border-[#4CF190]');
+    }
+};
+
 export const login = async (): Promise<void> => {
-    const username = getElement<HTMLInputElement>('loginUsernameInput').value.trim();
-    const password = getElement<HTMLInputElement>('loginPasswordInput').value.trim();
+    const usernameInput = getElement<HTMLInputElement>('loginUsernameInput');
+    const passwordInput = getElement<HTMLInputElement>('loginPasswordInput');
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
     const errorElement = getElement<HTMLElement>('loginErrorMsg');
 
     try {
@@ -44,7 +55,7 @@ export const login = async (): Promise<void> => {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(`Login failed: ${errorData.message || response.statusText}`);
+            throw new Error(errorData.message || response.statusText);
         }
 
         const contentType = response.headers.get('content-type');
@@ -57,23 +68,29 @@ export const login = async (): Promise<void> => {
             localStorage.setItem('jwt', data.token);
             closeLoginModal();
             showLoginSuccessTempMsg();
+            setInputError(usernameInput, false);
+            setInputError(passwordInput, false);
             errorElement.textContent = '';
             setTimeout(() => {
-                navigateTo('/profile');
+                loadProfilePage();
             }, 50);
         } else {
             throw new Error('Login failed: ' + (data?.message || 'Unknown error'));
         }
     } catch (error) {
         console.error('Login failed:', error);
+        setInputError(usernameInput, true);
+        setInputError(passwordInput, true);
         errorElement.textContent = error instanceof Error ? error.message : 'An error occurred';
         errorElement.style.display = 'block';
     }
 };
 
 export const register = async (): Promise<void> => {
-    const username = getElement<HTMLInputElement>('loginUsernameInput').value.trim();
-    const password = getElement<HTMLInputElement>('loginPasswordInput').value.trim();
+    const usernameInput = getElement<HTMLInputElement>('loginUsernameInput');
+    const passwordInput = getElement<HTMLInputElement>('loginPasswordInput');
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
     const locale = navigator.language;
     const [lang, country] = locale.split('-');
     const errorElement = getElement<HTMLElement>('loginErrorMsg');
@@ -89,7 +106,8 @@ export const register = async (): Promise<void> => {
         });
 
         if (!response.ok) {
-            throw new Error(`Registration failed: ${response.statusText}`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || response.statusText);
         }
 
         const contentType = response.headers.get('content-type');
@@ -101,15 +119,19 @@ export const register = async (): Promise<void> => {
         if (data.success) {
             localStorage.setItem('jwt', data.token || '');
             showRegisterSuccessTempMsg();
+            setInputError(usernameInput, false);
+            setInputError(passwordInput, false);
             errorElement.textContent = '';
             setTimeout(() => {
-                navigateTo('/profile');
+                loadProfilePage();
             }, 50);
         } else {
-            throw new Error('Registration failed: ' + (data?.message || 'Unknown error'));
+            throw new Error(data?.message || 'Unknown error');
         }
     } catch (error) {
         console.error('Registration failed:', error);
+        setInputError(usernameInput, true);
+        setInputError(passwordInput, true);
         errorElement.textContent = error instanceof Error ? error.message : 'An error occurred';
         errorElement.style.display = 'block';
     }
@@ -157,7 +179,7 @@ export const usernameGoogle = async (username: string): Promise<void> => {
         });
 
         if (!response.ok) {
-            throw new Error(`Username registration failed: ${response.statusText}`);
+            throw new Error(response.statusText);
         }
 
         const contentType = response.headers.get('content-type');
@@ -173,7 +195,7 @@ export const usernameGoogle = async (username: string): Promise<void> => {
                 loadProfilePage();
             }, 50);
         } else {
-            throw new Error('Username registration failed: ' + (data?.message || 'Unknown error'));
+            throw new Error(data?.message || 'Unknown error');
         }
     } catch (error) {
         console.error('Username registration failed:', error);

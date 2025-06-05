@@ -47,7 +47,7 @@ export const loadHomePage = (): void => {
 
     // Add event listeners
     getElement<HTMLButtonElement>('loginBtn').addEventListener('click', openLoginModal);
-    getElement<HTMLButtonElement>('playBtn').addEventListener('click', () => navigateTo('/play'));
+    // getElement<HTMLButtonElement>('playBtn').addEventListener('click', () => navigateTo('/play'));
     getElement<HTMLButtonElement>('profileBtn').addEventListener('click', loadProfilePage);
     getElement<HTMLButtonElement>('closeLoginModalBtn').addEventListener('click', closeLoginModal);
     getElement<HTMLButtonElement>('loginPopupLoginBtn').addEventListener('click', handleLogin);
@@ -75,7 +75,7 @@ export const loadHomePage = (): void => {
         
         if (urlParams.google_id) {
             setTimeout(() => {
-                ProfilePage(); // TODO: CHECK INTERMEDIATE PAGE
+                loadProfilePage(); // TODO: CHECK INTERMEDIATE PAGE
             }, 50);
         }
 
@@ -157,25 +157,15 @@ const toggleLoginPopupButtons = (): void => {
     signInBtn.disabled = !enabled;
 };
 
-// Navigation
-const navigateTo = (path: string): void => {
-    window.location.href = path;
-};
-
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     // Listen for route events
     window.addEventListener('loadHomePage', loadHomePage);
-    window.addEventListener('loadProfilePage', ProfilePage);
+    window.addEventListener('loadProfilePage', loadProfilePage);
     
     // Load initial route
     loadHomePage();
 });
-
-// TODO: Implement these functions
-const ProfilePage = (): void => {
-    loadProfilePage();
-};
 
 const openTwoFAModal = (userId: string): void => {
     // Implementation needed

@@ -1,4 +1,4 @@
-import { navigateTo } from './utils/router.js';
+import { loadHomePage } from './index.js';
 import { profileTemplate } from './templates/profileTemplate.js';
 
 interface User {
@@ -43,6 +43,41 @@ const getElement = <T extends HTMLElement>(id: string): T => {
   return el as T;
 };
 
+// Event Handlers
+const handleDeleteAccount = (): void => {
+    showDeleteModal();
+};
+
+const handleCancelDelete = (): void => {
+    closeDeleteModal();
+};
+
+const handleConfirmDelete = async (): Promise<void> => {
+    try {
+        const response = await fetch('/api/user/delete', {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
+            },
+        });
+        if (response.ok) {
+            localStorage.removeItem('jwt');
+            loadHomePage()
+        } else {
+            throw new Error('Failed to delete account');
+        }
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        alert('Failed to delete account. Please try again.');
+    }
+};
+
+const handleFriendsClick = (): void => {
+    console.log("FRIENDS")
+    //navigateTo('/friends');
+};
+
+// UI Functions
 export const loadProfilePage = (): void => {
   const app = getElement<HTMLElement>('app');
   app.innerHTML = profileTemplate;
@@ -200,7 +235,7 @@ function closeDeleteModal(): void {
 function confirmDelete(): void {
   closeDeleteModal();
   alert('Your account has been deleted');
-  navigateTo('/');
+  // navigateTo('/');
 }
 
 (window as any).loadProfilePage = loadProfilePage;
