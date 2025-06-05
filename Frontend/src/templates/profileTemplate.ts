@@ -31,10 +31,6 @@ export const profileTemplate = `
                 <h2 id="username" class="text-[#4CF190] font-['Press_Start_2P'] text-xl opacity-80 mb-6">@powerguido</h2>
                 <div class="flex items-center gap-4 text-sm">
                     <div id="email" class="font-mono text-white opacity-70">powerguido@gmail.com</div>
-                    <div class="flex items-center gap-2">
-                        <img id="flag" src="" alt="Flag" class="w-6 h-5 rounded-sm border border-[#4CF190]" />
-                        <span id="country" class="text-sm text-gray-400">PT</span>
-                    </div>
                 </div>
             </div>
 

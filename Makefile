@@ -8,7 +8,7 @@ RED = \033[0;31m
 NC = \033[0m # No Color
 
 # Default target
-all: status
+all: deploy
 
 # Check status of services
 status:

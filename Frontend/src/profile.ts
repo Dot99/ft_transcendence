@@ -84,27 +84,56 @@ export const loadProfilePage = (): void => {
   loadDashboardData();
 };
 
+function getUserIdFromToken(): number | null {
+    const token = localStorage.getItem('jwt');
+    console.log("Token:", token);
+    if (!token) return null;
+
+    try {
+        const payloadBase64 = token.split('.')[1];
+        const decodedPayload = JSON.parse(atob(payloadBase64));
+        console.log("Decoded Payload:", decodedPayload);
+        return decodedPayload.id || null;
+    } catch (e) {
+        console.error('Invalid token:', e);
+        return null;
+    }
+}
+
 const getOpponentId = (match: Match, userId: number): number => {
   return match.player1 === userId ? match.player2 : match.player1;
 };
 
 async function loadDashboardData(): Promise<void> {
-  const userId = 1;
-  const userRes = await fetch(`/api/users/${userId}`);
-  const userData = await userRes.json();
+  const userId = getUserIdFromToken();
 
+  console.log("Token (User ID):", userId);
+  if (!userId) {
+    console.error("User ID not found. Probably not logged in.");
+    return;
+  }
+  const userRes = await fetch(`/api/users/${userId}`, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
+    }
+  });
+  const userData = await userRes.json();
   const user: User = userData.user;
+
   getElement<HTMLHeadingElement>('username').textContent = `@${user.username}`;
-  getElement<HTMLSpanElement>('country').textContent = user.country;
-  getElement<HTMLImageElement>('flag').src = `https://flagcdn.com/w40/${user.country.toLowerCase()}.png`;
   getElement<HTMLHeadingElement>('name').textContent = user.name;
   getElement<HTMLDivElement>('email').textContent = user.email;
   if (user.pfp) getElement<HTMLImageElement>('pfp').src = `/images/${user.pfp}`;
   getElement<HTMLSpanElement>('hoursPlayed').textContent = (user.total_play_time / 3600).toFixed(2);
 
-  const statsRes = await fetch(`/api/users/${userId}/stats`);
+  const statsRes = await fetch(`/api/users/${userId}/stats`, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
+    }
+  });
   const statsData = await statsRes.json();
   const stats: Stats = statsData.stats;
+
   getElement<HTMLDivElement>('totalMatches').textContent = stats.total_matches.toString();
   getElement<HTMLDivElement>('matchesWon').textContent = stats.matches_won.toString();
   getElement<HTMLDivElement>('matchesLost').textContent = stats.matches_lost.toString();
