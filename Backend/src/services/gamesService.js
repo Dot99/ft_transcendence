@@ -71,9 +71,11 @@ export function getRecentGamesByUserId(userId) {
 export function getPastTournamentsByUserId(userId) {
 	return new Promise((resolve, reject) => {
 		db.all(
-			`SELECT * FROM tournaments_players
-			 WHERE player_id = ? 
-			 ORDER BY tournament_date DESC`,
+			`SELECT tp.*, t.name AS tournament_name, t.start_date AS tournament_date
+				FROM tournament_players tp
+				JOIN tournaments t ON tp.tournament_id = t.tournament_id
+				WHERE tp.player_id = ?
+				ORDER BY t.start_date DESC;`,
 			[userId],
 			(err, rows) => {
 				if (err) {
@@ -152,6 +154,24 @@ export function getUpcomingTournamentMatchesById(tournamentId) {
 					return resolve({ success: false, message: "No upcoming matches found for this tournament" });
 				}
 				resolve({ success: true, matches: rows, message: "Upcoming matches found" });
+			}
+		);
+	});
+}
+
+export function getTournamentPlayersById(tournamentId, userId) {
+	return new Promise((resolve, reject) => {
+		db.all(
+			"SELECT * FROM tournament_players WHERE tournament_id = ? AND player_id = ?",
+			[tournamentId, userId],
+			(err, rows) => {
+				if (err) {
+					reject({ success: false, error: err });
+				}
+				if (!rows || rows.length === 0) {
+					return resolve({ success: false, message: "No players found for this tournament" });
+				}
+				resolve({ success: true, players: rows, message: "Players found" });
 			}
 		);
 	});

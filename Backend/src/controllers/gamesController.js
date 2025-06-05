@@ -205,8 +205,8 @@ const getTournamentById = async (request, reply) => {
  */
 const getUpcomingTournamentMatchesById = async (request, reply) => {
 	try {
-		const userId = request.params.id;
-		const result = await gameService.getTournamentMatchesById(userId);
+		const tournamentId = request.params.id;
+		const result = await gameService.getUpcomingTournamentMatchesById(tournamentId);
 		if (!result.success) {
 			return reply.code(404).send(result);
 		}
@@ -219,11 +219,43 @@ const getUpcomingTournamentMatchesById = async (request, reply) => {
 			error: error.message,
 		});
 	}
-};
+}
+
+/**
+ * @description Get tournament players by ID
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @returns {Promise<void>}
+ * @throws {Error} - If there is an error retrieving the tournament players
+ */
+const getTournamentPlayersById = async (request, reply) => {
+	try {
+		const tournamentId = request.params.tournamentid;
+		const userId = request.params.userid;
+		const result = await gameService.getTournamentPlayersById(tournamentId, userId);
+		if (!result.success) {
+			return reply.code(404).send(result);
+		}
+
+		reply.send({success: true, players: result.players});
+	} catch (error) {
+		console.error("Handler error:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+}
 
 export default {
 	getAllGames,
 	getGameById,
 	getGamesByUserId,
 	getRecentGamesByUserId,
+	getPastTournamentsByUserId,
+	getUpcomingTournamentsByUserId,
+	getAllTournamentsByUserId,
+	getTournamentById,
+	getUpcomingTournamentMatchesById,
+	getTournamentPlayersById
 };
