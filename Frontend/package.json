@@ -3,7 +3,7 @@
     "main": "dist/index.ts",
     "scripts": {
         "build": "tsc && cp src/index.html dist/index.html && cp -r src/images dist/images",
-        "watch": "tsc -w && cp src/index.html dist/index.html && cp -r src/images dist/images",
+        "watch": "cp src/index.html dist/index.html && cp -r src/images dist/images && tsc -w",
         "dev": "ts-node-dev --respawn --transpile-only src/index.ts"
     },
     "devDependencies": {
