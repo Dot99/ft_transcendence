@@ -123,15 +123,18 @@ async function loadRecentMatches(userId: number): Promise<void> {
 async function loadPastTournaments(userId: number, currentTournamentId: number): Promise<void> {
   const res = await fetch(`/api/tournaments/users/${userId}/past`);
   const data = await res.json();
-
   const container = getElement<HTMLDivElement>('tournamentTableBody');
   container.innerHTML = '';
 
+  console.log(data.tournaments);
   for (const t of data.tournaments as Tournament[]) {
+    const positionRes = await fetch(`/api/tournaments/${t.tournament_id}/players/${userId}`);
+    const positionData = await positionRes.json();
     const date = new Date(t.tournament_date).toLocaleString('pt-PT', {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
     }).replace(',', '');
 
+    const player = positionData.players?.find((p: any) => p.player_id === userId);
     const div = document.createElement('div');
     div.className = 'p-2 border border-green-500 rounded';
     div.innerHTML = `
@@ -139,7 +142,7 @@ async function loadPastTournaments(userId: number, currentTournamentId: number):
         <span class="text-green-300 font-semibold">${t.tournament_name}</span>
         <span class="text-sm text-gray-400">${date}</span>
       </div>
-      <div class="text-sm text-yellow-400">Position: -</div>`;
+      <div class="text-sm text-yellow-400">Position: ${player?.current_position ?? '-'}</div>`;
 
     container.appendChild(div);
     await loadUpComingMatchesById(t.tournament_id, userId);
@@ -169,7 +172,6 @@ async function loadUpComingMatchesById(tournamentId: number, userId: number): Pr
   for (const match of data.matches as Match[]) {
     const opponentId = getOpponentId(match, userId);
     const opponentData = await fetch(`/api/users/${opponentId}`).then(res => res.json());
-
     const date = new Date(match.scheduled_date).toLocaleString('pt-PT', {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
     }).replace(',', '');
@@ -181,7 +183,7 @@ async function loadUpComingMatchesById(tournamentId: number, userId: number): Pr
         <span class="text-green-300 font-semibold">${tournament.tournament.name}</span>
         <span class="text-sm text-gray-400">${date}</span>
       </div>
-      <div class="text-sm text-yellow-400">Opponent: ${opponentData.user.username ?? 'Desconhecido'}</div>`;
+      <div class="text-sm text-yellow-400">Opponent: ${opponentData.user.username}</div>`;
 
     container.appendChild(div);
   }
@@ -196,7 +198,6 @@ function closeDeleteModal(): void {
 }
 
 function confirmDelete(): void {
-  console.log('Account deletion confirmed');
   closeDeleteModal();
   alert('Your account has been deleted');
   navigateTo('/');

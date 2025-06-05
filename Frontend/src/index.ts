@@ -1,5 +1,6 @@
 import { homeTemplate } from './templates/homeTemplate.js';
 import { login, register, usernameGoogle, handleGoogleSignIn } from './utils/auth.js';
+import { loadProfilePage } from './profile.js';
 
 // Types
 interface URLParams {
@@ -47,7 +48,7 @@ export const loadHomePage = (): void => {
     // Add event listeners
     getElement<HTMLButtonElement>('loginBtn').addEventListener('click', openLoginModal);
     getElement<HTMLButtonElement>('playBtn').addEventListener('click', () => navigateTo('/play'));
-    getElement<HTMLButtonElement>('profileBtn').addEventListener('click', () => navigateTo('/profile'));
+    getElement<HTMLButtonElement>('profileBtn').addEventListener('click', loadProfilePage);
     getElement<HTMLButtonElement>('closeLoginModalBtn').addEventListener('click', closeLoginModal);
     getElement<HTMLButtonElement>('loginPopupLoginBtn').addEventListener('click', handleLogin);
     getElement<HTMLButtonElement>('loginPopupSignInBtn').addEventListener('click', handleRegister);
@@ -74,7 +75,7 @@ export const loadHomePage = (): void => {
         
         if (urlParams.google_id) {
             setTimeout(() => {
-                loadProfilePage(); // TODO: CHECK INTERMEDIATE PAGE
+                ProfilePage(); // TODO: CHECK INTERMEDIATE PAGE
             }, 50);
         }
 
@@ -165,15 +166,15 @@ const navigateTo = (path: string): void => {
 document.addEventListener('DOMContentLoaded', () => {
     // Listen for route events
     window.addEventListener('loadHomePage', loadHomePage);
-    window.addEventListener('loadProfilePage', loadProfilePage);
+    window.addEventListener('loadProfilePage', ProfilePage);
     
     // Load initial route
     loadHomePage();
 });
 
 // TODO: Implement these functions
-const loadProfilePage = (): void => {
-    // Implementation needed
+const ProfilePage = (): void => {
+    loadProfilePage();
 };
 
 const openTwoFAModal = (userId: string): void => {
