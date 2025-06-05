@@ -1,5 +1,6 @@
 import { homeTemplate } from './templates/homeTemplate.js';
 import { login, register, usernameGoogle, handleGoogleSignIn } from './utils/auth.js';
+import { loadProfilePage } from './profile.js';
 
 // Types
 interface URLParams {
@@ -165,11 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load initial route
     loadHomePage();
 });
-
-// TODO: Implement these functions
-const loadProfilePage = (): void => {
-    // Implementation needed
-};
 
 const openTwoFAModal = (userId: string): void => {
     // Implementation needed
