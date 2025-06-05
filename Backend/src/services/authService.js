@@ -93,3 +93,35 @@ export async function handleGoogleCallback(request, fastify) {
 		throw new Error("Authentication failed");
 	}
 }
+
+export async function twoFaSetupService(userId, secret) {
+	try {
+		const result = await dbRun(
+			"UPDATE users SET twofa_secret = ? WHERE id = ?",
+			[secret, userId]
+		);
+		if (result.changes === 0) {
+			throw new Error("User not found or 2FA secret already set");
+		}
+		return { success: true, message: "2FA setup successful" };
+	} catch (error) {
+		console.error("Error in twoFaSetupService:", error);
+		throw new Error("2FA setup failed");
+	}
+}
+
+export async function twoFaVerifyService(userId, enabled) {
+	try {
+		const result = await dbRun(
+			"UPDATE users SET twofa_enabled = ? WHERE id = ?",
+			[enabled ? 1 : 0, userId]
+		);
+		if (result.changes === 0) {
+			throw new Error("User not found or 2FA already set");
+		}
+		return { success: true, message: "2FA verification successful" };
+	} catch (error) {
+		console.error("Error in twoFaVerifyService:", error);
+		throw new Error("2FA verification failed");
+	}
+}

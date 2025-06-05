@@ -8,6 +8,9 @@ import { dirname, join } from "path"; // Import dirname and join from path to ha
 import dotenv from "dotenv"; // Load environment variables from .env file
 import authMiddleware from "./middleware/authMiddleware.js";
 import fastifyStatic from "@fastify/static";
+import fastifyPlugin from "@fastify/plugin";
+import speakeasy from "speakeasy"; // For two-factor authentication
+import qrcode from "qrcode"; // For generating QR codes
 
 dotenv.config();
 

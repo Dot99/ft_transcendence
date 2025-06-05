@@ -1,5 +1,6 @@
 // src/controllers/authController.js
 import { handleGoogleCallback } from "../services/authService.js";
+import { getUserById } from "../services/usersServices.js";
 
 /**
  * Handles the Google OAuth callback.
@@ -26,5 +27,58 @@ export async function googleOAuthCallback(request, reply, fastify) {
 	} catch (error) {
 		reply.log.error(error);
 		reply.status(500).send({ error: "Authentication failed" });
+	}
+}
+
+export async function twoFaSetup(request, reply, fastify) {
+	try {
+		const userId = request.user.id;
+		const secret = speakeasy.generateSecret({
+			name: `Trans (${request.user.email})`,
+		});
+		const result = await twoFaSetupService(userId, secret.base32);
+		if (result.success) {
+			const qrcode = await qrcode.toDataURL(secret.otpauth_url);
+			reply.status(200).send({
+				success: true,
+				code: qrcode,
+				message: "QR Code generated successfully",
+			});
+		} else {
+			reply.status(400).send({ success: false, error: "2FA setup failed" });
+		}
+	} catch (error) {
+		reply.log.error(error);
+		reply.status(500).send({ error: "2FA setup failed" });
+	}
+}
+
+export async function twoFaVerify(request, reply, fastify) {
+	try {
+		const { token } = request.body;
+		const userId = request.user.id;
+		const user = await getUserById(userId, fastify);
+		const verification = speakeasy.totp.verify({
+			secret: user.twofa_secret,
+			encoding: "base32",
+			token: token,
+			window: 1,
+		});
+		if (!verification) {
+			return reply.status(400).send({ success: false, error: "Invalid token" });
+		}
+		const result = await twoFaVerifyService(userId, true);
+		if (result.success) {
+			reply
+				.status(200)
+				.send({ success: true, message: "2FA verification successful" });
+		} else {
+			reply
+				.status(400)
+				.send({ success: false, error: "2FA verification failed" });
+		}
+	} catch (error) {
+		reply.log.error(error);
+		reply.status(500).send({ error: "2FA verification failed" });
 	}
 }
