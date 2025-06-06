@@ -62,7 +62,7 @@ export async function handleGoogleCallback(request, fastify) {
 			VALUES (?, ?, ?, ?, ?, ?)
 			`,
 				[
-					"Unknown",
+					profile.name || profile.email.split("@")[0],
 					profile.email,
 					profile.picture,
 					profile.sub,
