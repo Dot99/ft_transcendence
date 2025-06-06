@@ -1,5 +1,6 @@
 import { loadHomePage } from './index.js';
 import { profileTemplate } from './templates/profileTemplate.js';
+import { deleteCookie, getCookie, isAuthenticated } from './utils/auth.js';
 
 // Types
 interface UserData {
@@ -37,11 +38,11 @@ const handleConfirmDelete = async (): Promise<void> => {
         const response = await fetch('/api/user/delete', {
             method: 'DELETE',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
+                'Authorization': `Bearer ${getCookie('jwt')}`,
             },
         });
         if (response.ok) {
-            localStorage.removeItem('jwt');
+            deleteCookie('jwt');
             loadHomePage()
         } else {
             throw new Error('Failed to delete account');
@@ -59,6 +60,11 @@ const handleFriendsClick = (): void => {
 
 // UI Functions
 export const loadProfilePage = (): void => {
+    if(!isAuthenticated()) {
+        console.log("teste");
+        loadHomePage();
+        return;
+    }
     const app = getElement<HTMLElement>('app');
     app.innerHTML = profileTemplate;
 
@@ -77,12 +83,12 @@ const loadDashboardData = async (): Promise<void> => {
         const [userResponse, statsResponse] = await Promise.all([
             fetch('/api/user/profile', {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
+                    'Authorization': `Bearer ${getCookie('jwt')}`,
                 },
             }),
             fetch('/api/user/stats', {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('jwt')}`,
+                    'Authorization': `Bearer ${getCookie('jwt')}`,
                 },
             }),
         ]);

@@ -1,5 +1,5 @@
 export const homeTemplate = `
-<div class="min-h-screen bg-[#001B26] text-white">
+<div class="fixed inset-0 min-h-screen min-w-screen bg-[url(./images/background.png)] bg-cover bg-center text-white">
     <!-- Hero Section -->
     <div class="container mx-auto px-4 py-16">
         <div class="text-center">

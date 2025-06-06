@@ -1,5 +1,5 @@
 import { homeTemplate } from './templates/homeTemplate.js';
-import { login, register, usernameGoogle, handleGoogleSignIn } from './utils/auth.js';
+import { login, register, usernameGoogle, handleGoogleSignIn, isAuthenticated } from './utils/auth.js';
 import { loadProfilePage } from './profile.js';
 
 // Types
@@ -42,6 +42,10 @@ const handleSetUsername = (): void => {
 
 // UI Functions
 export const loadHomePage = (): void => {
+    if(isAuthenticated()) {
+        loadProfilePage(); //TODO: Mudar pag intermedia
+        return;
+    }
     const app = getElement<HTMLElement>('app');
     app.innerHTML = homeTemplate;
 
@@ -67,12 +71,12 @@ export const loadHomePage = (): void => {
     };
 
     if (urlParams.token) {
-        localStorage.setItem('jwt', urlParams.token);
         document.cookie = `jwt=${urlParams.token}; path=/; secure; samesite=lax`;
         
         if (urlParams.google_id) {
             setTimeout(() => {
                 loadProfilePage(); // TODO: CHECK INTERMEDIATE PAGE
+                window.history.replaceState({}, document.title, window.location.pathname);
             }, 50);
         }
 

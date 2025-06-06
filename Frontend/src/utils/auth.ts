@@ -34,6 +34,15 @@ const setInputError = (input: HTMLInputElement, hasError: boolean): void => {
     }
 };
 
+export function getCookie(name: string): string | undefined {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? match[2] : undefined;
+}
+
+export function deleteCookie(name: string): void {
+    document.cookie = `${name}=; Max-Age=0; path=/;`;
+}
+
 export const login = async (): Promise<void> => {
     const usernameInput = getElement<HTMLInputElement>('loginUsernameInput');
     const passwordInput = getElement<HTMLInputElement>('loginPasswordInput');
@@ -65,7 +74,7 @@ export const login = async (): Promise<void> => {
 
         const data: LoginResponse = await response.json();
         if (data.token) {
-            localStorage.setItem('jwt', data.token);
+            document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
             showLoginSuccessTempMsg();
             setInputError(usernameInput, false);
             setInputError(passwordInput, false);
@@ -77,7 +86,6 @@ export const login = async (): Promise<void> => {
             throw new Error('Login failed: ' + (data?.message || 'Unknown error'));
         }
     } catch (error) {
-        console.error('Login failed:', error);
         setInputError(usernameInput, true);
         setInputError(passwordInput, true);
         errorElement.textContent = error instanceof Error ? error.message : 'An error occurred';
@@ -116,7 +124,7 @@ export const register = async (): Promise<void> => {
 
         const data: RegisterResponse = await response.json();
         if (data.success) {
-            localStorage.setItem('jwt', data.token || '');
+            document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
             showRegisterSuccessTempMsg();
             setInputError(usernameInput, false);
             setInputError(passwordInput, false);
@@ -128,7 +136,6 @@ export const register = async (): Promise<void> => {
             throw new Error(data?.message || 'Unknown error');
         }
     } catch (error) {
-        console.error('Registration failed:', error);
         setInputError(usernameInput, true);
         setInputError(passwordInput, true);
         errorElement.textContent = error instanceof Error ? error.message : 'An error occurred';
@@ -143,11 +150,11 @@ export const logout = async (): Promise<void> => {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ token: localStorage.getItem('jwt') }),
+            body: JSON.stringify({ token: getCookie('jwt') }),
             credentials: 'include',
         });
         if (response.ok) {
-            localStorage.removeItem('jwt');
+            deleteCookie('jwt');
             showLogoutSuccessTempMsg();
         } else {
             throw new Error('Logout failed');
@@ -172,7 +179,7 @@ export const usernameGoogle = async (username: string): Promise<void> => {
                 username,
                 lang,
                 country,
-                token: localStorage.getItem('jwt'),
+                token: getCookie('jwt'),
             }),
             credentials: 'include',
         });
@@ -188,7 +195,7 @@ export const usernameGoogle = async (username: string): Promise<void> => {
 
         const data: RegisterResponse = await response.json();
         if (data.success) {
-            localStorage.setItem('jwt', data.token || '');
+            document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
             showRegisterSuccessTempMsg();
             setTimeout(() => {
                 loadProfilePage();
@@ -203,9 +210,13 @@ export const usernameGoogle = async (username: string): Promise<void> => {
 };
 
 export const handleGoogleSignIn = (): void => {
-    // Use the API_BASE_URL constant instead of hardcoding the URL
     window.location.replace(`${API_BASE_URL}/auth/google`);
 };
+
+export const isAuthenticated = (): boolean => {
+    const token = getCookie('jwt');
+    return !!token;
+}
 
 const showLoginSuccessTempMsg = (): void => {
     const msg = getElement<HTMLElement>('loginSuccessMsg');
@@ -233,4 +244,4 @@ const showRegisterSuccessTempMsg = (): void => {
 
 const showLogoutSuccessTempMsg = (): void => {
     // TODO: Implement logout success message
-}; 
+};
