@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -157,159 +157,159 @@
         </div>
 
       </div>
-    </div>
+    </div> -->
 
   <script>
-    const userId = 1;
+    // const userId = 1;
 
-    async function loadDashboardData() {
-      const [userRes, matchRes, tourRes, upcomingRes] = await Promise.all([
-        fetch(`/api/user/${userId}`),
-        fetch(`/api/user/${userId}/matches`),
-        fetch(`/api/user/${userId}/tournaments`),
-        fetch(`/api/tournaments/upcoming`)
-      ]);
+    // async function loadDashboardData() {
+    //   const [userRes, matchRes, tourRes, upcomingRes] = await Promise.all([
+    //     fetch(`/api/user/${userId}`),
+    //     fetch(`/api/user/${userId}/matches`),
+    //     fetch(`/api/user/${userId}/tournaments`),
+    //     fetch(`/api/tournaments/upcoming`)
+    //   ]);
 
-      const userData = await userRes.json();
-      const matches = await matchRes.json();
-      const tournaments = await tourRes.json();
-      const upcoming = await upcomingRes.json();
+    //   const userData = await userRes.json();
+    //   const matches = await matchRes.json();
+    //   const tournaments = await tourRes.json();
+    //   const upcoming = await upcomingRes.json();
 
-      // Update profile info
-      document.getElementById('username').textContent = `@${userData.username}`;
-      document.getElementById('country').textContent = userData.country;
-      document.getElementById('name').textContent = userData.name;
-      document.getElementById('email').textContent = userData.email;
-      if (userData.pfp) {
-        document.getElementById('pfp').src = `/images/${userData.pfp}`;
-      }
+    //   // Update profile info
+    //   document.getElementById('username').textContent = `@${userData.username}`;
+    //   document.getElementById('country').textContent = userData.country;
+    //   document.getElementById('name').textContent = userData.name;
+    //   document.getElementById('email').textContent = userData.email;
+    //   if (userData.pfp) {
+    //     document.getElementById('pfp').src = `/images/${userData.pfp}`;
+    //   }
 
-      // Update stats
-      document.getElementById('totalMatches').textContent = userData.total_matches;
-      document.getElementById('matchesWon').textContent = userData.matches_won;
-      document.getElementById('matchesLost').textContent = userData.matches_lost;
-      document.getElementById('avgScore').textContent = userData.avg_score;
-      document.getElementById('winStreak').textContent = userData.win_streak;
-      document.getElementById('tournaments').textContent = userData.tournaments_won;
-      document.getElementById('leaderboard').textContent = userData.leaderboard_position;
-      document.getElementById('hoursPlayed').textContent = userData.total_play_time/3600;
+    //   // Update stats
+    //   document.getElementById('totalMatches').textContent = userData.total_matches;
+    //   document.getElementById('matchesWon').textContent = userData.matches_won;
+    //   document.getElementById('matchesLost').textContent = userData.matches_lost;
+    //   document.getElementById('avgScore').textContent = userData.avg_score;
+    //   document.getElementById('winStreak').textContent = userData.win_streak;
+    //   document.getElementById('tournaments').textContent = userData.tournaments_won;
+    //   document.getElementById('leaderboard').textContent = userData.leaderboard_position;
+    //   document.getElementById('hoursPlayed').textContent = userData.total_play_time/3600;
 
-      const countryCode = getCountryCode(userData.country || '');
-      document.getElementById('flag').src = `https://flagcdn.com/w40/${countryCode}.png`;
+    //   const countryCode = getCountryCode(userData.country || '');
+    //   document.getElementById('flag').src = `https://flagcdn.com/w40/${countryCode}.png`;
 
-      // Recent matches
-      const matchContainer = document.getElementById('matchTableBody');
-      matchContainer.innerHTML = '';
+    //   // Recent matches
+    //   const matchContainer = document.getElementById('matchTableBody');
+    //   matchContainer.innerHTML = '';
       
-      matches.forEach(match => {
-        const div = document.createElement('div');
-        div.className = `p-3 rounded ${match.player_score > match.opponent_score ? 'match-win' : 'match-loss'}`;
-        div.innerHTML = `
-          <div class="flex justify-between items-center">
-            <div class="flex items-center gap-4">
-              <span class="text-sm">#${match.match_id}</span>
-              <span class="text-sm">${match.opponent_username}</span>
-            </div>
-            <div class="flex items-center gap-4">
-              <span class="text-sm">${match.player_score} - ${match.opponent_score}</span>
-              <span class="text-xs text-gray-400">${new Date(match.match_date).toLocaleDateString()}</span>
-            </div>
-          </div>
-        `;
-        matchContainer.appendChild(div);
-      });
+    //   matches.forEach(match => {
+    //     const div = document.createElement('div');
+    //     div.className = `p-3 rounded ${match.player_score > match.opponent_score ? 'match-win' : 'match-loss'}`;
+    //     div.innerHTML = `
+    //       <div class="flex justify-between items-center">
+    //         <div class="flex items-center gap-4">
+    //           <span class="text-sm">#${match.match_id}</span>
+    //           <span class="text-sm">${match.opponent_username}</span>
+    //         </div>
+    //         <div class="flex items-center gap-4">
+    //           <span class="text-sm">${match.player_score} - ${match.opponent_score}</span>
+    //           <span class="text-xs text-gray-400">${new Date(match.match_date).toLocaleDateString()}</span>
+    //         </div>
+    //       </div>
+    //     `;
+    //     matchContainer.appendChild(div);
+    //   });
 
-      // Upcoming matches
-      const upcomingList = document.getElementById('upcomingMatches');
-      upcomingList.innerHTML = '';
-      upcoming.filter(m => m.player_id == userId || m.opponent_id == userId).forEach(match => {
-        const div = document.createElement('div');
-        div.className = 'stat-box p-3 rounded';
-        div.innerHTML = `
-          <div class="flex justify-between items-center">
-            <span class="text-sm">${match.player_name} vs ${match.opponent_name}</span>
-            <span class="text-xs text-gray-400">${match.scheduled_date.split('T')[0]}</span>
-          </div>
-        `;
-        upcomingList.appendChild(div);
-      });
+    //   // Upcoming matches
+    //   const upcomingList = document.getElementById('upcomingMatches');
+    //   upcomingList.innerHTML = '';
+    //   upcoming.filter(m => m.player_id == userId || m.opponent_id == userId).forEach(match => {
+    //     const div = document.createElement('div');
+    //     div.className = 'stat-box p-3 rounded';
+    //     div.innerHTML = `
+    //       <div class="flex justify-between items-center">
+    //         <span class="text-sm">${match.player_name} vs ${match.opponent_name}</span>
+    //         <span class="text-xs text-gray-400">${match.scheduled_date.split('T')[0]}</span>
+    //       </div>
+    //     `;
+    //     upcomingList.appendChild(div);
+    //   });
 
-      // Current tournament
-      const currTour = tournaments.find(t => t.status === 'ongoing');
-      if (currTour) {
-        document.getElementById('currTournamentName').textContent = currTour.name || 'Unnamed Tournament';
-        document.getElementById('currTournamentPosition').textContent = currTour.rank || '-';
+    //   // Current tournament
+    //   const currTour = tournaments.find(t => t.status === 'ongoing');
+    //   if (currTour) {
+    //     document.getElementById('currTournamentName').textContent = currTour.name || 'Unnamed Tournament';
+    //     document.getElementById('currTournamentPosition').textContent = currTour.rank || '-';
         
-        const currMatches = document.getElementById('currTournamentMatches');
-        currMatches.innerHTML = '';
-        currTour.matches.forEach(match => {
-          const div = document.createElement('div');
-          div.className = `stat-box p-3 rounded`;
-          div.innerHTML = `
-            <div class="flex justify-between items-center">
-              <div class="flex items-center gap-4">
-                <span class="text-sm">#${match.match_id}</span>
-                <span class="text-sm">${match.opponent_username}</span>
-              </div>
-              <span class="text-sm">${match.player_score} - ${match.opponent_score}</span>
-            </div>
-          `;
-          currMatches.appendChild(div);
-        });
-      }
+    //     const currMatches = document.getElementById('currTournamentMatches');
+    //     currMatches.innerHTML = '';
+    //     currTour.matches.forEach(match => {
+    //       const div = document.createElement('div');
+    //       div.className = `stat-box p-3 rounded`;
+    //       div.innerHTML = `
+    //         <div class="flex justify-between items-center">
+    //           <div class="flex items-center gap-4">
+    //             <span class="text-sm">#${match.match_id}</span>
+    //             <span class="text-sm">${match.opponent_username}</span>
+    //           </div>
+    //           <span class="text-sm">${match.player_score} - ${match.opponent_score}</span>
+    //         </div>
+    //       `;
+    //       currMatches.appendChild(div);
+    //     });
+    //   }
 
-      // Past tournaments
-      const tourBody = document.getElementById('tournamentTableBody');
-      tourBody.innerHTML = '';
-      tournaments.filter(t => t.status === 'finished').forEach(t => {
-        const div = document.createElement('div');
-        div.className = 'stat-box p-3 rounded';
-        div.innerHTML = `
-          <div class="flex justify-between items-center">
-            <span class="text-sm">${t.name}</span>
-            <div class="flex items-center gap-4">
-              <span class="text-sm">#${t.rank || '-'}</span>
-              <span class="text-xs text-gray-400">${t.matches_played || 0} matches</span>
-            </div>
-          </div>
-        `;
-        tourBody.appendChild(div);
-      });
-    }
+    //   // Past tournaments
+    //   const tourBody = document.getElementById('tournamentTableBody');
+    //   tourBody.innerHTML = '';
+    //   tournaments.filter(t => t.status === 'finished').forEach(t => {
+    //     const div = document.createElement('div');
+    //     div.className = 'stat-box p-3 rounded';
+    //     div.innerHTML = `
+    //       <div class="flex justify-between items-center">
+    //         <span class="text-sm">${t.name}</span>
+    //         <div class="flex items-center gap-4">
+    //           <span class="text-sm">#${t.rank || '-'}</span>
+    //           <span class="text-xs text-gray-400">${t.matches_played || 0} matches</span>
+    //         </div>
+    //       </div>
+    //     `;
+    //     tourBody.appendChild(div);
+    //   });
+    // }
 
-    function getCountryCode(countryName) {
-      const countryMap = { usa: 'us', uk: 'gb', canada: 'ca', france: 'fr', germany: 'de', portugal: 'pt' };
-      return countryMap[countryName.toLowerCase()] || 'pt';
-    }
+    // function getCountryCode(countryName) {
+    //   const countryMap = { usa: 'us', uk: 'gb', canada: 'ca', france: 'fr', germany: 'de', portugal: 'pt' };
+    //   return countryMap[countryName.toLowerCase()] || 'pt';
+    // }
 
-    window.onload = loadDashboardData;
+    // window.onload = loadDashboardData;
 
-    function showDeleteModal() {
-      document.getElementById('deleteModal').style.display = 'flex';
-    }
+    // function showDeleteModal() {
+    //   document.getElementById('deleteModal').style.display = 'flex';
+    // }
 
-    function closeDeleteModal() {
-      document.getElementById('deleteModal').style.display = 'none';
-    }
+    // function closeDeleteModal() {
+    //   document.getElementById('deleteModal').style.display = 'none';
+    // }
 
-    function confirmDelete() {
-      //delete account logic
-      console.log('Account deletion confirmed');
-      closeDeleteModal();
-      alert('Your account has been deleted');
-      window.location.href = '/';
-    }
+    // function confirmDelete() {
+    //   //delete account logic
+    //   console.log('Account deletion confirmed');
+    //   closeDeleteModal();
+    //   alert('Your account has been deleted');
+    //   window.location.href = '/';
+    // }
 
-    //Handler to delete button
-    document.querySelector('.delete-btn').addEventListener('click', showDeleteModal);
+    // //Handler to delete button
+    // document.querySelector('.delete-btn').addEventListener('click', showDeleteModal);
 
-    // Close modal when clicking outside
-    window.onclick = function(event) {
-      const modal = document.getElementById('deleteModal');
-      if (event.target === modal) {
-        closeDeleteModal();
-      }
-    }
-  </script>
-</body>
-</html>
+    // // Close modal when clicking outside
+    // window.onclick = function(event) {
+    //   const modal = document.getElementById('deleteModal');
+    //   if (event.target === modal) {
+    //     closeDeleteModal();
+    //   }
+    // }
+//   </script>
+// </body>
+// </html>

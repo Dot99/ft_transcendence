@@ -2,8 +2,10 @@
 data.db
 Backend/node_modules
 Backend/package-lock.json
-Backend/data.db
+Backend/db/data.db
+Backend/Frontend
 Frontend/node_modules
 Frontend/package-lock.json
 Frontend/dist
+Frontend/public
 

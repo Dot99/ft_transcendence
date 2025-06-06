@@ -43,6 +43,18 @@ export function deleteCookie(name: string): void {
     document.cookie = `${name}=; Max-Age=0; path=/;`;
 }
 
+export function getUserIdFromToken(): number | null {
+    const token = getCookie('jwt');
+    if (!token) return null;
+    try {
+        const payload = token.split('.')[1];
+        const decoded = JSON.parse(atob(payload));
+        return decoded.id || decoded.sub || null;
+    } catch {
+        return null;
+    }
+}
+
 export const login = async (): Promise<void> => {
     const usernameInput = getElement<HTMLInputElement>('loginUsernameInput');
     const passwordInput = getElement<HTMLInputElement>('loginPasswordInput');

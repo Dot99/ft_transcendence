@@ -14,7 +14,7 @@ export const profileTemplate = `
     </div>
 </div>
 
-<div class="max-w-7xl mx-auto px-4 py-8">
+<div class="w-screen min-h-screen px-4 py-8 bg-[url(./images/background.png)]">
     <!-- Main Profile Card -->
     <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6 mb-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8 items-start relative p-4 bg-[rgba(76,241,144,0.03)] rounded-lg min-h-[180px]">
