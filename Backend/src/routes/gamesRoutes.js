@@ -204,7 +204,7 @@ export default async function (fastify, opts) {
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
 	 */
-	fastify.get("/tournaments/:id/players", {
+	fastify.get("/tournaments/:tournamentid/players/:userid", {
 		schema: {
 			params: paramsJsonSchema,
 		},
@@ -213,7 +213,8 @@ export default async function (fastify, opts) {
 			await gamesController.getTournamentPlayersById(
 				request,
 				reply,
-				request.params.id,
+				request.params.tournamentid,
+				request.params.userid,
 				request.lang
 			),
 	});
