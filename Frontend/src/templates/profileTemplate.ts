@@ -45,7 +45,7 @@ export const profileTemplate = `
 
             <!-- Delete and Arcade Section -->
             <div class="flex flex-col items-end h-full relative">
-                <button id="deleteAccountBtn" class="menu-button absolute bottom-32 right-1.5">DELETE ACCOUNT</button>
+                <button id="deleteAccountBtn" class="menu-button absolute bottom-32 right-1.5 bg-red-800 py-1 px-2 rounded text-black text-[0.65rem] leading-tight flex items-center justify-center h-6 min-w-[70px]">DELETE ACCOUNT</button>
                 <img src="images/arcade.svg" alt="Arcade" class="w-auto h-[140px] scale-x-[-1] absolute -bottom-4 right-0 z-10" />
             </div>
         </div>

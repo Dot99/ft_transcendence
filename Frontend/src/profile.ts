@@ -108,7 +108,12 @@ async function loadDashboardData(): Promise<void> {
   getElement<HTMLHeadingElement>('username').textContent = `@${user.username}`;
   getElement<HTMLHeadingElement>('name').textContent = user.name;
   getElement<HTMLDivElement>('email').textContent = user.email;
-  if (user.pfp) getElement<HTMLImageElement>('pfp').src = `/images/${user.pfp}`;
+  if (user.pfp){
+    getElement<HTMLImageElement>('pfp').src = user.pfp;
+  }
+  else {
+    getElement<HTMLImageElement>('pfp').src = '/images/default_pfp.png';
+  }
   getElement<HTMLSpanElement>('hoursPlayed').textContent = (user.total_play_time / 3600).toFixed(2);
 
   const statsRes = await fetch(`/api/users/${userId}/stats`, {
@@ -119,13 +124,25 @@ async function loadDashboardData(): Promise<void> {
   const statsData = await statsRes.json();
   const stats: Stats = statsData.stats;
 
-  getElement<HTMLDivElement>('totalMatches').textContent = stats.total_matches.toString();
-  getElement<HTMLDivElement>('matchesWon').textContent = stats.matches_won.toString();
-  getElement<HTMLDivElement>('matchesLost').textContent = stats.matches_lost.toString();
-  getElement<HTMLDivElement>('avgScore').textContent = stats.average_score.toString();
-  getElement<HTMLDivElement>('winStreak').textContent = stats.win_streak_max.toString();
-  getElement<HTMLDivElement>('tournaments').textContent = stats.tournaments_won.toString();
-  getElement<HTMLDivElement>('leaderboard').textContent = stats.leaderboard_position.toString();
+  if (!stats) {
+  // If stats is missing, set all fields to '0'
+  getElement<HTMLDivElement>('totalMatches').textContent = '0';
+  getElement<HTMLDivElement>('matchesWon').textContent = '0';
+  getElement<HTMLDivElement>('matchesLost').textContent = '0';
+  getElement<HTMLDivElement>('avgScore').textContent = '0';
+  getElement<HTMLDivElement>('winStreak').textContent = '0';
+  getElement<HTMLDivElement>('tournaments').textContent = '0';
+  getElement<HTMLDivElement>('leaderboard').textContent = '0';
+  return;
+}
+
+getElement<HTMLDivElement>('totalMatches').textContent = stats.total_matches?.toString() ?? '0';
+getElement<HTMLDivElement>('matchesWon').textContent = stats.matches_won?.toString() ?? '0';
+getElement<HTMLDivElement>('matchesLost').textContent = stats.matches_lost?.toString() ?? '0';
+getElement<HTMLDivElement>('avgScore').textContent = stats.average_score?.toString() ?? '0';
+getElement<HTMLDivElement>('winStreak').textContent = stats.win_streak_max?.toString() ?? '0';
+getElement<HTMLDivElement>('tournaments').textContent = stats.tournaments_won?.toString() ?? '0';
+getElement<HTMLDivElement>('leaderboard').textContent = stats.leaderboard_position?.toString() ?? '0';
 
   await loadRecentMatches(userId);
   await loadPastTournaments(userId, stats.current_tournament);

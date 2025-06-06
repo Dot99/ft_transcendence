@@ -87,13 +87,12 @@ export const login = async (): Promise<void> => {
         const data: LoginResponse = await response.json();
         if (data.token) {
             document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
-            showLoginSuccessTempMsg();
             setInputError(usernameInput, false);
             setInputError(passwordInput, false);
             errorElement.textContent = '';
-            setTimeout(() => {
-                loadProfilePage();
-            }, 50);
+            // setTimeout(() => {
+            //     loadProfilePage();
+            // }, 50);
         } else {
             throw new Error('Login failed: ' + (data?.message || 'Unknown error'));
         }
@@ -137,7 +136,6 @@ export const register = async (): Promise<void> => {
         const data: RegisterResponse = await response.json();
         if (data.success) {
             document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
-            showRegisterSuccessTempMsg();
             setInputError(usernameInput, false);
             setInputError(passwordInput, false);
             errorElement.textContent = '';
@@ -208,7 +206,6 @@ export const usernameGoogle = async (username: string): Promise<void> => {
         const data: RegisterResponse = await response.json();
         if (data.success) {
             document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
-            showRegisterSuccessTempMsg();
             setTimeout(() => {
                 loadProfilePage();
             }, 50);
@@ -229,30 +226,6 @@ export const isAuthenticated = (): boolean => {
     const token = getCookie('jwt');
     return !!token;
 }
-
-const showLoginSuccessTempMsg = (): void => {
-    const msg = getElement<HTMLElement>('loginSuccessMsg');
-    msg.classList.remove('hidden');
-    msg.classList.add('show');
-    setTimeout(() => {
-        msg.classList.remove('show');
-        setTimeout(() => {
-            msg.classList.add('hidden');
-        }, 400);
-    }, 2000);
-};
-
-const showRegisterSuccessTempMsg = (): void => {
-    const msg = getElement<HTMLElement>('registerSuccessMsg');
-    msg.classList.remove('hidden');
-    msg.classList.add('show');
-    setTimeout(() => {
-        msg.classList.remove('show');
-        setTimeout(() => {
-            msg.classList.add('hidden');
-        }, 400);
-    }, 2000);
-};
 
 const showLogoutSuccessTempMsg = (): void => {
     // TODO: Implement logout success message

@@ -37,7 +37,7 @@ const handleSetUsername = (): void => {
     getElement<HTMLInputElement>('newUsernameInput').value = '';
     toggleUsernameLoginButton();
     closeSetUsernameModal();
-    showLoginSuccessTempMsg();
+
 };
 
 // UI Functions
@@ -91,21 +91,6 @@ export const loadHomePage = (): void => {
     }
 };
 
-const openLoginModal = (): void => {
-    getElement<HTMLElement>('loginModal').style.display = 'flex';
-};
-
-const showLoginSuccessTempMsg = (): void => {
-    const msg = getElement<HTMLElement>('loginSuccessMsg');
-    msg.classList.remove('hidden');
-    msg.classList.add('show');
-    setTimeout(() => {
-        msg.classList.remove('show');
-        setTimeout(() => {
-            msg.classList.add('hidden');
-        }, 400);
-    }, 2000);
-};
 
 const openSetUsernameModal = (): void => {
     getElement<HTMLElement>('setUsernameModal').style.display = 'flex';
