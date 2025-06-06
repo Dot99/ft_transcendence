@@ -13,10 +13,10 @@ all: deploy
 # Check status of services
 status:
 	@echo "$(GREEN)Checking project status...$(NC)"
-	@echo "$(GREEN)Frontend:$(NC)"
-	@cd $(FRONTEND_DIR) && npm list --depth=0
-	@echo "$(GREEN)Backend:$(NC)"
-	@cd $(BACKEND_DIR) && npm list --depth=0
+	@echo "$(GREEN)Frontend (container):$(NC)"
+	@docker compose exec -T frontend npm list --depth=0 || echo "Container not running"
+	@echo "$(GREEN)Backend (container):$(NC)"
+	@docker compose exec -T backend npm list --depth=0 || echo "Container not running"
 	@echo "$(GREEN)Docker containers:$(NC)"
 	@docker ps -a
 	@echo "$(GREEN)Docker images:$(NC)"
