@@ -73,8 +73,6 @@ export function createUser(username, password, country, lang = "en") {
 					message: messages[lang].failCreateUser,
 				});
 			}
-
-			console.log("User created with ID:", this.lastID);
 			resolve({ success: true, userId: this.lastID });
 		});
 	});

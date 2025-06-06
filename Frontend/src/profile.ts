@@ -74,7 +74,7 @@ const handleConfirmDelete = async (): Promise<void> => {
 };
 
 const handleFriendsClick = (): void => {
-    console.log("FRIENDS")
+    console.log("FRIENDS") //TODO: Implement friends page navigation
     //navigateTo('/friends');
 };
 
@@ -91,8 +91,6 @@ const getOpponentId = (match: Match, userId: number): number => {
 
 async function loadDashboardData(): Promise<void> {
   const userId = getUserIdFromToken();
-
-  console.log("Token (User ID):", userId);
   if (!userId) {
     console.error("User ID not found. Probably not logged in.");
     return;

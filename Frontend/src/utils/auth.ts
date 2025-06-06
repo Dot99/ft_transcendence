@@ -90,9 +90,9 @@ export const login = async (): Promise<void> => {
             setInputError(usernameInput, false);
             setInputError(passwordInput, false);
             errorElement.textContent = '';
-            // setTimeout(() => {
-            //     loadProfilePage();
-            // }, 50);
+            setTimeout(() => {
+                loadProfilePage();
+            }, 50);
         } else {
             throw new Error('Login failed: ' + (data?.message || 'Unknown error'));
         }
