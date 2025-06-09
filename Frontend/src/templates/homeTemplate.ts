@@ -25,6 +25,10 @@ export const homeTemplate = `
                     <button id="loginPopupLoginBtn" class="flex-1 h-12 bg-green-800 enabled:hover:bg-green-700 text-white py-2 rounded focus:outline-none" disabled>LOGIN</button>
                     <button id="loginPopupSignInBtn" class="flex-1 h-12 bg-green-800 enabled:hover:bg-green-700 text-white py-2 rounded focus:outline-none" disabled>SIGN UP</button>
                 </div>
+                <div class="text-xs text-gray-400 text-center mb-2">
+                    By signing up, you agree to our
+                     <a id="termsLink" class="underline text-[#4CF190] hover:text-[#38c172]">Terms and Conditions</a>.
+                </div>
                 <div class="relative mb-2">
                     <div class="absolute inset-0 flex items-center">
                         <div class="w-full border-t border-gray-600"></div>

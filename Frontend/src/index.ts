@@ -1,6 +1,7 @@
 import { homeTemplate } from './templates/homeTemplate.js';
-import { login, register, usernameGoogle, handleGoogleSignIn, isAuthenticated } from './utils/auth.js';
 import { loadProfilePage } from './profile.js';
+import { loadTermsPage } from './terms.js';
+import { login, register, usernameGoogle, handleGoogleSignIn, isAuthenticated } from './utils/auth.js';
 
 // Types
 interface URLParams {
@@ -50,11 +51,11 @@ export const loadHomePage = (): void => {
     app.innerHTML = homeTemplate;
 
     // Add event listeners
-    //getElement<HTMLButtonElement>('profileBtn').addEventListener('click', () => navigateTo('/profile'));
     getElement<HTMLButtonElement>('loginPopupLoginBtn').addEventListener('click', handleLogin);
     getElement<HTMLButtonElement>('loginPopupSignInBtn').addEventListener('click', handleRegister);
     getElement<HTMLButtonElement>('googleSignInBtn').addEventListener('click', handleGoogleSignIn);
     getElement<HTMLButtonElement>('usernameLoginBtn').addEventListener('click', handleSetUsername);
+    getElement<HTMLButtonElement>('termsLink').addEventListener('click', loadTermsPage);
 
     // Add input event listeners
     getElement<HTMLInputElement>('loginUsernameInput').addEventListener('input', toggleLoginPopupButtons);
