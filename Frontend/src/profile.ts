@@ -79,7 +79,7 @@ const handleFriendsClick = (): void => {
 };
 
 // UI Functions
-export const loadProfilePage = (): void => {
+export const loadProfilePage = (pushState: boolean = true): void => {
   const app = getElement<HTMLElement>('app');
   app.innerHTML = profileTemplate;
   loadDashboardData();
@@ -92,7 +92,7 @@ const getOpponentId = (match: Match, userId: number): number => {
 async function loadDashboardData(): Promise<void> {
   const userId = getUserIdFromToken();
   if (!userId) {
-    console.error("User ID not found. Probably not logged in.");
+    loadHomePage();
     return;
   }
   const userRes = await fetch(`/api/users/${userId}`, {

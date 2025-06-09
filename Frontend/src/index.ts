@@ -2,6 +2,7 @@ import { homeTemplate } from './templates/homeTemplate.js';
 import { loadProfilePage } from './profile.js';
 import { loadTermsPage } from './terms.js';
 import { login, register, usernameGoogle, handleGoogleSignIn, isAuthenticated } from './utils/auth.js';
+import { forohforTemplate } from './templates/FourOhFour.js';
 
 // Types
 interface URLParams {
@@ -123,16 +124,19 @@ const toggleLoginPopupButtons = (): void => {
     signInBtn.disabled = !enabled;
 };
 
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    // Listen for route events
-    window.addEventListener('loadHomePage', loadHomePage);
-    window.addEventListener('loadProfilePage', loadProfilePage);
-    
-    // Load initial route
-    loadHomePage();
-});
-
 const openTwoFAModal = (userId: string): void => {
     // Implementation needed
-}; 
+};
+
+export const loadNotFoundPage = (): void => {
+    const app = getElement<HTMLElement>('app');
+    app.innerHTML = forohforTemplate;
+    getElement<HTMLButtonElement>('goHomeButton').addEventListener('click', loadHomePage);
+};
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('loadHomePage', loadHomePage);
+    window.addEventListener('loadProfilePage', () => loadProfilePage());
+    loadHomePage();
+});
