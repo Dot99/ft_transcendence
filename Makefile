@@ -28,7 +28,7 @@ status:
 # Clean build artifacts
 clean:
 	@echo "$(GREEN)Cleaning build artifacts...$(NC)"
-	@tsc --build $(FRONTEND_DIR)/tsconfig.json --clean
+	# @tsc --build $(FRONTEND_DIR)/tsconfig.json --clean
 	@sudo rm -rf $(FRONTEND_DIR)/dist
 	@echo "$(GREEN)Clean complete!$(NC)"
 

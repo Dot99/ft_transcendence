@@ -125,8 +125,8 @@ const toggleLoginPopupButtons = (): void => {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     // Listen for route events
-    window.addEventListener('loadHomePage', loadHomePage);
-    window.addEventListener('loadProfilePage', loadProfilePage);
+    // window.addEventListener('loadHomePage', loadHomePage);
+    // window.addEventListener('loadProfilePage', loadProfilePage);
     
     // Load initial route
     loadHomePage();

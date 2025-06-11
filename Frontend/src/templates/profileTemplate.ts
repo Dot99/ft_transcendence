@@ -50,8 +50,7 @@ export const profileTemplate = `
             </div>
         </div>
     </div>
-
-    <!-- Performance Overview -->
+        <!-- Performance Overview -->
     <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6 mb-6">
         <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold">
             <h2 class="text-xl font-bold">Performance Overview</h2>
@@ -83,6 +82,25 @@ export const profileTemplate = `
             </div>
         </div>
         <div class="bg-[rgba(76,241,144,0.05)] border-2 border-[#EFD671] p-4 rounded-lg text-center">
+            <div class="text-gray-400 text-sm mb-2">🏆 Leaderboard Rank</div>
+            <div id="leaderboard" class="text-3xl text-[#EFD671]"></div>
+        </div>
+    </div>
+        <!-- Performance Overview as Chart -->
+    <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6 mb-6">
+        <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold">
+            <h2 class="text-xl font-bold">Performance Overview</h2>
+        </div>
+        <div class="flex flex-col md:flex-row gap-6 mb-6 h-96">
+        <div class="flex-1 flex items-center justify-center">
+            <canvas id="doughnutChart" class="max-w-full max-h-full"></canvas>
+        </div>
+        <div class="flex-1">
+            <canvas id="barChart" class="w-full h-full"></canvas>
+        </div>
+        </div>
+
+        <div class="mt-6 bg-[rgba(76,241,144,0.05)] border-2 border-[#EFD671] p-4 rounded-lg text-center">
             <div class="text-gray-400 text-sm mb-2">🏆 Leaderboard Rank</div>
             <div id="leaderboard" class="text-3xl text-[#EFD671]"></div>
         </div>
@@ -143,4 +161,4 @@ export const profileTemplate = `
         </div>
     </div>
 </div>
-`; 
+`;
