@@ -178,7 +178,6 @@ export async function login(username, password, fastify, lang = "en") {
 			return resolve({ success: false, message: messages[lang].missingFields });
 		}
 		const user = await getUserByUsername(username, lang);
-		//if (!user || user.user.is_oauth_only) { //TODO: CHECK THIS
 		if (!user.success) {
 			return resolve({ success: false, message: messages[lang].invalidLogin });
 		}

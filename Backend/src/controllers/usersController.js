@@ -358,7 +358,6 @@ const registerUsername = async (request, reply, lang) => {
 	}
 };
 
-//TODO: CHECK LATER IF USING SESSION
 /**
  * @description Controller to log out a user
  * @param {Object} request - The request object
