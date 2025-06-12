@@ -118,6 +118,36 @@ export const profileTemplate = `
             <div id="leaderboard" class="text-3xl text-[#EFD671]"></div>
         </div>
     </div>
+        <!-- Performance Overview as Chart -->
+   <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6 mb-6">
+  
+  <div class="flex flex-col md:flex-row gap-6 mb-6">
+
+    <!-- left chard-->
+    <div class="flex-1 flex flex-col">
+      <!-- Título estilo "Performance Overview" -->
+      <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold rounded-md text-center">
+        <h2 class="text-lg md:text-xl">All Time Stats</h2>
+      </div>
+      <div class="flex-1 flex items-center justify-center">
+        <canvas id="doughnutChart" class="max-w-full max-h-full"></canvas>
+      </div>
+    </div>
+
+    <!-- right chart -->
+    <div class="flex-1 flex flex-col">
+      <!-- Título estilo "Performance Overview" -->
+      <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold rounded-md text-center">
+        <h2 class="text-lg md:text-xl">Stats per Tournament</h2>
+      </div>
+      <div class="flex-1 flex items-center justify-center">
+        <canvas id="barChart" class="w-full h-full"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+</div>
 
     <!-- Split View -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -174,4 +204,5 @@ export const profileTemplate = `
         </div>
     </div>
 </div>
-`; 
+</div>
+`;

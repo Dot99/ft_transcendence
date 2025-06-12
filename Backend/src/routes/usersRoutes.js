@@ -113,7 +113,7 @@ export default async function (fastify, opts) {
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
 	 */
-	fastify.delete("/users", {
+	fastify.delete("/users/:id", {
 		schema: {
 			params: paramsJsonSchema,
 		},
