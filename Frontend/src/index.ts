@@ -44,7 +44,7 @@ const handleRegister = (): void => {
 const handleSetUsername = (): void => {
   const username =
     getElement<HTMLInputElement>("newUsernameInput").value.trim();
-  if (!username) return;
+  if (username.length < 3 || username.length > 20) return;
   usernameGoogle(username);
   getElement<HTMLInputElement>("newUsernameInput").value = "";
   toggleUsernameLoginButton();
@@ -131,7 +131,8 @@ const closeSetUsernameModal = (): void => {
 const toggleUsernameLoginButton = (): void => {
   const input = getElement<HTMLInputElement>("newUsernameInput");
   const btn = getElement<HTMLButtonElement>("usernameLoginBtn");
-  if (input.value.trim().length > 0) {
+  const username = input.value.trim();
+  if (username.length >= 3 && username.length <= 20) {
     btn.disabled = false;
     btn.classList.remove("disabled");
   } else {
@@ -147,7 +148,10 @@ const toggleLoginPopupButtons = (): void => {
     getElement<HTMLInputElement>("loginPasswordInput").value.trim();
   const loginBtn = getElement<HTMLButtonElement>("loginPopupLoginBtn");
   const signInBtn = getElement<HTMLButtonElement>("loginPopupSignInBtn");
-  const enabled = username.length > 0 && password.length > 0;
+  const enabled =
+    username.length > 3 &&
+    username.length <= 20 &&
+    password.length > 0;
   loginBtn.disabled = !enabled;
   signInBtn.disabled = !enabled;
 };
