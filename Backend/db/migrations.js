@@ -97,6 +97,7 @@ export default function runMigrations(db) {
   CREATE TABLE IF NOT EXISTS tournament_players (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tournament_id INTEGER,
+    tournament_name TEXT,
     player_id INTEGER,
     current_position INTEGER,
     wins INTEGER,

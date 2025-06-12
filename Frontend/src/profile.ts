@@ -434,12 +434,12 @@ async function renderPerformanceChart(): Promise<void> {
 
     // Doughnut Chart
     new Chart(doughnutCtx, {
-      type: "bar",
+      type: "doughnut",
       data: {
         labels: ["Wins", "Losses"],
         datasets: [
           {
-            label: ["Wins", "Losses"],
+            label: "Total",
             data: doughnutData,
             backgroundColor: ["#4CF190", "#E57373"],
             borderColor: "#001B26",
@@ -450,87 +450,48 @@ async function renderPerformanceChart(): Promise<void> {
       options: {
         responsive: true,
         plugins: {
+          tooltip: { enabled: true },
           legend: {
             position: "bottom",
-            labels: { color: "#4CF190" },
+            labels: { color: "#ffffff" },
           },
-          tooltip: { enabled: true },
           datalabels: {
-            color: (ctx: any) => {
-              const bgColor = ctx.dataset.backgroundColor[ctx.dataIndex];
-              return bgColor === "#4CF190" ? "#003300" : "#400000";
-            },
-            font: {
-              weight: "bold",
-              size: 18,
-              family: "'Segoe UI', sans-serif",
-            },
-            formatter: (value: number, ctx: any) => {
-              const label = ctx.chart.data.labels[ctx.dataIndex];
-              if (isEmptyStats) return `${label}: 0`;
-              return `${label}: ${value}`;
-            },
-            anchor: "center",
-            align: "center",
-            clamp: true,
+            display: false,
           },
         },
       },
       plugins: [doughnutCenterText, ChartDataLabels],
     });
+
     const res = await fetch(`/api/tournaments/users/${userId}/past`);
     const data = await res.json();
-    const nameRes = await fetch(`/api/tournaments/1`);
-    const nameData = await nameRes.json(); // Supondo que seja um array de torneios
 
-    // Crie um mapa para acesso rápido ao nome pelo id
-    const nameMap = new Map<number, string>(
-      nameData.map((t: { tournament_id: number; tournament_name: string }) => [
-        t.tournament_id,
-        t.tournament_name,
-      ])
-    );
-
-    const tournamentStats = data
+    console.log(data.tournaments);
+    const tournamentStats = data.tournaments
       .map((tournament: any, index: number) => ({
-        name: nameMap.get(tournament.tournament_id) || "Unknown",
+        tournament_id: tournament.tournament_id,
+        name: tournament.tournament_name,
         wins: tournament.wins ?? 0,
         losses: tournament.losses ?? 0,
-        current_position: tournament.position ?? 0,
       }))
-      .slice(0, 10);
+      .slice(0, 10)
+      .reverse();
 
     const tournamentLabels = tournamentStats.map(
-      (t: {
-        name: string;
-        wins: number;
-        losses: number;
-        current_position: number;
-      }) => t.name
+      (t: { name: string; wins: number; losses: number }) => t.name
     );
+
     const winsData = tournamentStats.map(
-      (t: {
-        name: string;
-        wins: number;
-        losses: number;
-        current_position: number;
-      }) => t.wins
+      (t: { name: string; wins: number; losses: number }) => t.wins
     );
     const lossesData = tournamentStats.map(
-      (t: {
-        name: string;
-        wins: number;
-        losses: number;
-        current_position: number;
-      }) => t.losses
+      (t: { name: string; wins: number; losses: number }) => t.losses
     );
-    const positionData = tournamentStats.map(
-      (t: {
-        name: string;
-        wins: number;
-        losses: number;
-        current_position: number;
-      }) => t.current_position
+    const win_rate = tournamentStats.map(
+      (t: { name: string; wins: number; losses: number }) => {
+        const total = t.wins + t.losses;
+        return total === 0 ? 0 : +((t.wins / total) * 10).toFixed(1);
+      }
     );
 
     new Chart(barCtx, {
@@ -559,8 +520,8 @@ async function renderPerformanceChart(): Promise<void> {
             fill: false,
           },
           {
-            label: "Position",
-            data: positionData,
+            label: "Win Rate/1=10%",
+            data: win_rate,
             borderColor: "#FFD54F",
             backgroundColor: "rgba(255, 213, 79, 0.2)",
             pointBackgroundColor: "#FFD54F",
@@ -577,7 +538,18 @@ async function renderPerformanceChart(): Promise<void> {
             labels: { color: "#4CF190" },
           },
           tooltip: { enabled: true },
+          datalabels: {
+            color: "#FFFFFF",
+            align: "end",
+            anchor: "start",
+            offset: 2,
+            font: {
+              weight: "bold",
+              size: 10,
+            },
+          },
         },
+
         scales: {
           y: {
             beginAtZero: true,
@@ -614,7 +586,5 @@ async function renderPerformanceChart(): Promise<void> {
     });
   }
 }
-
-// Call renderPerformanceChart after the DOM and stats are loaded, e.g. at the end of loadDashboardData
 
 (window as any).loadProfilePage = loadProfilePage;
