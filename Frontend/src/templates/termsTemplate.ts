@@ -52,6 +52,11 @@ export const termsTemplate = `
     <p class="mb-2 text-gray-300">
       For questions about these Terms and Conditions, contact us at <a href="mailto:support@example.com" class="underline text-[#4CF190] hover:text-[#38c172]">support@example.com</a>.
     </p>
+    <div class="flex justify-center mt-8">
+      <button id="goBackBtn" class="bg-[#4CF190] text-[#001B26] px-6 py-2 rounded-lg font-semibold hover:bg-[#38c172] transition">
+        Go Back
+      </button>
+    </div>
   </div>
 </div>
 `;

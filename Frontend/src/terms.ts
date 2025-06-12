@@ -7,8 +7,19 @@ const getElement = <T extends HTMLElement>(id: string): T => {
 };
 
 export const loadTermsPage = (): void => {
-  const app = getElement<HTMLElement>('app');
+  const app = document.getElementById("app");
+  if (!app) return;
   app.innerHTML = termsTemplate;
+
+  // Attach the Go Back button event handler here
+  const btn = document.getElementById('goBackBtn');
+  if (btn) {
+  btn.onclick = function() {
+    import('./index.js').then(module => {
+      module.loadHomePage();
+    });
+  };
+  }
 };
 
 (window as any).loadTermsPage = loadTermsPage;

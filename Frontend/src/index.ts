@@ -75,7 +75,10 @@ export const loadHomePage = (): void => {
   );
   getElement<HTMLButtonElement>("termsLink").addEventListener(
     "click",
-    loadTermsPage
+    (e) => {
+      e.preventDefault();
+      loadTermsPage();
+    }
   );
 
   // Add input event listeners
@@ -220,17 +223,7 @@ export const loadNotFoundPage = (): void => {
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
-  // Listen for route events
-  // window.addEventListener('loadHomePage', loadHomePage);
-  // window.addEventListener('loadProfilePage', loadProfilePage);
-
-  // Load initial route
-  loadHomePage();
-});
-
-// Initialize
-document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("loadHomePage", loadHomePage);
   window.addEventListener("loadProfilePage", () => loadProfilePage());
-  loadHomePage();
+  window.addEventListener("loadTermsPage", loadTermsPage);
 });
