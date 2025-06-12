@@ -30,6 +30,7 @@ clean:
 	@echo "$(GREEN)Cleaning build artifacts...$(NC)"
 	@tsc --build $(FRONTEND_DIR)/tsconfig.json --clean
 	@sudo rm -rf $(FRONTEND_DIR)/dist
+	@sudo rm -rf $(BACKEND_DIR)/Frontend
 	@echo "$(GREEN)Clean complete!$(NC)"
 
 # Full clean including node_modules
@@ -37,6 +38,7 @@ fclean: clean
 	@echo "$(GREEN)Performing full clean...$(NC)"
 	@rm -rf $(FRONTEND_DIR)/node_modules
 	@rm -rf $(BACKEND_DIR)/node_modules
+	@rm -rf $(BACKEND_DIR)/db/data.db
 	@docker system prune -f -a --volumes
 	@echo "$(GREEN)Full clean complete!$(NC)"
 
@@ -51,6 +53,7 @@ install:
 # Deploy using docker-compose
 deploy:
 	@echo "$(GREEN)Deploying with docker-compose...$(NC)"
+	@touch $(BACKEND_DIR)/db/data.db
 	@docker compose up --build
 
 # Stop all services
