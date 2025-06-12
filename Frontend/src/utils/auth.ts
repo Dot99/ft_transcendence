@@ -1,20 +1,25 @@
 import { loadProfilePage } from '../profile.js';
+import { loadHomePage } from '../index.js';
+const API_BASE_URL = "http://localhost:3000/api";
 
 // Types
 interface LoginResponse {
     token?: string;
     message?: string;
     success?: boolean;
+    userId?: string | number;
+    twofa?: boolean;
+    google_id?: string;
 }
 
 interface RegisterResponse {
     token?: string;
     message?: string;
     success?: boolean;
+    userId?: string | number;
+    twofa?: boolean;
+    google_id?: string;
 }
-
-// Constants
-const API_BASE_URL = 'http://localhost:3000/api';
 
 // DOM Elements
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -33,27 +38,6 @@ const setInputError = (input: HTMLInputElement, hasError: boolean): void => {
         input.classList.add('border-[#4CF190]');
     }
 };
-
-export function getCookie(name: string): string | undefined {
-    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    return match ? match[2] : undefined;
-}
-
-export function deleteCookie(name: string): void {
-    document.cookie = `${name}=; Max-Age=0; path=/;`;
-}
-
-export function getUserIdFromToken(): number | null {
-    const token = getCookie('jwt');
-    if (!token) return null;
-    try {
-        const payload = token.split('.')[1];
-        const decoded = JSON.parse(atob(payload));
-        return decoded.id || decoded.sub || null;
-    } catch {
-        return null;
-    }
-}
 
 export const login = async (): Promise<void> => {
     const usernameInput = getElement<HTMLInputElement>('loginUsernameInput');
@@ -85,14 +69,13 @@ export const login = async (): Promise<void> => {
         }
 
         const data: LoginResponse = await response.json();
+        console.log("data:", data);
         if (data.token) {
-            document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
             setInputError(usernameInput, false);
             setInputError(passwordInput, false);
             errorElement.textContent = '';
-            setTimeout(() => {
-                loadProfilePage();
-            }, 50);
+            document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
+            loadHomePage();
         } else {
             throw new Error('Login failed: ' + (data?.message || 'Unknown error'));
         }
@@ -139,9 +122,8 @@ export const register = async (): Promise<void> => {
             setInputError(usernameInput, false);
             setInputError(passwordInput, false);
             errorElement.textContent = '';
-            setTimeout(() => {
-                loadProfilePage();
-            }, 50);
+            document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
+            loadHomePage();
         } else {
             throw new Error(data?.message || 'Unknown error');
         }
@@ -204,12 +186,7 @@ export const usernameGoogle = async (username: string): Promise<void> => {
         }
 
         const data: RegisterResponse = await response.json();
-        if (data.success) {
-            document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
-            setTimeout(() => {
-                loadProfilePage();
-            }, 50);
-        } else {
+        if (!data.success) {
             throw new Error(data?.message || 'Unknown error');
         }
     } catch (error) {
@@ -225,6 +202,63 @@ export const handleGoogleSignIn = (): void => {
 export const isAuthenticated = (): boolean => {
     const token = getCookie('jwt');
     return !!token;
+}
+
+export const isTwoFactorEnabled = (): boolean => {
+    const jwt = getCookie('jwt');
+    if (!jwt) return false;
+    try {
+        const payload = jwt.split('.')[1];
+        const decoded = JSON.parse(atob(payload));
+        return decoded.twofa_enabled === true && decoded.twofa_verified !== true;
+    } catch {
+        return false;
+    }
+};
+
+export const isGoogleAuthEnabled = (): boolean => {
+    const jwt = getCookie('jwt');
+    if (!jwt) return false;
+    try {
+        const payload = jwt.split('.')[1];
+        const decoded = JSON.parse(atob(payload));
+        return !!decoded.google_id;
+    } catch {
+        return false;
+    }
+};
+
+export function getCookie(name: string): string | undefined {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? match[2] : undefined;
+}
+
+export function deleteCookie(name: string): void {
+    document.cookie = `${name}=; Max-Age=0; path=/;`;
+}
+
+export function getUserIdFromToken(): number | null {
+    const token = getCookie('jwt');
+    if (!token) return null;
+    try {
+        const payload = token.split('.')[1];
+        const decoded = JSON.parse(atob(payload));
+        return decoded.id || decoded.sub || null;
+    } catch {
+        return null;
+    }
+}
+
+export function getGoogleFlagFromToken(): boolean {
+    const token = getCookie('jwt');
+    if (!token) return false;
+    try {
+        const payload = token.split('.')[1];
+        const decoded = JSON.parse(atob(payload));
+        return !!decoded.google_id;
+    } catch {
+        return false;
+    }
 }
 
 const showLogoutSuccessTempMsg = (): void => {

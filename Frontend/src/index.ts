@@ -1,16 +1,11 @@
 import { homeTemplate } from './templates/homeTemplate.js';
 import { loadProfilePage } from './profile.js';
 import { loadTermsPage } from './terms.js';
-import { login, register, usernameGoogle, handleGoogleSignIn, isAuthenticated } from './utils/auth.js';
+import { login, register, usernameGoogle, handleGoogleSignIn, isAuthenticated, isTwoFactorEnabled, isGoogleAuthEnabled, getUserIdFromToken, getGoogleFlagFromToken } from './utils/auth.js';
 import { forohforTemplate } from './templates/FourOhFour.js';
+import { getCookie, deleteCookie } from './utils/auth.js';
 
-// Types
-interface URLParams {
-    token?: string;
-    userId?: string;
-    twofa?: boolean;
-    google_id?: boolean;
-}
+const API_BASE_URL = "http://localhost:3000/api"
 
 // DOM Elements
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -44,10 +39,6 @@ const handleSetUsername = (): void => {
 
 // UI Functions
 export const loadHomePage = (): void => {
-    if(isAuthenticated()) {
-        loadProfilePage(); //TODO: Mudar pag intermedia
-        return;
-    }
     const app = getElement<HTMLElement>('app');
     app.innerHTML = homeTemplate;
 
@@ -62,35 +53,28 @@ export const loadHomePage = (): void => {
     getElement<HTMLInputElement>('loginUsernameInput').addEventListener('input', toggleLoginPopupButtons);
     getElement<HTMLInputElement>('loginPasswordInput').addEventListener('input', toggleLoginPopupButtons);
     getElement<HTMLInputElement>('newUsernameInput').addEventListener('input', toggleUsernameLoginButton);
-
-    // Handle URL parameters
     const params = new URLSearchParams(window.location.search);
-    const urlParams: URLParams = {
-        token: params.get('token') || undefined,
-        userId: params.get('userId') || undefined,
-        twofa: params.get('twofa') === 'true',
-        google_id: params.get('google_id') === 'true'
-    };
-
-    if (urlParams.token) {
-        document.cookie = `jwt=${urlParams.token}; path=/; secure; samesite=lax`;
-        
-        if (urlParams.google_id) {
-            setTimeout(() => {
-                loadProfilePage(); // TODO: CHECK INTERMEDIATE PAGE
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }, 50);
-        }
-
-        setTimeout(() => {
-            if (urlParams.twofa && urlParams.userId) {
-                openTwoFAModal(urlParams.userId);
-            } else {
-                openSetUsernameModal();
-            }
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }, 0);
+    const token = params.get('token');
+    if (token) {
+        document.cookie = `jwt=${token}; path=/;`;
+        window.history.replaceState({}, '', window.location.pathname);
+        return;
     }
+    if(!isAuthenticated()) {
+        return ;
+    }
+    if(isTwoFactorEnabled()) {
+        const userId = getUserIdFromToken();
+        openTwoFAModal(String(userId));
+        return;
+    }
+    
+    if(getGoogleFlagFromToken())
+    {
+        openSetUsernameModal();
+        return;
+    }
+    loadProfilePage();
 };
 
 
@@ -125,7 +109,55 @@ const toggleLoginPopupButtons = (): void => {
 };
 
 const openTwoFAModal = (userId: string): void => {
-    // Implementation needed
+    const modal = getElement<HTMLDivElement>('twoFAModal');
+    if (!modal)
+    {
+        loadHomePage();
+        return;
+    }
+    const input = getElement<HTMLInputElement>('twoFACodeInput');
+    const submitBtn = getElement<HTMLButtonElement>('twoFASubmitBtn');
+    const errorMsg = getElement<HTMLDivElement>('twoFAErrorMsg');
+    modal.style.display = 'flex';
+    input.value = '';
+    errorMsg.textContent = '';
+    errorMsg.classList.add('hidden');
+    submitBtn.disabled = true;
+
+    input.oninput = () => {
+        submitBtn.disabled = input.value.trim().length !== 6;
+    };
+
+    submitBtn.onclick = async () => {
+        submitBtn.disabled = true;
+        errorMsg.classList.add('hidden');
+        try {
+            const res = await fetch(`${API_BASE_URL}/2fa/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getCookie('jwt')}`,
+                },
+                body: JSON.stringify({ token: input.value.trim() }),
+                credentials: 'include',
+            });
+            if (res.ok) {
+                const data = await res.json();
+                document.cookie = `jwt=${data.token}; path=/;`;
+                modal.style.display = 'none';
+                loadProfilePage();
+            } else {
+                const data = await res.json();
+                errorMsg.textContent = data.error || 'Invalid code';
+                errorMsg.classList.remove('hidden');
+                submitBtn.disabled = false;
+            }
+        } catch {
+            errorMsg.textContent = 'Network error';
+            errorMsg.classList.remove('hidden');
+            submitBtn.disabled = false;
+        }
+    };
 };
 
 export const loadNotFoundPage = (): void => {

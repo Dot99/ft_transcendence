@@ -15,10 +15,10 @@ export const homeTemplate = `
             </div>
             <div class="space-y-4">
                 <div>
-                    <input type="text" id="loginUsernameInput" placeholder="Username" class="w-full p-2 bg-[#002B3B] border border-[#4CF190] rounded text-white">
+                    <input type="text" id="loginUsernameInput" placeholder="Username" class="w-full p-2 bg-[#002B3B] border border-[#4CF190] rounded text-white focus:outline-none">
                 </div>
                 <div>
-                    <input type="password" id="loginPasswordInput" placeholder="Password" class="w-full p-2 bg-[#002B3B] border border-[#4CF190] rounded text-white">
+                    <input type="password" id="loginPasswordInput" placeholder="Password" class="w-full p-2 bg-[#002B3B] border border-[#4CF190] rounded text-white focus:outline-none">
                 </div>
                 <div id="loginErrorMsg" class="text-red-500 text-sm hidden"></div>
                 <div class="flex mb-4 gap-4">
@@ -53,7 +53,7 @@ export const homeTemplate = `
             </div>
             <div class="space-y-4">
                 <div>
-                    <input type="text" id="twoFACodeInput" placeholder="Enter 2FA code" class="w-full p-2 bg-[#002B3B] border border-[#4CF190] rounded text-white" maxlength="6" autocomplete="one-time-code">
+                    <input type="text" id="twoFACodeInput" placeholder="Enter 2FA code" class="w-full p-2 bg-[#002B3B] border border-[#4CF190] rounded text-white focus:outline-none" maxlength="6" autocomplete="one-time-code">
                 </div>
                 <div id="twoFAErrorMsg" class="text-red-500 text-sm hidden"></div>
                 <button id="twoFASubmitBtn" class="w-full h-12 bg-green-800 enabled:hover:bg-green-700 text-white py-2 rounded" disabled>VERIFY</button>
@@ -66,7 +66,6 @@ export const homeTemplate = `
         <div class="bg-[#001B26] p-8 rounded-xl border-2 border-[#4CF190] max-w-md w-full">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl text-[#4CF190] font-bold">Set Username</h2>
-                <button id="closeSetUsernameModalBtn" class="text-gray-400 hover:text-white">&times;</button>
             </div>
             <div class="space-y-4">
                 <div>

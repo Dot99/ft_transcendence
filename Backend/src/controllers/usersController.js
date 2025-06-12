@@ -269,7 +269,6 @@ const login = async (request, reply, lang) => {
 		reply.code(200).send({
 			success: true,
 			message: "User logged in successfully",
-			userId: result.userId,
 			token: result.token,
 		});
 	} catch (err) {

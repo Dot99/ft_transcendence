@@ -1,7 +1,8 @@
+import fp from "fastify-plugin";
 import { UnauthorizedError } from "../errors/unauthorizedError.js";
 import { isTokenBlacklisted } from "./jwtBlacklist.js";
 
-export default async function (fastify) {
+async function authMiddleware(fastify) {
 	fastify.decorate("authenticate", async function (request, reply) {
 		const token = request.headers.authorization?.split(" ")[1];
 		if (!token || isTokenBlacklisted(token)) {
@@ -14,3 +15,5 @@ export default async function (fastify) {
 		}
 	});
 }
+
+export default fp(authMiddleware);

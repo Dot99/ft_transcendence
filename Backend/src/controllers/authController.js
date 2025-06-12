@@ -1,6 +1,12 @@
-// src/controllers/authController.js
-import { handleGoogleCallback } from "../services/authService.js";
+import speakeasy from "speakeasy"; // For two-factor authentication
+import qrcode from "qrcode"; // For generating QR codes
 import { getUserById } from "../services/usersServices.js";
+import {
+	handleGoogleCallback,
+	twoFaSetupService,
+	twoFaVerifyService,
+	twoFaLoginService,
+} from "../services/authService.js";
 
 /**
  * Handles the Google OAuth callback.
@@ -11,7 +17,7 @@ import { getUserById } from "../services/usersServices.js";
  * @description This function is called when the user is redirected back to the application after authentication with Google.
  * It handles the callback, retrieves the user information, and sends a token back to the client.
  */
-export async function googleOAuthCallback(request, reply, fastify) {
+const googleOAuthCallback = async (request, reply, fastify) => {
 	try {
 		const result = await handleGoogleCallback(request, fastify);
 		const params = new URLSearchParams({
@@ -28,20 +34,20 @@ export async function googleOAuthCallback(request, reply, fastify) {
 		reply.log.error(error);
 		reply.status(500).send({ error: "Authentication failed" });
 	}
-}
+};
 
-export async function twoFaSetup(request, reply, fastify) {
+const twoFaSetup = async (request, reply, fastify) => {
 	try {
 		const userId = request.user.id;
 		const secret = speakeasy.generateSecret({
-			name: `Trans (${request.user.email})`,
+			name: `Trans (${request.user.username})`,
 		});
 		const result = await twoFaSetupService(userId, secret.base32);
 		if (result.success) {
-			const qrcode = await qrcode.toDataURL(secret.otpauth_url);
+			const qrCodeData = await qrcode.toDataURL(secret.otpauth_url); //Requires await!
 			reply.status(200).send({
 				success: true,
-				code: qrcode,
+				code: qrCodeData,
 				message: "QR Code generated successfully",
 			});
 		} else {
@@ -51,23 +57,13 @@ export async function twoFaSetup(request, reply, fastify) {
 		reply.log.error(error);
 		reply.status(500).send({ error: "2FA setup failed" });
 	}
-}
+};
 
-export async function twoFaVerify(request, reply, fastify) {
+const twoFaVerify = async (request, reply, fastify) => {
 	try {
 		const { token } = request.body;
 		const userId = request.user.id;
-		const user = await getUserById(userId, fastify);
-		const verification = speakeasy.totp.verify({
-			secret: user.twofa_secret,
-			encoding: "base32",
-			token: token,
-			window: 1,
-		});
-		if (!verification) {
-			return reply.status(400).send({ success: false, error: "Invalid token" });
-		}
-		const result = await twoFaVerifyService(userId, true);
+		const result = await twoFaVerifyService(userId, token, true);
 		if (result.success) {
 			reply
 				.status(200)
@@ -81,4 +77,31 @@ export async function twoFaVerify(request, reply, fastify) {
 		reply.log.error(error);
 		reply.status(500).send({ error: "2FA verification failed" });
 	}
-}
+};
+
+const twoFaLogin = async (request, reply, fastify) => {
+	try {
+		const { token } = request.body;
+		const userId = request.user.id;
+		const result = await twoFaLoginService(userId, token);
+		if (result.success) {
+			const user = await getUserById(userId);
+			const newToken = fastify.jwt.sign({
+				id: user.user.id,
+				username: user.user.username,
+				twofa_enabled: !!user.user.twofa_enabled,
+				twofa_verified: true,
+			});
+			return reply.status(200).send({ success: true, token: newToken });
+		} else {
+			return reply
+				.status(400)
+				.send({ success: false, error: "2FA verification failed" });
+		}
+	} catch (error) {
+		reply.log.error(error);
+		reply.status(500).send({ error: "2FA login failed" });
+	}
+};
+
+export { googleOAuthCallback, twoFaSetup, twoFaVerify, twoFaLogin };

@@ -187,25 +187,14 @@ export async function login(username, password, fastify, lang = "en") {
 		if (!validPassword) {
 			return resolve({ success: false, message: messages[lang].invalidLogin });
 		}
-
 		// Create JWT
 		const token = fastify.jwt.sign({
 			id: user.user.id,
 			username: user.user.username,
-			email: user.user.email,
+			twofa_enabled: !!user.user.twofa_enabled,
+			twofa_verified: !!user.user.twofa_verified,
+			google_flag: false,
 		});
-
-		// If user has 2FA enabled, require second step
-		if (user.user.twofa_enabled) {
-			return resolve({
-				success: true,
-				twofa: true,
-				userId: user.user.id,
-				token: token,
-				message: messages[lang].twofaRequired,
-			});
-		}
-
 		resolve({ success: true, user, token });
 	});
 }
@@ -239,7 +228,9 @@ export function register(username, password, country, fastify, lang = "en") {
 				const token = fastify.jwt.sign({
 					id: userId,
 					username: username,
-					email: null,
+					twofa_enabled: false,
+					twofa_verified: false,
+					google_flag: false,
 				});
 
 				resolve({ success: true, userId: userId, token: token });
@@ -275,7 +266,8 @@ export function registerUsername(userId, username, fastify, lang = "en") {
 			const token = fastify.jwt.sign({
 				id: userId,
 				username: username,
-				email: null,
+				twofa_verified: false,
+				google_flag: true,
 			});
 			resolve({ success: true, userId: userId, token: token });
 		});
