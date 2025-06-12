@@ -14,7 +14,7 @@ export default async function (fastify, opts) {
 	 * @security JWT
 	 */
 	fastify.get("/users", {
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.getAllUsers(request, reply, request.lang),
 	});
@@ -34,7 +34,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.getUserById(request, reply, request.lang),
 	});
@@ -54,7 +54,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.getUserByUsername(request, reply, request.lang),
 	});
@@ -74,7 +74,7 @@ export default async function (fastify, opts) {
 		schema: {
 			body: bodyUserSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.createUser(request, reply, request.lang),
 	});
@@ -92,11 +92,11 @@ export default async function (fastify, opts) {
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
 	 */
-	fastify.put("/users", {
+	fastify.put("/users/:id", {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.updateUser(request, reply, request.lang),
 	});
@@ -117,7 +117,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.deleteUser(request, reply, request.lang),
 	});
@@ -133,7 +133,7 @@ export default async function (fastify, opts) {
 	 * @security JWT
 	 */
 	fastify.get("/users/me", {
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.getCurrentUser(request, reply, request.lang),
 	});
@@ -152,7 +152,7 @@ export default async function (fastify, opts) {
 	 * @security JWT
 	 */
 	fastify.post("/users/avatar", {
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.uploadAvatar(request, reply, request.lang),
 	});
@@ -226,7 +226,7 @@ export default async function (fastify, opts) {
 	 * @security JWT
 	 */
 	fastify.post("/logout", {
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.logout(request, reply, request.lang),
 	});
@@ -248,7 +248,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.getUserFriends(request, reply, request.lang),
 	});
@@ -270,7 +270,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.addFriend(request, reply, request.lang),
 	});
@@ -293,7 +293,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.deleteFriend(request, reply, request.lang),
 	});
@@ -313,7 +313,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.blockUser(request, reply, request.lang),
 	});
@@ -334,7 +334,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.unblockUser(request, reply, request.lang),
 	});
@@ -354,7 +354,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.getBlockedUsers(request, reply, request.lang),
 	});
@@ -376,7 +376,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.getUserMatches(request, reply, request.lang),
 	});
@@ -396,7 +396,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.getUserStats(request, reply, request.lang),
 	});
@@ -418,7 +418,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		// prehandler: [fastify.authenticate],
+		// preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.getUserStatus(request, reply, request.lang),
 	});
@@ -433,7 +433,7 @@ export default async function (fastify, opts) {
 	 * @security JWT
 	 */
 	fastify.get("/users/online", {
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.getOnlineUsers(request, reply, request.lang),
 	});
@@ -448,7 +448,7 @@ export default async function (fastify, opts) {
 	 * @security JWT
 	 */
 	fastify.post("/matchmaking/join", {
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.joinMatchmaking(request, reply, request.lang),
 	});
@@ -463,7 +463,7 @@ export default async function (fastify, opts) {
 	 * @security JWT
 	 */
 	fastify.post("/matchmaking/leave", {
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.leaveMatchmaking(request, reply, request.lang),
 	});

@@ -13,7 +13,7 @@ export default async function (fastify, opts) {
 	 * @security JWT
 	 */
 	fastify.get("/games", {
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await gamesController.getAllGames(request, reply, request.lang),
 	});
@@ -33,7 +33,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await gamesController.getGameById(
 				request,
@@ -58,7 +58,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		// prehandler: [fastify.authenticate],
+		// preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await gamesController.getGamesByUserId(
 				request,
@@ -83,7 +83,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		// prehandler: [fastify.authenticate],
+		// preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await gamesController.getRecentGamesByUserId(
 				request,
@@ -108,7 +108,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		// prehandler: [fastify.authenticate],
+		// preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await gamesController.getPastTournamentsByUserId(
 				request,
@@ -133,7 +133,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		// prehandler: [fastify.authenticate],
+		// preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await gamesController.getUpcomingTournamentsByUserId(
 				request,
@@ -158,7 +158,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await gamesController.getTournamentById(
 				request,
@@ -183,7 +183,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await gamesController.getUpcomingTournamentMatchesById(
 				request,
@@ -208,7 +208,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		prehandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await gamesController.getTournamentPlayersById(
 				request,
@@ -218,5 +218,4 @@ export default async function (fastify, opts) {
 				request.lang
 			),
 	});
-	
 }
