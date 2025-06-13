@@ -12,6 +12,11 @@ export const homeTemplate = `
         <div class="bg-[#001B26] p-8 rounded-xl border-2 border-[#4CF190] max-w-md w-full">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl text-[#4CF190] font-bold">Login</h2>
+                    <select id="langSelector" class="bg-[#002B3B] border border-[#4CF190] text-white rounded px-2 py-1 ml-4">
+                        <option value="en">EN</option>
+                        <option value="pt">PT</option>
+                        <option value="zh">中文</option>
+                    </select>
             </div>
             <div class="space-y-4">
                 <div>
@@ -26,8 +31,8 @@ export const homeTemplate = `
                     <button id="loginPopupSignInBtn" class="flex-1 h-12 bg-green-800 enabled:hover:bg-green-700 text-white py-2 rounded focus:outline-none" disabled>SIGN UP</button>
                 </div>
                 <div class="text-xs text-gray-400 text-center mb-2">
-                    By signing up, you agree to our
-                     <a id="termsLink" class="underline text-[#4CF190] hover:text-[#38c172]">Terms and Conditions</a>.
+                    <span id="termsPrefix">By signing up, you agree to our </span>
+                    <a id="termsLink" class="underline text-[#4CF190] hover:text-[#38c172]">Terms and Conditions</a>.
                 </div>
                 <div class="relative mb-2">
                     <div class="absolute inset-0 flex items-center">
@@ -74,14 +79,6 @@ export const homeTemplate = `
                 <button id="usernameLoginBtn" class="w-full h-12 bg-green-800 enabled:hover:bg-green-700 text-white py-2 rounded" disabled>SET USERNAME</button>
             </div>
         </div>
-    </div>
-
-    <!-- Success Messages -->
-    <div id="loginSuccessMsg" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded shadow-lg transform translate-y-[-100%] opacity-0 transition-all duration-300 hidden">
-        Login successful!
-    </div>
-    <div id="registerSuccessMsg" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded shadow-lg transform translate-y-[-100%] opacity-0 transition-all duration-300 hidden">
-        Registration successful!
     </div>
 </div>
 `;

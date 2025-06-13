@@ -1,5 +1,6 @@
 import { loadProfilePage } from '../profile.js';
 import { loadHomePage } from '../index.js';
+import { getLang } from '../locales/localeMiddleware.js';
 const API_BASE_URL = "http://localhost:3000/api";
 
 // Types
@@ -51,6 +52,7 @@ export const login = async (): Promise<void> => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                "Accept-Language": getLang(),
                 'Accept': 'application/json',
             },
             body: JSON.stringify({ username, password }),
@@ -101,6 +103,7 @@ export const register = async (): Promise<void> => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                "Accept-Language": getLang(),
             },
             body: JSON.stringify({ username, password, country }),
             credentials: 'include',
@@ -141,13 +144,13 @@ export const logout = async (): Promise<void> => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                "Accept-Language": getLang(),
             },
             body: JSON.stringify({ token: getCookie('jwt') }),
             credentials: 'include',
         });
         if (response.ok) {
             deleteCookie('jwt');
-            showLogoutSuccessTempMsg();
         } else {
             throw new Error('Logout failed');
         }
@@ -166,6 +169,7 @@ export const usernameGoogle = async (username: string): Promise<void> => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                "Accept-Language": getLang(),
             },
             body: JSON.stringify({
                 username,
@@ -260,7 +264,3 @@ export function getGoogleFlagFromToken(): boolean {
         return false;
     }
 }
-
-const showLogoutSuccessTempMsg = (): void => {
-    // TODO: Implement logout success message
-};

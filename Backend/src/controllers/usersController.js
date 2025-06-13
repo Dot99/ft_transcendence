@@ -1,30 +1,28 @@
 import fastify from "fastify";
 import { UserNotFoundError } from "../errors/userNotFoundError.js";
 import * as userService from "../services/usersServices.js";
+import { messages } from "../locales/messages.js";
 
 /**
  * @description Controller to get all users
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If no users are found
  */
-const getAllUsers = async (request, reply, lang) => {
+const getAllUsers = async (request, reply) => {
 	try {
 		const result = await userService.getAllUsers(request.lang);
 		if (!result.success) {
 			throw new UserNotFoundError();
 		}
-
 		reply.send({
 			success: true,
-			message: "Users retrieved successfully",
 			users: result.users,
 		});
 	} catch (err) {
 		reply
 			.code(500)
-			.send({ success: false, message: "Internal error", error: err });
+			.send({ success: false, message: "Internal Server error", error: err });
 	}
 };
 
@@ -33,23 +31,24 @@ const getAllUsers = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const getUserById = async (request, reply, lang) => {
+const getUserById = async (request, reply) => {
 	try {
 		const id = request.params.id;
 		const result = await userService.getUserById(id, request.lang);
-
 		if (!result.success) {
-			return reply.code(404).send(result);
+			throw new UserNotFoundError();
 		}
-
 		reply.send({
 			success: true,
 			user: result.user,
 		});
 	} catch (err) {
-		reply.code(500).send({ success: false, error: err.message });
+		reply.code(500).send({
+			success: false,
+			message: "Internal Server Error",
+			error: err.message,
+		});
 	}
 };
 
@@ -58,23 +57,20 @@ const getUserById = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const getUserByUsername = async (request, reply, lang) => {
+const getUserByUsername = async (request, reply) => {
 	try {
 		const username = request.params.username;
 		const result = await userService.getUserByUsername(username, request.lang);
-
 		if (!result.success) {
-			return reply.code(404).send({ success: false, message: result.message });
+			throw new UserNotFoundError();
 		}
-
 		reply.send({
 			success: true,
 			user: result.user,
 		});
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -87,9 +83,8 @@ const getUserByUsername = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const createUser = async (request, reply, lang) => {
+const createUser = async (request, reply) => {
 	try {
 		const { username, password, country } = request.body;
 		const result = await userService.createUser(
@@ -102,11 +97,9 @@ const createUser = async (request, reply, lang) => {
 		if (!result.success) {
 			return reply.code(400).send({ message: result.message });
 		}
-		reply
-			.code(201)
-			.send({ success: true, message: "User created", userId: result.userId });
+		reply.code(201).send({ success: true, userId: result.userId });
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -119,9 +112,8 @@ const createUser = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const updateUser = async (request, reply, lang) => {
+const updateUser = async (request, reply) => {
 	try {
 		const id = request.params.id;
 		const usernameChecker = await userService.getUserByUsername(
@@ -131,7 +123,7 @@ const updateUser = async (request, reply, lang) => {
 		if (usernameChecker.success && usernameChecker.user.id !== id) {
 			return reply.code(400).send({
 				success: false,
-				message: "Username already exists",
+				message: messages.userExists[request.lang],
 			});
 		}
 		const result = await userService.updateUserById(
@@ -140,13 +132,11 @@ const updateUser = async (request, reply, lang) => {
 			request.lang
 		);
 		if (!result.success) {
-			throw new UserNotFoundError(result.message);
+			throw new UserNotFoundError();
 		}
-		reply
-			.code(200)
-			.send({ success: true, message: "User updated successfully" });
+		reply.code(200).send({ success: true });
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error:", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -159,51 +149,17 @@ const updateUser = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const deleteUser = async (request, reply, lang) => {
+const deleteUser = async (request, reply) => {
 	try {
 		const id = request.params.id;
 		const result = await userService.deleteUserById(id, request.lang);
 		if (!result.success) {
-			throw new UserNotFoundError(result.message);
+			throw new UserNotFoundError();
 		}
-		reply
-			.code(200)
-			.send({ sucess: true, message: "User deleted successfully" });
+		reply.code(200).send({ sucess: true });
 	} catch (err) {
-		console.error("Handler error:", err);
-		reply.code(500).send({
-			success: false,
-			error: err.message,
-		});
-	}
-};
-
-/**
- * @description Controller to get the current user
- * @param {Object} request - The request object
- * @param {Object} reply - The reply object
- * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
- */
-const getCurrentUser = async (request, reply, lang) => {
-	try {
-		const userId = request.user?.id;
-		if (!userId) {
-			throw new UserNotFoundError("User not found");
-		}
-		const result = await userService.getUserById(userId, request.lang);
-		if (!result.success) {
-			return reply.code(404).send({ success: false, message: result.message });
-		}
-		reply.code(200).send({
-			success: true,
-			userId: result.user,
-			message: "User retrieved successfully",
-		});
-	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error:", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -216,19 +172,18 @@ const getCurrentUser = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const uploadAvatar = async (request, reply, lang) => {
+const uploadAvatar = async (request, reply) => {
 	try {
 		const user = request.user;
 		if (!user) {
-			throw new UserNotFoundError("User not found");
+			throw new UserNotFoundError();
 		}
 		const { avatar } = request.body;
 		if (!avatar) {
 			return reply
 				.code(400)
-				.send({ success: false, message: "No avatar provided" });
+				.send({ success: false, message: messages.noAvatar[request.lang] });
 		}
 		const result = await userService.uploadAvatar(
 			user.id,
@@ -236,15 +191,11 @@ const uploadAvatar = async (request, reply, lang) => {
 			request.lang
 		);
 		if (!result.success) {
-			return reply
-				.code(result.message === "User not found" ? 404 : 400)
-				.send({ success: false, message: result.message });
+			return reply.code(400).send({ success: false, message: result.message });
 		}
-		reply
-			.code(200)
-			.send({ success: true, message: "Avatar uploaded successfully" });
+		reply.code(200).send({ success: true });
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -257,15 +208,15 @@ const uploadAvatar = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const login = async (request, reply, lang) => {
+const login = async (request, reply) => {
 	try {
 		const { username, password } = request.body;
 		if (!username || !password) {
-			return reply
-				.code(400)
-				.send({ success: false, message: "Username and password required" });
+			return reply.code(400).send({
+				success: false,
+				message: messages.missingFields[request.lang],
+			});
 		}
 		const result = await userService.login(
 			username,
@@ -278,11 +229,10 @@ const login = async (request, reply, lang) => {
 		}
 		reply.code(200).send({
 			success: true,
-			message: "User logged in successfully",
 			token: result.token,
 		});
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -290,13 +240,19 @@ const login = async (request, reply, lang) => {
 	}
 };
 
-const register = async (request, reply, lang) => {
+/**
+ * @description Controller to register a new user
+ * @param {Object} request - The request object
+ * @param {Object} reply - The reply object
+ * @returns {Promise<void>}
+ */
+const register = async (request, reply) => {
 	try {
 		const { username, password, country } = request.body;
 		if (!username || !password || !country) {
 			return reply.code(400).send({
 				success: false,
-				message: "Username, password, and country required",
+				message: messages.missingFields[request.lang],
 			});
 		}
 		const result = await userService.register(
@@ -311,12 +267,11 @@ const register = async (request, reply, lang) => {
 		}
 		reply.code(201).send({
 			success: true,
-			message: "User registered successfully",
 			userId: result.userId,
 			token: result.token,
 		});
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -324,25 +279,34 @@ const register = async (request, reply, lang) => {
 	}
 };
 
-const registerUsername = async (request, reply, lang) => {
+/**
+ * @description Controller to register a username for a user
+ * @param {Object} request - The request object
+ * @param {Object} reply - The reply object
+ * @returns {Promise<void>}
+ */
+const registerUsername = async (request, reply) => {
 	try {
-		const { token, username, lang } = request.body;
+		const { token, username } = request.body;
 		if (!username || !token) {
-			return reply
-				.code(400)
-				.send({ success: false, message: "Username required" });
+			return reply.code(400).send({
+				success: false,
+				message: messages.missingFields[request.lang],
+			});
 		}
 		let decoded;
 		try {
 			decoded = request.server.jwt.verify(token);
 		} catch (err) {
-			return reply.code(401).send({ success: false, message: "Invalid token" });
+			return reply
+				.code(401)
+				.send({ success: false, message: messages.invalidToken[request.lang] });
 		}
 		const userId = decoded.id;
 		if (!username || !userId) {
 			return reply.code(400).send({
 				success: false,
-				message: "Username and valid token required",
+				message: messages.missingFields[request.lang],
 			});
 		}
 		const result = await userService.registerUsername(
@@ -356,11 +320,10 @@ const registerUsername = async (request, reply, lang) => {
 		}
 		reply.code(200).send({
 			success: true,
-			message: "Username registered successfully",
 			userId: result.userId,
 		});
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -373,23 +336,20 @@ const registerUsername = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const logout = async (request, reply, lang) => {
+const logout = async (request, reply) => {
 	try {
 		const user = request.user;
 		if (!user) {
-			throw new UserNotFoundError("User not found");
+			throw new UserNotFoundError();
 		}
 		const result = await userService.logout(user.id, request.lang);
 		if (!result.success) {
 			return reply.code(400).send({ success: false, message: result.message });
 		}
-		reply
-			.code(200)
-			.send({ success: true, message: "User logged out successfully" });
+		reply.code(200).send({ success: true });
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -402,14 +362,13 @@ const logout = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const getUserFriends = async (request, reply, lang) => {
+const getUserFriends = async (request, reply) => {
 	try {
 		request.user = { id: 1 };
 		const user = request.user;
 		if (!user?.id) {
-			throw new UserNotFoundError("User not found");
+			throw new UserNotFoundError();
 		}
 		const result = await userService.getUserFriends(user.id, request.lang);
 		if (!result.success) {
@@ -418,10 +377,9 @@ const getUserFriends = async (request, reply, lang) => {
 		reply.code(200).send({
 			success: true,
 			friends: result.friends,
-			message: "Friends retrieved successfully",
 		});
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -434,29 +392,27 @@ const getUserFriends = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const addFriend = async (request, reply, lang) => {
+const addFriend = async (request, reply) => {
 	try {
 		const user = request.user;
 		if (!user?.id) {
-			throw new UserNotFoundError("User not found");
+			throw new UserNotFoundError();
 		}
 		const friendId = request.params.id;
 		if (!friendId) {
-			return reply
-				.code(400)
-				.send({ success: false, message: "No friend ID provided" });
+			return reply.code(400).send({
+				success: false,
+				message: messages.missingFields[request.lang],
+			});
 		}
 		const result = await userService.addFriend(user.id, friendId, request.lang);
 		if (!result.success) {
 			return reply.code(400).send({ success: false, message: result.message });
 		}
-		reply
-			.code(200)
-			.send({ success: true, message: "Friend added successfully" });
+		reply.code(200).send({ success: true });
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -469,19 +425,19 @@ const addFriend = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const deleteFriend = async (request, reply, lang) => {
+const deleteFriend = async (request, reply) => {
 	try {
 		const user = request.user;
 		if (!user?.id) {
-			throw new UserNotFoundError("User not found");
+			throw new UserNotFoundError();
 		}
 		const friendId = request.params.friendId;
 		if (!friendId) {
-			return reply
-				.code(400)
-				.send({ success: false, message: "No friend ID provided" });
+			return reply.code(400).send({
+				success: false,
+				message: messages.missingFields[request.lang],
+			});
 		}
 		const result = await userService.deleteFriend(
 			user.id,
@@ -491,11 +447,9 @@ const deleteFriend = async (request, reply, lang) => {
 		if (!result.success) {
 			return reply.code(400).send({ success: false, message: result.message });
 		}
-		reply
-			.code(200)
-			.send({ success: true, message: "Friend deleted successfully" });
+		reply.code(200).send({ success: true });
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -508,27 +462,26 @@ const deleteFriend = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const blockUser = async (request, reply, lang) => {
+const blockUser = async (request, reply) => {
 	try {
 		const user = request.user;
 		if (!user?.id) {
-			throw new UserNotFoundError("User not found");
+			throw new UserNotFoundError();
 		}
 		const blockId = request.params.id;
 		if (!blockId) {
-			return reply.code(400).send({ message: "No block ID provided" });
+			return reply
+				.code(400)
+				.send({ message: messages.missingFields[request.lang] });
 		}
 		const result = await userService.blockUser(user.id, blockId, request.lang);
 		if (!result.success) {
 			return reply.code(400).send({ success: false, message: result.message });
 		}
-		reply
-			.code(200)
-			.send({ success: true, message: "User blocked successfully" });
+		reply.code(200).send({ success: true });
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -541,34 +494,31 @@ const blockUser = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const unblockUser = async (request, reply, lang) => {
+const unblockUser = async (request, reply) => {
 	try {
 		const user = request.user;
 		if (!user?.id) {
-			throw new UserNotFoundError("User not found");
+			throw new UserNotFoundError();
 		}
 		const blockId = request.params.id;
 		if (!blockId) {
-			return reply
-				.code(400)
-				.send({ success: false, message: "No block ID provided" });
+			return reply.code(400).send({
+				success: false,
+				message: messages.missingFields[request.lang],
+			});
 		}
 		const result = await userService.unblockUser(
 			user.id,
 			blockId,
 			request.lang
 		);
-
 		if (!result.success) {
 			return reply.code(400).send({ success: false, message: result.message });
 		}
-		reply
-			.code(200)
-			.send({ success: true, message: "User unblocked successfully" });
+		reply.code(200).send({ success: true });
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -581,13 +531,12 @@ const unblockUser = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const getBlockedUsers = async (request, reply, lang) => {
+const getBlockedUsers = async (request, reply) => {
 	try {
 		const user = request.user;
 		if (!user?.id) {
-			throw new UserNotFoundError("User not found");
+			throw new UserNotFoundError();
 		}
 		const result = await userService.getBlockedUsers(user.id, request.lang);
 		if (!result.success) {
@@ -596,10 +545,9 @@ const getBlockedUsers = async (request, reply, lang) => {
 		reply.code(200).send({
 			success: true,
 			blockedUsers: result.blockedUsers,
-			message: "Blocked users retrieved successfully",
 		});
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -612,13 +560,12 @@ const getBlockedUsers = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const getUserMatches = async (request, reply, lang) => {
+const getUserMatches = async (request, reply) => {
 	try {
 		const user = request.user;
 		if (!user?.id) {
-			throw new UserNotFoundError("User not found");
+			throw new UserNotFoundError();
 		}
 		const result = await userService.getUserMatches(user.id, request.lang);
 		if (!result.success) {
@@ -627,10 +574,9 @@ const getUserMatches = async (request, reply, lang) => {
 		reply.code(200).send({
 			success: true,
 			matches: result.matches,
-			message: "Matches retrieved successfully",
 		});
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -643,9 +589,8 @@ const getUserMatches = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const getUserStats = async (request, reply, lang) => {
+const getUserStats = async (request, reply) => {
 	try {
 		const id = request.params.id;
 		const result = await userService.getUserStats(id, request.lang);
@@ -655,10 +600,9 @@ const getUserStats = async (request, reply, lang) => {
 		reply.code(200).send({
 			success: true,
 			stats: result.stats,
-			message: "Stats retrieved successfully",
 		});
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -671,23 +615,20 @@ const getUserStats = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const getUserStatus = async (request, reply, lang) => {
+const getUserStatus = async (request, reply) => {
 	try {
 		const id = request.params.id;
 		const result = await userService.getUserStatus(id, request.lang);
-
 		if (!result.success) {
 			return reply.code(404).send({ success: false, message: result.message });
 		}
 		reply.code(200).send({
 			success: true,
 			status: result.status,
-			message: "Status retrieved successfully",
 		});
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -700,9 +641,8 @@ const getUserStatus = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const getOnlineUsers = async (request, reply, lang) => {
+const getOnlineUsers = async (request, reply) => {
 	try {
 		const result = await userService.getOnlineUsers(request.lang);
 		if (!result.success) {
@@ -711,10 +651,9 @@ const getOnlineUsers = async (request, reply, lang) => {
 		reply.code(200).send({
 			success: true,
 			onlineUsers: result.onlineUsers,
-			messages: "Online users retrieved successfully",
 		});
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -727,13 +666,12 @@ const getOnlineUsers = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const joinMatchmaking = async (request, reply, lang) => {
+const joinMatchmaking = async (request, reply) => {
 	try {
 		const user = request.user;
 		if (!user?.id) {
-			throw new UserNotFoundError("User not found");
+			throw new UserNotFoundError();
 		}
 		const result = await userService.joinMatchmaking(user.id, request.lang);
 		if (!result.success) {
@@ -743,7 +681,7 @@ const joinMatchmaking = async (request, reply, lang) => {
 			.code(200)
 			.send({ success: true, message: "Joined matchmaking successfully" });
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -756,23 +694,20 @@ const joinMatchmaking = async (request, reply, lang) => {
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
- * @throws {UserNotFoundError} - If the user is not found
  */
-const leaveMatchmaking = async (request, reply, lang) => {
+const leaveMatchmaking = async (request, reply) => {
 	try {
 		const user = request.user;
 		if (!user?.id) {
-			throw new UserNotFoundError("User not found");
+			throw new UserNotFoundError();
 		}
 		const result = await userService.leaveMatchmaking(user.id, request.lang);
 		if (!result.success) {
 			return reply.code(400).send({ success: false, message: result.message });
 		}
-		reply
-			.code(200)
-			.send({ success: true, message: "Left matchmaking successfully" });
+		reply.code(200).send({ success: true });
 	} catch (err) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -787,7 +722,6 @@ export default {
 	createUser,
 	updateUser,
 	deleteUser,
-	getCurrentUser,
 	uploadAvatar,
 	login,
 	register,

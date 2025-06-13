@@ -2,20 +2,19 @@ import * as gameService from "../services/gamesService.js";
 
 /**
  * @description Get all games
- * @param {Object} req - The request object
- * @param {Object} res - The response object
+ * @param {Object} request - The request object
+ * @param {Object} response - The response object
  * @returns {Promise<void>}
- * @throws {Error} - If there is an error retrieving the games
  */
-const getAllGames = async (req, res) => {
+const getAllGames = async (request, response) => {
 	try {
 		const result = gameService.getAllGames();
 		if (!result.success) {
-			return res.code(404).send({ message: result.message });
+			return response.code(404).send({ message: result.error });
 		}
 		reply.send(result.games);
 	} catch (error) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error:", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -25,21 +24,20 @@ const getAllGames = async (req, res) => {
 
 /**
  * @description Get a game by ID
- * @param {Object} req - The request object
- * @param {Object} res - The response object
+ * @param {Object} request - The request object
+ * @param {Object} response - The response object
  * @returns {Promise<void>}
- * @throws {Error} - If there is an error retrieving the game
  */
-const getGameById = async (req, res) => {
+const getGameById = async (request, response) => {
 	try {
-		const id = req.params.id;
+		const id = request.params.id;
 		const result = gameService.getGameById(id);
 		if (!result.success) {
-			return res.code(404).send({ message: result.message });
+			return response.code(404).send({ message: result.message });
 		}
 		reply.send(result.game);
 	} catch (error) {
-		console.error("Handler error:", err);
+		console.error("Internal Server Error:", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,
@@ -49,10 +47,9 @@ const getGameById = async (req, res) => {
 
 /**
  * @description Get games by user ID
- * @param {Object} req - The request object
- * @param {Object} res - The response object
+ * @param {Object} request - The request object
+ * @param {Object} response - The response object
  * @returns {Promise<void>}
- * @throws {Error} - If there is an error retrieving the games
  */
 const getGamesByUserId = async (request, reply, lang) => {
 	try {
@@ -64,7 +61,7 @@ const getGamesByUserId = async (request, reply, lang) => {
 
 		reply.send({ success: true, games: result.games });
 	} catch (error) {
-		console.error("Handler error:", error);
+		console.error("Internal Server Error:", error);
 		reply.code(500).send({
 			success: false,
 			error: error.message,
@@ -72,11 +69,10 @@ const getGamesByUserId = async (request, reply, lang) => {
 	}
 };
 
-/* * @description Get recent games by user ID
- * @param {Object} req - The request object
- * @param {Object} res - The response object
+/** @description Get recent games by user ID
+ * @param {Object} request - The request object
+ * @param {Object} response - The response object
  * @returns {Promise<void>}
- * @throws {Error} - If there is an error retrieving the recent games
  */
 const getRecentGamesByUserId = async (request, reply) => {
 	try {
@@ -88,7 +84,7 @@ const getRecentGamesByUserId = async (request, reply) => {
 
 		reply.send({ success: true, games: result.games });
 	} catch (error) {
-		console.error("Handler error:", error);
+		console.error("Internal Server Error:", error);
 		reply.code(500).send({
 			success: false,
 			error: error.message,
@@ -98,10 +94,9 @@ const getRecentGamesByUserId = async (request, reply) => {
 
 /**
  * @description Get past tournaments by user ID
- * @param {Object} req - The request object
- * @param {Object} res - The response object
+ * @param {Object} request - The request object
+ * @param {Object} response - The response object
  * @returns {Promise<void>}
- * @throws {Error} - If there is an error retrieving the past tournaments
  */
 const getPastTournamentsByUserId = async (request, reply) => {
 	try {
@@ -113,7 +108,7 @@ const getPastTournamentsByUserId = async (request, reply) => {
 
 		reply.send({ success: true, tournaments: result.tournaments });
 	} catch (error) {
-		console.error("Handler error:", error);
+		console.error("Internal Server Error:", error);
 		reply.code(500).send({
 			success: false,
 			error: error.message,
@@ -123,10 +118,9 @@ const getPastTournamentsByUserId = async (request, reply) => {
 
 /**
  * @description Get upcoming tournaments by user ID
- * @param {Object} req - The request object
- * @param {Object} res - The response object
+ * @param {Object} request - The request object
+ * @param {Object} response - The response object
  * @returns {Promise<void>}
- * @throws {Error} - If there is an error retrieving the upcoming tournaments
  */
 const getUpcomingTournamentsByUserId = async (request, reply) => {
 	try {
@@ -138,32 +132,7 @@ const getUpcomingTournamentsByUserId = async (request, reply) => {
 
 		reply.send({ success: true, tournaments: result.tournaments });
 	} catch (error) {
-		console.error("Handler error:", error);
-		reply.code(500).send({
-			success: false,
-			error: error.message,
-		});
-	}
-};
-
-/**
- * @description Get all tournaments by user ID
- * @param {Object} req - The request object
- * @param {Object} res - The response object
- * @returns {Promise<void>}
- * @throws {Error} - If there is an error retrieving the tournaments
- */
-const getAllTournamentsByUserId = async (request, reply) => {
-	try {
-		const userId = request.params.id;
-		const result = await gameService.getAllTournamentsByUserId(userId);
-		if (!result.success) {
-			return reply.code(404).send(result);
-		}
-
-		reply.send({ success: true, tournaments: result.tournaments });
-	} catch (error) {
-		console.error("Handler error:", error);
+		console.error("Internal Server Error:", error);
 		reply.code(500).send({
 			success: false,
 			error: error.message,
@@ -173,10 +142,9 @@ const getAllTournamentsByUserId = async (request, reply) => {
 
 /**
  * @description Get tournament by ID
- * @param {Object} req - The request object
- * @param {Object} res - The response object
+ * @param {Object} request - The request object
+ * @param {Object} response - The response object
  * @returns {Promise<void>}
- * @throws {Error} - If there is an error retrieving the tournament
  */
 const getTournamentById = async (request, reply) => {
 	try {
@@ -188,7 +156,7 @@ const getTournamentById = async (request, reply) => {
 
 		reply.send({ success: true, tournament: result.tournament });
 	} catch (error) {
-		console.error("Handler error:", error);
+		console.error("Internal Server Error:", error);
 		reply.code(500).send({
 			success: false,
 			error: error.message,
@@ -198,54 +166,57 @@ const getTournamentById = async (request, reply) => {
 
 /**
  * @description Get upcoming tournament matches by user ID
- * @param {Object} req - The request object
- * @param {Object} res - The response object
+ * @param {Object} request - The request object
+ * @param {Object} response - The response object
  * @returns {Promise<void>}
- * @throws {Error} - If there is an error retrieving the upcoming tournament matches
  */
 const getUpcomingTournamentMatchesById = async (request, reply) => {
 	try {
 		const tournamentId = request.params.id;
-		const result = await gameService.getUpcomingTournamentMatchesById(tournamentId);
+		const result = await gameService.getUpcomingTournamentMatchesById(
+			tournamentId
+		);
 		if (!result.success) {
 			return reply.code(404).send(result);
 		}
 
 		reply.send({ success: true, matches: result.matches });
 	} catch (error) {
-		console.error("Handler error:", error);
+		console.error("Internal Server Error:", error);
 		reply.code(500).send({
 			success: false,
 			error: error.message,
 		});
 	}
-}
+};
 
 /**
  * @description Get tournament players by ID
  * @param {Object} request - The request object
  * @param {Object} reply - The response object
  * @returns {Promise<void>}
- * @throws {Error} - If there is an error retrieving the tournament players
  */
 const getTournamentPlayersById = async (request, reply) => {
 	try {
 		const tournamentId = request.params.tournamentid;
 		const userId = request.params.userid;
-		const result = await gameService.getTournamentPlayersById(tournamentId, userId);
+		const result = await gameService.getTournamentPlayersById(
+			tournamentId,
+			userId
+		);
 		if (!result.success) {
 			return reply.code(404).send(result);
 		}
 
-		reply.send({success: true, players: result.players});
+		reply.send({ success: true, players: result.players });
 	} catch (error) {
-		console.error("Handler error:", error);
+		console.error("Internal Server Error:", error);
 		reply.code(500).send({
 			success: false,
 			error: error.message,
 		});
 	}
-}
+};
 
 export default {
 	getAllGames,
@@ -254,8 +225,7 @@ export default {
 	getRecentGamesByUserId,
 	getPastTournamentsByUserId,
 	getUpcomingTournamentsByUserId,
-	getAllTournamentsByUserId,
 	getTournamentById,
 	getUpcomingTournamentMatchesById,
-	getTournamentPlayersById
+	getTournamentPlayersById,
 };

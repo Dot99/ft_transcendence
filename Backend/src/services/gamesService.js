@@ -1,7 +1,6 @@
 import db from "../../db/dataBase.js";
 import { messages } from "../locales/messages.js";
 
-
 export function getAllGames() {
 	return new Promise((resolve, reject) => {
 		db.all("SELECT * FROM match_history", (err, rows) => {
@@ -14,38 +13,46 @@ export function getAllGames() {
 	});
 }
 
-export function getGameById(id) {
+export function getGameById(id, lang = "en") {
 	return new Promise((resolve, reject) => {
-		db.get("SELECT * FROM match_history WHERE match_id = ?", [id], (err, row) => {
-			if (err) {
-				reject({ success: false, error: err });
+		db.get(
+			"SELECT * FROM match_history WHERE match_id = ?",
+			[id],
+			(err, row) => {
+				if (err) {
+					reject({ success: false, error: err });
+				}
+				if (!row) {
+					return resolve({ success: false, message: messages[lang].noGame });
+				}
+				resolve({ success: true, game: row });
 			}
-			if (!row) {
-				return resolve({ success: false, message: "Game not found" });
-			}
-			resolve({ success: true, game: row, message: "Game found" });
-		});
+		);
 	});
 }
 
-export function getGamesByUserId(userId) {
+export function getGamesByUserId(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		db.all("SELECT * FROM match_history WHERE player1 = ? OR player2 = ?", [userId], (err, rows) => {
-			if (err) {
-				reject({ success: false, error: err });
+		db.all(
+			"SELECT * FROM match_history WHERE player1 = ? OR player2 = ?",
+			[userId],
+			(err, rows) => {
+				if (err) {
+					reject({ success: false, error: err });
+				}
+				if (!rows) {
+					return resolve({
+						success: false,
+						message: messages[lang].noMatches,
+					});
+				}
+				resolve({ success: true, games: rows });
 			}
-			if (!rows) {
-				return resolve({
-					success: false,
-					message: "No games found for this user",
-				});
-			}
-			resolve({ success: true, games: rows, message: "Games found" });
-		});
+		);
 	});
 }
 
-export function getRecentGamesByUserId(userId) {
+export function getRecentGamesByUserId(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.all(
 			`SELECT * FROM match_history 
@@ -59,16 +66,16 @@ export function getRecentGamesByUserId(userId) {
 				if (!rows || rows.length === 0) {
 					return resolve({
 						success: false,
-						message: "No games found for this user",
+						message: messages[lang].noMatches,
 					});
 				}
-				resolve({ success: true, games: rows, message: "Games found" });
+				resolve({ success: true, games: rows });
 			}
 		);
 	});
 }
 
-export function getPastTournamentsByUserId(userId) {
+export function getPastTournamentsByUserId(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.all(
 			`SELECT tp.*, t.name AS tournament_name, t.start_date AS tournament_date
@@ -84,10 +91,13 @@ export function getPastTournamentsByUserId(userId) {
 				if (!rows || rows.length === 0) {
 					return resolve({
 						success: false,
-						message: "No tournaments found for this user",
+						message: messages[lang].noTournament,
 					});
 				}
-				resolve({ success: true, tournaments: rows, message: "Tournaments found" });
+				resolve({
+					success: true,
+					tournaments: rows,
+				});
 			}
 		);
 	});
@@ -107,38 +117,59 @@ export function getUpcomingTournamentsByUserId(userId) {
 				if (!rows || rows.length === 0) {
 					return resolve({
 						success: false,
-						message: "No upcoming tournaments found for this user",
 					});
 				}
-				resolve({ success: true, tournaments: rows, message: "Upcoming tournaments found" });
+				resolve({
+					success: true,
+					tournaments: rows,
+					message: "Upcoming tournaments found",
+				});
 			}
 		);
 	});
 }
-export function getTournamentById(tournamentId) {
+export function getTournamentById(tournamentId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		db.get("SELECT * FROM tournaments WHERE tournament_id = ?", [tournamentId], (err, row) => {
-			if (err) {
-				reject({ success: false, error: err });
+		db.get(
+			"SELECT * FROM tournaments WHERE tournament_id = ?",
+			[tournamentId],
+			(err, row) => {
+				if (err) {
+					reject({ success: false, error: err });
+				}
+				if (!row) {
+					return resolve({
+						success: false,
+						message: messages[lang].noTournament,
+					});
+				}
+				resolve({
+					success: true,
+					tournament: row,
+					message: "Tournament found",
+				});
 			}
-			if (!row) {
-				return resolve({ success: false, message: "Tournament not found" });
-			}
-			resolve({ success: true, tournament: row, message: "Tournament found" });
-		});
+		);
 	});
 }
 export function getTournamentMatchesById(tournamentId) {
 	return new Promise((resolve, reject) => {
-		db.all("SELECT * FROM tournament_matches WHERE tournament_id = ?", [tournamentId], (err, rows) => {
-			if (err) {
-				reject({ success: false, error: err });
+		db.all(
+			"SELECT * FROM tournament_matches WHERE tournament_id = ?",
+			[tournamentId],
+			(err, rows) => {
+				if (err) {
+					reject({ success: false, error: err });
+				}
+				if (!rows || rows.length === 0) {
+					return resolve({
+						success: false,
+						message: messages[lang].noMatches,
+					});
+				}
+				resolve({ success: true, matches: rows });
 			}
-			if (!rows || rows.length === 0) {
-				return resolve({ success: false, message: "No matches found for this tournament" });
-			}
-			resolve({ success: true, matches: rows, message: "Matches found" });
-		});
+		);
 	});
 }
 export function getUpcomingTournamentMatchesById(tournamentId) {
@@ -151,9 +182,15 @@ export function getUpcomingTournamentMatchesById(tournamentId) {
 					reject({ success: false, error: err });
 				}
 				if (!rows || rows.length === 0) {
-					return resolve({ success: false, message: "No upcoming matches found for this tournament" });
+					return resolve({
+						success: false,
+						message: messages[lang].noMatches,
+					});
 				}
-				resolve({ success: true, matches: rows, message: "Upcoming matches found" });
+				resolve({
+					success: true,
+					matches: rows,
+				});
 			}
 		);
 	});
@@ -169,9 +206,12 @@ export function getTournamentPlayersById(tournamentId, userId) {
 					reject({ success: false, error: err });
 				}
 				if (!rows || rows.length === 0) {
-					return resolve({ success: false, message: "No players found for this tournament" });
+					return resolve({
+						success: false,
+						message: messages[lang].noUsers,
+					});
 				}
-				resolve({ success: true, players: rows, message: "Players found" });
+				resolve({ success: true, players: rows });
 			}
 		);
 	});

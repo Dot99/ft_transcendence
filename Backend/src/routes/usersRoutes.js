@@ -122,22 +122,6 @@ export default async function (fastify, opts) {
 			await usersController.deleteUser(request, reply, request.lang),
 	});
 	/**
-	 * @name getCurrentUser
-	 * @description Get current user
-	 * @route GET /users/me
-	 * @group Users - Operations about users
-	 * @returns {User} 200 - User object
-	 * @returns {Error} 401 - Unauthorized
-	 * @returns {Error} 404 - User not found
-	 * @returns {Error} 500 - Internal server error
-	 * @security JWT
-	 */
-	fastify.get("/users/me", {
-		preHandler: [fastify.authenticate],
-		handler: async (request, reply) =>
-			await usersController.getCurrentUser(request, reply, request.lang),
-	});
-	/**
 	 * @name uploadAvatar
 	 * @description Upload avatar
 	 * @route POST /users/{id}/avatar

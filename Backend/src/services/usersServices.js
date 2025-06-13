@@ -26,7 +26,6 @@ export function getUserById(id, lang = "en") {
 			if (!row) {
 				return resolve({
 					success: false,
-					message: messages[lang].userNotFound,
 				});
 			}
 
@@ -46,7 +45,6 @@ export function getUserByUsername(username, lang = "en") {
 			if (!row) {
 				return resolve({
 					success: false,
-					message: messages[lang].userNotFound,
 				});
 			}
 
@@ -67,7 +65,6 @@ export function createUser(username, password, country, lang = "en") {
 
 		db.run(sql, [username, password, country, dateJoined], function (err) {
 			if (err) {
-				console.error("Error creating user:", err);
 				return resolve({
 					success: false,
 					message: messages[lang].failCreateUser,
@@ -100,7 +97,6 @@ export function updateUserById(id, data, lang = "en") {
 			if (this.changes === 0) {
 				return resolve({
 					success: false,
-					message: messages[lang].userNotFound,
 				});
 			}
 
@@ -119,7 +115,6 @@ export function deleteUserById(id, lang = "en") {
 			if (this.changes === 0) {
 				return resolve({
 					success: false,
-					message: messages[lang].userNotFound,
 				});
 			}
 			resolve({ success: true });
@@ -127,43 +122,18 @@ export function deleteUserById(id, lang = "en") {
 	});
 }
 
-export function getCurrentUser(userId, lang = "en") {
-	return new Promise((resolve, reject) => {
-		db.get("SELECT * FROM users WHERE id = ?", [userId], (err, row) => {
-			if (err) {
-				console.error("DB error:", err);
-				return reject(err);
-			}
-
-			if (!row) {
-				return resolve({
-					success: false,
-					message: messages[lang].userNotFound,
-				});
-			}
-
-			resolve({ success: true, user: row });
-		});
-	});
-}
-
 export function uploadAvatar(userId, avatar, lang = "en") {
 	return new Promise((resolve, reject) => {
-		if (!avatar) {
-			return resolve({ success: false, message: messages[lang].noAvatar });
-		}
 		db.run(
 			"UPDATE users SET avatar = ? WHERE id = ?",
 			[avatar, userId],
 			function (err) {
 				if (err) {
-					console.error("DB error:", err);
 					return reject(err);
 				}
 				if (this.changes === 0) {
 					return resolve({
 						success: false,
-						message: messages[lang].userNotFound,
 					});
 				}
 				resolve({ success: true });
@@ -216,7 +186,6 @@ export function register(username, password, country, fastify, lang = "en") {
 			[username, hashedPassword, country, dateJoined],
 			function (err) {
 				if (err) {
-					console.error("Error creating user:", err);
 					return resolve({
 						success: false,
 						message: messages[lang].failCreateUser,
@@ -250,7 +219,6 @@ export function registerUsername(userId, username, fastify, lang = "en") {
 		const sql = `UPDATE users SET username = ? WHERE id = ?`;
 		db.run(sql, [username, userId], function (err) {
 			if (err) {
-				console.error("Error updating username:", err);
 				return resolve({
 					success: false,
 					message: messages[lang].failUpdateUsername,
@@ -293,7 +261,6 @@ export function getUserFriends(userId, lang = "en") {
 		if (!userId) {
 			return resolve({ success: false, message: messages[lang].noUserId });
 		}
-
 		const sql = `
 			SELECT * FROM users 
 			WHERE id IN (
@@ -301,17 +268,13 @@ export function getUserFriends(userId, lang = "en") {
 				WHERE user_id = ? AND status = 'accepted'
 			)
 		`;
-
 		db.all(sql, [userId], (err, rows) => {
 			if (err) {
-				console.error("DB error:", err);
 				return reject({ success: false, error: err });
 			}
-
 			if (!rows || rows.length === 0) {
 				return resolve({ success: false, message: messages[lang].noFriends });
 			}
-
 			resolve({ success: true, friends: rows });
 		});
 	});
@@ -324,7 +287,6 @@ export function addFriend(userId, friendId, lang = "en") {
 			[userId, friendId],
 			function (err) {
 				if (err) {
-					console.error("DB error:", err);
 					return reject(err);
 				}
 				if (this.changes === 0) {
@@ -346,7 +308,6 @@ export function deleteFriend(userId, friendId, lang = "en") {
 			[userId, friendId],
 			function (err) {
 				if (err) {
-					console.error("DB error:", err);
 					return reject(err);
 				}
 				if (this.changes === 0) {
@@ -368,7 +329,6 @@ export function blockUser(userId, blockId, lang = "en") {
 			[userId, blockId],
 			function (err) {
 				if (err) {
-					console.error("DB error:", err);
 					return reject(err);
 				}
 				if (this.changes === 0) {
@@ -390,7 +350,6 @@ export function unblockUser(userId, blockId, lang = "en") {
 			[userId, blockId],
 			function (err) {
 				if (err) {
-					console.error("DB error:", err);
 					return reject(err);
 				}
 				if (this.changes === 0) {
@@ -412,7 +371,6 @@ export function getBlockedUsers(userId, lang = "en") {
 			[userId],
 			(err, rows) => {
 				if (err) {
-					console.error("DB error:", err);
 					return reject(err);
 				}
 				if (!rows || rows.length === 0) {
@@ -434,7 +392,6 @@ export function getUserMatches(userId, lang = "en") {
 			[userId],
 			(err, rows) => {
 				if (err) {
-					console.error("DB error:", err);
 					return reject(err);
 				}
 				if (!rows || rows.length === 0) {
@@ -450,7 +407,6 @@ export function getUserStats(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.get("SELECT * FROM stats WHERE player_id = ?", [userId], (err, row) => {
 			if (err) {
-				console.error("DB error:", err);
 				return reject(err);
 			}
 			if (!row) {
@@ -465,7 +421,6 @@ export function getUserStatus(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.get("SELECT * FROM status WHERE player_id = ?", [userId], (err, row) => {
 			if (err) {
-				console.error("DB error:", err);
 				return reject(err);
 			}
 			if (!row) {
@@ -538,7 +493,6 @@ export function updateUserStats(db, userId, lang = "en") {
 									],
 									function (err) {
 										if (err) {
-											console.error("DB error:", err);
 											return reject(err);
 										}
 										return resolve({ success: true });
@@ -557,7 +511,6 @@ export function getOnlineUsers(lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.all("SELECT * FROM status", [], (err, rows) => {
 			if (err) {
-				console.error("DB error:", err);
 				return reject(err);
 			}
 			if (!rows || rows.length === 0) {
@@ -578,7 +531,6 @@ export function joinMatchmaking(userId, lang = "en") {
 			[userId],
 			function (err) {
 				if (err) {
-					console.error("DB error:", err);
 					return reject(err);
 				}
 				if (this.changes === 0) {
@@ -600,7 +552,6 @@ export function leaveMatchmaking(userId, lang = "en") {
 			[userId],
 			function (err) {
 				if (err) {
-					console.error("DB error:", err);
 					return reject(err);
 				}
 				if (this.changes === 0) {

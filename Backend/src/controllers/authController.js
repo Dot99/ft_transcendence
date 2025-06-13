@@ -32,7 +32,7 @@ const googleOAuthCallback = async (request, reply, fastify) => {
 		reply.redirect(`${frontendUrl}/?${params}`);
 	} catch (error) {
 		reply.log.error(error);
-		reply.status(500).send({ error: "Authentication failed" });
+		reply.status(500).send({ error: "Internal Server Error" });
 	}
 };
 
@@ -48,10 +48,11 @@ const twoFaSetup = async (request, reply, fastify) => {
 			reply.status(200).send({
 				success: true,
 				code: qrCodeData,
-				message: "QR Code generated successfully",
 			});
 		} else {
-			reply.status(400).send({ success: false, error: "2FA setup failed" });
+			reply
+				.status(400)
+				.send({ success: false, error: messages.TwoFAFailed[request.lang] });
 		}
 	} catch (error) {
 		reply.log.error(error);
@@ -65,17 +66,15 @@ const twoFaVerify = async (request, reply, fastify) => {
 		const userId = request.user.id;
 		const result = await twoFaVerifyService(userId, token, true);
 		if (result.success) {
-			reply
-				.status(200)
-				.send({ success: true, message: "2FA verification successful" });
+			reply.status(200).send({ success: true });
 		} else {
 			reply
 				.status(400)
-				.send({ success: false, error: "2FA verification failed" });
+				.send({ success: false, error: messages.TwoFAFailed[request.lang] });
 		}
 	} catch (error) {
 		reply.log.error(error);
-		reply.status(500).send({ error: "2FA verification failed" });
+		reply.status(500).send({ error: messages.TwoFAFailed[request.lang] });
 	}
 };
 
@@ -96,11 +95,11 @@ const twoFaLogin = async (request, reply, fastify) => {
 		} else {
 			return reply
 				.status(400)
-				.send({ success: false, error: "2FA verification failed" });
+				.send({ success: false, error: messages.TwoFAFailed[request.lang] });
 		}
 	} catch (error) {
 		reply.log.error(error);
-		reply.status(500).send({ error: "2FA login failed" });
+		reply.status(500).send({ error: messages.TwoFAFailed[request.lang] });
 	}
 };
 

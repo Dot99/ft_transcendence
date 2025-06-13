@@ -138,7 +138,6 @@ export async function twoFaLoginService(userId, token) {
 			token: token,
 			window: 1,
 		});
-		console.log("Verification result:", verification);
 		if (!verification) {
 			throw new Error("Invalid token");
 		}
@@ -146,7 +145,7 @@ export async function twoFaLoginService(userId, token) {
 			true,
 			userId,
 		]);
-		return { success: true, message: "2FA login successful" };
+		return { success: true };
 	} catch (error) {
 		console.error("Error in twoFaLoginService:", error);
 		throw new Error("2FA login failed");
