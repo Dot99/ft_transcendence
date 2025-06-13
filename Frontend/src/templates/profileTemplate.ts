@@ -2,7 +2,7 @@ export const profileTemplate = `
 <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-[#001B26] p-6 rounded-xl border-2 border-[#4CF190] max-w-md w-full">
         <div class="text-2xl text-[#4CF190] font-bold mb-4">
-            Delete Account
+            Logout
         </div>
         <div class="text-gray-200 mb-4">
             Are you sure you want to delete your account? This action cannot be undone.
@@ -52,7 +52,7 @@ export const profileTemplate = `
             <!-- Delete and Arcade Section -->
             <div class="flex flex-col items-end h-full relative">
                 <div class="absolute bottom-32 right-1.5 flex flex-row-reverse gap-2">
-                    <button id="deleteAccountBtn" class="menu-button bg-red-800 py-1 px-2 rounded text-black text-[0.65rem] leading-tight flex items-center justify-center h-6 min-w-[70px]">DELETE ACCOUNT</button>
+                    <button id="logoutButton" class="menu-button bg-red-800 py-1 px-2 rounded text-black text-[0.65rem] leading-tight flex items-center justify-center h-6 min-w-[70px]">LOGOUT</button>
                     <button id="editProfileBtn" class="menu-button bg-[#4CF190] text-[#001B26] py-1 px-2 rounded text-[0.65rem] leading-tight flex items-center justify-center h-6 min-w-[70px]">EDIT PROFILE</button>
                 </div>
                 <img src="images/arcade.svg" alt="Arcade" class="w-auto h-[140px] scale-x-[-1] absolute -bottom-4 right-0 z-10" />
@@ -63,25 +63,36 @@ export const profileTemplate = `
         <div class="bg-[#001B26] p-6 rounded-xl border-2 border-[#4CF190] max-w-md w-full">
             <div class="text-2xl text-[#4CF190] font-bold mb-4">Edit Profile</div>
             <form id="editProfileForm" class="space-y-4">
-            <div>
-                <label class="block text-[#4CF190] mb-1" for="editUsername">Username</label>
-                <input id="editUsername" name="username" type="text" class="w-full px-3 py-2 rounded bg-[#012733] text-white border border-[#4CF190] focus:outline-none" />
-                <div id="editUsernameError" class="text-red-400 text-xs mt-1"></div>
-            </div>
-            <div>
-                <label class="block text-[#4CF190] mb-1" for="editPfp">Profile Picture</label>
-                <input id="editPfp" name="pfp" type="text" class="w-full px-3 py-2 rounded bg-[#012733] text-white border border-[#4CF190] focus:outline-none" />
-            </div>
-            <div id="twofaSection">
-                <!-- 2FA toggle will be injected by JS -->
-            </div>
-            <div class="flex justify-end space-x-4 pt-2">
-                <button type="button" id="cancelEditProfileBtn" class="bg-red-800 menu-button px-6 py-2">CANCEL</button>
-                <button type="submit" class="menu-button px-6 py-2 bg-[#4CF190] text-[#001B26]">SAVE</button>
-            </div>
+                <div>
+                    <label class="block text-[#4CF190] mb-1" for="editUsername">Username</label>
+                    <input id="editUsername" name="username" type="text" class="w-full px-3 py-2 rounded bg-[#012733] text-white border border-[#4CF190] focus:outline-none" />
+                    <div id="editUsernameError" class="text-red-400 text-xs mt-1"></div>
+                </div>
+                <div>
+                    <label class="block text-[#4CF190] mb-1" for="editPfp">Profile Picture</label>
+                    <input id="editPfp" name="pfp" type="text" class="w-full px-3 py-2 rounded bg-[#012733] text-white border border-[#4CF190] focus:outline-none" />
+                </div>
+                <div id="twofaSection">
+                    <!-- 2FA toggle will be injected by JS -->
+                </div>
+
+                <!-- DELETE button on top -->
+                <div class="flex justify-center mb-4 ">
+                    <button type="button" id="deleteAccountBtn" class="bg-red-600 hover:bg-red-700 menu-button px-4 py-2">
+                        DELETE ACCOUNT
+                    </button>
+                </div>
+
+                <!-- EDIT / CANCEL buttons -->
+                <div class="flex justify-end space-x-4 pt-2">
+                    <button type="button" id="cancelEditProfileBtn" class="bg-red-800 menu-button px-6 py-2">CANCEL</button>
+                    <button type="submit" class="menu-button px-6 py-2 bg-[#4CF190] text-[#001B26]">SAVE</button>
+                </div>
             </form>
         </div>
     </div>
+
+
     <!-- Performance Overview -->
     <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6 mb-6">
         <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold">
