@@ -124,6 +124,16 @@ const createUser = async (request, reply, lang) => {
 const updateUser = async (request, reply, lang) => {
 	try {
 		const id = request.params.id;
+		const usernameChecker = await userService.getUserByUsername(
+			request.body.username,
+			request.lang
+		);
+		if (usernameChecker.success && usernameChecker.user.id !== id) {
+			return reply.code(400).send({
+				success: false,
+				message: "Username already exists",
+			});
+		}
 		const result = await userService.updateUserById(
 			id,
 			request.body,
