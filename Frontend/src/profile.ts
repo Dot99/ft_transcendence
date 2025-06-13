@@ -48,7 +48,13 @@ const getElement = <T extends HTMLElement>(id: string): T => {
 
 // Event Handlers
 const handleDeleteAccount = (): void => {
+  closeEditProfileModal();
   showDeleteModal();
+};
+
+const handleLogout = (): void => {
+  deleteCookie("jwt");
+  loadHomePage();
 };
 
 const handleConfirmDelete = async (): Promise<void> => {
@@ -56,6 +62,7 @@ const handleConfirmDelete = async (): Promise<void> => {
     const response = await fetch("/api/user/delete", {
       method: "DELETE",
       headers: {
+        "Accept-Language": getLang(),
         Authorization: `Bearer ${getCookie("jwt")}`,
       },
     });
@@ -80,7 +87,6 @@ const handleCancelDelete = (): void => {
   closeDeleteModal();
 };
 
-// UI Functions
 export const loadProfilePage = (pushState: boolean = true): void => {
   const app = getElement<HTMLElement>("app");
   app.innerHTML = profileTemplate;
@@ -88,6 +94,11 @@ export const loadProfilePage = (pushState: boolean = true): void => {
     "click",
     handleDeleteAccount
   );
+  getElement<HTMLButtonElement>("logoutButton").addEventListener(
+    "click",
+    handleLogout
+  );
+  console.log("Loading profile page");
   loadDashboardData();
   renderPerformanceChart();
 };
@@ -97,6 +108,13 @@ const getOpponentId = (match: Match, userId: number): number => {
 };
 
 async function loadDashboardData(): Promise<void> {
+  getElement<HTMLDivElement>("totalMatches").textContent = "0";
+  getElement<HTMLDivElement>("matchesWon").textContent = "0";
+  getElement<HTMLDivElement>("matchesLost").textContent = "0";
+  getElement<HTMLDivElement>("avgScore").textContent = "0";
+  getElement<HTMLDivElement>("winStreak").textContent = "0";
+  getElement<HTMLDivElement>("tournaments").textContent = "0";
+  getElement<HTMLDivElement>("leaderboard").textContent = "0";
   const userId = getUserIdFromToken();
   if (!userId) {
     loadHomePage();
@@ -104,6 +122,7 @@ async function loadDashboardData(): Promise<void> {
   }
   const userRes = await fetch(`/api/users/${userId}`, {
     headers: {
+      "Accept-Language": getLang(),
       Authorization: `Bearer ${getCookie("jwt")}`,
     },
   });
@@ -111,6 +130,7 @@ async function loadDashboardData(): Promise<void> {
   const user: User = userData.user;
   const twofaRes = await fetch(`${API_BASE_URL}/users/${userId}`, {
     headers: {
+      "Accept-Language": getLang(),
       Authorization: `Bearer ${getCookie("jwt")}`,
     },
   });
@@ -134,6 +154,7 @@ async function loadDashboardData(): Promise<void> {
 
   const statsRes = await fetch(`/api/users/${userId}/stats`, {
     headers: {
+      "Accept-Language": getLang(),
       Authorization: `Bearer ${getCookie("jwt")}`,
     },
   });
@@ -141,14 +162,6 @@ async function loadDashboardData(): Promise<void> {
   const stats: Stats = statsData.stats;
 
   if (!stats) {
-    // If stats is missing, set all fields to '0'
-    getElement<HTMLDivElement>("totalMatches").textContent = "0";
-    getElement<HTMLDivElement>("matchesWon").textContent = "0";
-    getElement<HTMLDivElement>("matchesLost").textContent = "0";
-    getElement<HTMLDivElement>("avgScore").textContent = "0";
-    getElement<HTMLDivElement>("winStreak").textContent = "0";
-    getElement<HTMLDivElement>("tournaments").textContent = "0";
-    getElement<HTMLDivElement>("leaderboard").textContent = "0";
     return;
   }
 
@@ -167,8 +180,10 @@ async function loadDashboardData(): Promise<void> {
   getElement<HTMLDivElement>("leaderboard").textContent =
     stats.leaderboard_position?.toString() ?? "0";
 
+  console.log("Stats data:", stats);
   await loadRecentMatches(userId);
   await loadPastTournaments(userId, stats.current_tournament);
+  await loadUpComingMatchesById(stats.current_tournament, userId);
 }
 
 async function loadRecentMatches(userId: number): Promise<void> {
@@ -177,6 +192,7 @@ async function loadRecentMatches(userId: number): Promise<void> {
   const container = getElement<HTMLDivElement>("matchTableBody");
   container.innerHTML = "";
 
+  console.log("games ", data.games);
   for (const match of data.games as Match[]) {
     const [p1, p2] = await Promise.all([
       fetch(`/api/users/${match.player1}`).then((res) => res.json()),
@@ -262,21 +278,7 @@ async function loadPastTournaments(
       }</div>`;
 
     container.appendChild(div);
-    await loadUpComingMatchesById(t.tournament_id, userId);
   }
-
-  const tournamentRes = await fetch(`/api/tournaments/${currentTournamentId}`);
-  const tournamentData = await tournamentRes.json();
-  const positionRes = await fetch(
-    `/api/tournaments/${currentTournamentId}/players/${userId}`
-  );
-  const positionData = await positionRes.json();
-  const player = positionData.players.find((p: any) => p.player_id === userId);
-
-  getElement<HTMLSpanElement>("currTournamentName").textContent =
-    tournamentData.tournament.name;
-  getElement<HTMLSpanElement>("currTournamentPosition").textContent =
-    player?.current_position ?? "-";
 }
 
 async function loadUpComingMatchesById(
@@ -390,6 +392,7 @@ function attachProfileEventListeners(user: User, twofaEnabled: boolean) {
     const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
       method: "PUT",
       headers: {
+        "Accept-Language": getLang(),
         "Content-Type": "application/json",
         Authorization: `Bearer ${getCookie("jwt")}`,
       },
@@ -404,6 +407,7 @@ function attachProfileEventListeners(user: User, twofaEnabled: boolean) {
         const twofaRes = await fetch(`${API_BASE_URL}/2fa/setup`, {
           method: "POST",
           headers: {
+            "Accept-Language": getLang(),
             Authorization: `Bearer ${getCookie("jwt")}`,
           },
         });
@@ -417,13 +421,13 @@ function attachProfileEventListeners(user: User, twofaEnabled: boolean) {
 
           getElement<HTMLButtonElement>("closeTwofaQrBtn").onclick = () => {
             qrModal.style.display = "none";
-            loadProfilePage();
+            // loadProfilePage();
           };
 
           qrModal.onclick = (e) => {
             if (e.target === qrModal) {
               qrModal.style.display = "none";
-              loadProfilePage();
+              // loadProfilePage();
             }
           };
         } else {
@@ -431,7 +435,7 @@ function attachProfileEventListeners(user: User, twofaEnabled: boolean) {
         }
       } else {
         closeEditProfileModal();
-        loadProfilePage();
+        // loadProfilePage();
       }
     } else {
       let errorMsg = "Failed to update profile.";
@@ -472,6 +476,7 @@ async function confirmDelete(): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       method: "DELETE",
       headers: {
+        "Accept-Language": getLang(),
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ token: getCookie("jwt") }),
@@ -501,6 +506,7 @@ async function renderPerformanceChart(): Promise<void> {
 
   const userRes = await fetch(`/api/users/${userId}`, {
     headers: {
+      "Accept-Language": getLang(),
       Authorization: `Bearer ${getCookie("jwt")}`,
     },
   });
@@ -518,6 +524,7 @@ async function renderPerformanceChart(): Promise<void> {
 
   const statsRes = await fetch(`/api/users/${userId}/stats`, {
     headers: {
+      "Accept-Language": getLang(),
       Authorization: `Bearer ${getCookie("jwt")}`,
     },
   });
@@ -620,25 +627,27 @@ async function renderPerformanceChart(): Promise<void> {
     const data = await res.json();
 
     console.log(data.tournaments);
-    const tournamentStats = data.tournaments
-      .map((tournament: any, index: number) => ({
-        tournament_id: tournament.tournament_id,
-        name: tournament.tournament_name,
-        wins: tournament.wins ?? 0,
-        losses: tournament.losses ?? 0,
-      }))
-      .slice(0, 10)
-      .reverse();
+    const tournamentStats = Array.isArray(data.tournaments)
+      ? data.tournaments
+          .map((tournament: any, index: number) => ({
+            tournament_id: tournament.tournament_id,
+            name: tournament.tournament_name ?? "no data",
+            wins: tournament.wins ?? 0,
+            losses: tournament.losses ?? 0,
+          }))
+          .slice(0, 10)
+          .reverse()
+      : [];
 
     const tournamentLabels = tournamentStats.map(
-      (t: { name: string; wins: number; losses: number }) => t.name
+      (t: { name: string; wins: number; losses: number }) => t.name ?? "No Data"
     );
 
     const winsData = tournamentStats.map(
-      (t: { name: string; wins: number; losses: number }) => t.wins
+      (t: { name: string; wins: number; losses: number }) => t.wins ?? 0
     );
     const lossesData = tournamentStats.map(
-      (t: { name: string; wins: number; losses: number }) => t.losses
+      (t: { name: string; wins: number; losses: number }) => t.losses ?? 0
     );
     const win_rate = tournamentStats.map(
       (t: { name: string; wins: number; losses: number }) => {
@@ -646,7 +655,6 @@ async function renderPerformanceChart(): Promise<void> {
         return total === 0 ? 0 : +((t.wins / total) * 10).toFixed(1);
       }
     );
-
     new Chart(barCtx, {
       type: "line",
       data: {
@@ -717,7 +725,7 @@ async function renderPerformanceChart(): Promise<void> {
             },
             title: {
               display: true,
-              text: "Quantidade / Posição",
+              text: "Quantity / Position",
               color: "#4CF190",
             },
           },
@@ -730,7 +738,7 @@ async function renderPerformanceChart(): Promise<void> {
             },
             title: {
               display: true,
-              text: "Torneios",
+              text: "Tournaments",
               color: "#4CF190",
             },
           },
@@ -740,4 +748,7 @@ async function renderPerformanceChart(): Promise<void> {
   }
 }
 
-(window as any).loadProfilePage = loadProfilePage;
+// (window as any).loadProfilePage = loadProfilePage;
+function getLang(): string {
+  return document.documentElement.lang || "en"; // Default to English if no lang attribute is set
+}

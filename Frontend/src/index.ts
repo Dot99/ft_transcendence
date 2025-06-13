@@ -53,44 +53,6 @@ const handleSetUsername = (): void => {
 
 // UI Functions
 export const loadHomePage = (): void => {
-  const app = getElement<HTMLElement>("app");
-  app.innerHTML = homeTemplate;
-
-  // Add event listeners
-  getElement<HTMLButtonElement>("loginPopupLoginBtn").addEventListener(
-    "click",
-    handleLogin
-  );
-  getElement<HTMLButtonElement>("loginPopupSignInBtn").addEventListener(
-    "click",
-    handleRegister
-  );
-  getElement<HTMLButtonElement>("googleSignInBtn").addEventListener(
-    "click",
-    handleGoogleSignIn
-  );
-  getElement<HTMLButtonElement>("usernameLoginBtn").addEventListener(
-    "click",
-    handleSetUsername
-  );
-  getElement<HTMLButtonElement>("termsLink").addEventListener(
-    "click",
-    loadTermsPage
-  );
-
-  // Add input event listeners
-  getElement<HTMLInputElement>("loginUsernameInput").addEventListener(
-    "input",
-    toggleLoginPopupButtons
-  );
-  getElement<HTMLInputElement>("loginPasswordInput").addEventListener(
-    "input",
-    toggleLoginPopupButtons
-  );
-  getElement<HTMLInputElement>("newUsernameInput").addEventListener(
-    "input",
-    toggleUsernameLoginButton
-  );
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token");
   if (token) {
@@ -109,10 +71,6 @@ export const loadHomePage = (): void => {
 
   if (getGoogleFlagFromToken()) {
     openSetUsernameModal();
-    return;
-  }
-  if (isAuthenticated()) {
-    loadProfilePage(); //TODO: Mudar pag intermedia
     return;
   }
 };
@@ -185,7 +143,7 @@ const openTwoFAModal = (userId: string): void => {
         const data = await res.json();
         document.cookie = `jwt=${data.token}; path=/;`;
         modal.style.display = "none";
-        loadProfilePage();
+        // loadProfilePage();
       } else {
         const data = await res.json();
         errorMsg.textContent = data.error || "Invalid code";
@@ -220,17 +178,49 @@ export const loadNotFoundPage = (): void => {
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
-  // Listen for route events
-  // window.addEventListener('loadHomePage', loadHomePage);
-  // window.addEventListener('loadProfilePage', loadProfilePage);
-
-  // Load initial route
-  loadHomePage();
-});
-
-// Initialize
-document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("loadHomePage", loadHomePage);
-  window.addEventListener("loadProfilePage", () => loadProfilePage());
-  loadHomePage();
+  // window.addEventListener("loadProfilePage", () => loadProfilePage());
+  const app = getElement<HTMLElement>("app");
+  app.innerHTML = homeTemplate;
+
+  // Add event listeners
+  getElement<HTMLButtonElement>("loginPopupLoginBtn").addEventListener(
+    "click",
+    handleLogin
+  );
+  getElement<HTMLButtonElement>("loginPopupSignInBtn").addEventListener(
+    "click",
+    handleRegister
+  );
+  getElement<HTMLButtonElement>("googleSignInBtn").addEventListener(
+    "click",
+    handleGoogleSignIn
+  );
+  getElement<HTMLButtonElement>("usernameLoginBtn").addEventListener(
+    "click",
+    handleSetUsername
+  );
+  getElement<HTMLButtonElement>("termsLink").addEventListener(
+    "click",
+    loadTermsPage
+  );
+
+  // Add input event listeners
+  getElement<HTMLInputElement>("loginUsernameInput").addEventListener(
+    "input",
+    toggleLoginPopupButtons
+  );
+  getElement<HTMLInputElement>("loginPasswordInput").addEventListener(
+    "input",
+    toggleLoginPopupButtons
+  );
+  getElement<HTMLInputElement>("newUsernameInput").addEventListener(
+    "input",
+    toggleUsernameLoginButton
+  );
+  if (!isAuthenticated()) {
+    loadHomePage();
+  } else {
+    loadProfilePage();
+  }
 });
