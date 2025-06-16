@@ -31,6 +31,7 @@ clean:
 	# @tsc --build $(FRONTEND_DIR)/tsconfig.json --clean
 	@sudo rm -rf $(FRONTEND_DIR)/dist
 	@sudo rm -rf $(BACKEND_DIR)/Frontend
+	@sudo rm -rf $(BACKEND_DIR)/db/data.db
 	@echo "$(GREEN)Clean complete!$(NC)"
 
 # Full clean including node_modules
