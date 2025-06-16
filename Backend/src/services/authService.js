@@ -77,8 +77,8 @@ export async function handleGoogleCallback(request, fastify) {
 			id: user.id,
 			username: user.username,
 			twofa_enabled: !!user.twofa_enabled,
-			twofa_verified: !!user.twofa_verified,
-			google_flag: true,
+			twofa_verified: user.twofa_verified ? false : true,
+			google_flag: false,
 		});
 		return {
 			token,

@@ -161,7 +161,7 @@ export async function login(username, password, fastify, lang = "en") {
 			id: user.user.id,
 			username: user.user.username,
 			twofa_enabled: !!user.user.twofa_enabled,
-			twofa_verified: !!user.user.twofa_verified,
+			twofa_verified: user.user.twofa_enabled ? false : true,
 			google_flag: false,
 		});
 		resolve({ success: true, user, token });

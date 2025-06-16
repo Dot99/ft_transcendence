@@ -77,7 +77,7 @@ export const login = async (): Promise<void> => {
       setInputError(passwordInput, false);
       errorElement.textContent = "";
       document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
-      loadProfilePage();
+      (window as any).handlePostAuth?.();
     } else {
       throw new Error("Login failed: " + (data?.message || "Unknown error"));
     }
@@ -162,45 +162,6 @@ export const logout = async (): Promise<void> => {
   }
 };
 
-export const usernameGoogle = async (username: string): Promise<void> => {
-  const locale = navigator.language;
-  const [lang, country] = locale.split("-");
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/register/username`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                "Accept-Language": getLang(),
-            },
-            body: JSON.stringify({
-                username,
-                lang,
-                country,
-                token: getCookie('jwt'),
-            }),
-            credentials: 'include',
-        });
-
-    if (!response.ok) {
-      throw new Error(response.statusText);
-    }
-
-    const contentType = response.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-      throw new Error("Server did not return JSON");
-    }
-
-    const data: RegisterResponse = await response.json();
-    if (!data.success) {
-      throw new Error(data?.message || "Unknown error");
-    }
-  } catch (error) {
-    console.error("Username registration failed:", error);
-    alert(error instanceof Error ? error.message : "An error occurred");
-  }
-};
-
 export const handleGoogleSignIn = (): void => {
   window.location.replace(`${API_BASE_URL}/auth/google`);
 };
@@ -217,18 +178,6 @@ export const isTwoFactorEnabled = (): boolean => {
     const payload = jwt.split(".")[1];
     const decoded = JSON.parse(atob(payload));
     return decoded.twofa_enabled === true && decoded.twofa_verified !== true;
-  } catch {
-    return false;
-  }
-};
-
-export const isGoogleAuthEnabled = (): boolean => {
-  const jwt = getCookie("jwt");
-  if (!jwt) return false;
-  try {
-    const payload = jwt.split(".")[1];
-    const decoded = JSON.parse(atob(payload));
-    return !!decoded.google_id;
   } catch {
     return false;
   }
@@ -253,16 +202,4 @@ export function getUserIdFromToken(): number | null {
   } catch {
     return null;
   }
-}
-
-export function getGoogleFlagFromToken(): boolean {
-    const token = getCookie('jwt');
-    if (!token) return false;
-    try {
-        const payload = token.split('.')[1];
-        const decoded = JSON.parse(atob(payload));
-        return !!decoded.google_id;
-    } catch {
-        return false;
-    }
 }

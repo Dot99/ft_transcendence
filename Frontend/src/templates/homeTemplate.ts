@@ -66,19 +66,5 @@ export const homeTemplate = `
         </div>
     </div>
     <!-- End Two Factor Authentication Modal -->
-
-    <div id="setUsernameModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-[#001B26] p-8 rounded-xl border-2 border-[#4CF190] max-w-md w-full">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl text-[#4CF190] font-bold">Set Username</h2>
-            </div>
-            <div class="space-y-4">
-                <div>
-                    <input type="text" id="newUsernameInput" placeholder="Choose a username" class="w-full p-2 bg-[#002B3B] border border-[#4CF190] rounded text-white">
-                </div>
-                <button id="usernameLoginBtn" class="w-full h-12 bg-green-800 enabled:hover:bg-green-700 text-white py-2 rounded" disabled>SET USERNAME</button>
-            </div>
-        </div>
-    </div>
 </div>
 `;

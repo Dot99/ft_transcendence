@@ -433,7 +433,7 @@ function attachProfileEventListeners(user: User, twofaEnabled: boolean) {
         }
       } else {
         closeEditProfileModal();
-        // loadProfilePage();
+        loadProfilePage();
       }
     } else {
       let errorMsg = "Failed to update profile.";

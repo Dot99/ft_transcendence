@@ -4,13 +4,10 @@ import { loadTermsPage } from "./terms.js";
 import {
   login,
   register,
-  usernameGoogle,
   handleGoogleSignIn,
   isAuthenticated,
   isTwoFactorEnabled,
-  isGoogleAuthEnabled,
   getUserIdFromToken,
-  getGoogleFlagFromToken,
 } from "./utils/auth.js";
 import { forohforTemplate } from "./templates/FourOhFour.js";
 import { getCookie, deleteCookie } from "./utils/auth.js";
@@ -40,16 +37,6 @@ const handleRegister = (): void => {
   const password =
     getElement<HTMLInputElement>("loginPasswordInput").value.trim();
   register();
-};
-
-const handleSetUsername = (): void => {
-  const username =
-    getElement<HTMLInputElement>("newUsernameInput").value.trim();
-  if (username.length < 3 || username.length > 20) return;
-  usernameGoogle(username);
-  getElement<HTMLInputElement>("newUsernameInput").value = "";
-  toggleUsernameLoginButton();
-  closeSetUsernameModal();
 };
 
 // UI Functions
@@ -101,14 +88,6 @@ export const loadHomePage = (): void => {
   if (twoFAInput) twoFAInput.placeholder = t("enter_code_placeholder");
   const twoFABtn = document.getElementById("twoFASubmitBtn");
   if (twoFABtn) twoFABtn.textContent = t("verify");
-  const setUsernameTitle = document.querySelector("#setUsernameModal h2");
-  if (setUsernameTitle) setUsernameTitle.textContent = t("set_username");
-  const setUsernameInput = document.getElementById(
-    "newUsernameInput"
-  ) as HTMLInputElement;
-  if (setUsernameInput) setUsernameInput.placeholder = t("choose_username");
-  const setUsernameBtn = document.getElementById("usernameLoginBtn");
-  if (setUsernameBtn) setUsernameBtn.textContent = t("set_username");
 
   // Add event listeners
   getElement<HTMLButtonElement>("loginPopupLoginBtn").addEventListener(
@@ -122,10 +101,6 @@ export const loadHomePage = (): void => {
   getElement<HTMLButtonElement>("googleSignInBtn").addEventListener(
     "click",
     handleGoogleSignIn
-  );
-  getElement<HTMLButtonElement>("usernameLoginBtn").addEventListener(
-    "click",
-    handleSetUsername
   );
   getElement<HTMLButtonElement>("termsLink").addEventListener("click", (e) => {
     e.preventDefault();
@@ -141,17 +116,6 @@ export const loadHomePage = (): void => {
     "input",
     toggleLoginPopupButtons
   );
-  getElement<HTMLInputElement>("newUsernameInput").addEventListener(
-    "input",
-    toggleUsernameLoginButton
-  );
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get("token");
-  if (token) {
-    document.cookie = `jwt=${token}; path=/;`;
-    window.history.replaceState({}, "", window.location.pathname);
-    return;
-  }
   if (!isAuthenticated()) {
     return;
   }
@@ -159,32 +123,6 @@ export const loadHomePage = (): void => {
     const userId = getUserIdFromToken();
     openTwoFAModal(String(userId));
     return;
-  }
-
-  if (getGoogleFlagFromToken()) {
-    openSetUsernameModal();
-    return;
-  }
-};
-
-const openSetUsernameModal = (): void => {
-  getElement<HTMLElement>("setUsernameModal").style.display = "flex";
-};
-
-const closeSetUsernameModal = (): void => {
-  getElement<HTMLElement>("setUsernameModal").style.display = "none";
-};
-
-const toggleUsernameLoginButton = (): void => {
-  const input = getElement<HTMLInputElement>("newUsernameInput");
-  const btn = getElement<HTMLButtonElement>("usernameLoginBtn");
-  const username = input.value.trim();
-  if (username.length >= 3 && username.length <= 20) {
-    btn.disabled = false;
-    btn.classList.remove("disabled");
-  } else {
-    btn.disabled = true;
-    btn.classList.add("disabled");
   }
 };
 
@@ -237,7 +175,7 @@ const openTwoFAModal = (userId: string): void => {
         const data = await res.json();
         document.cookie = `jwt=${data.token}; path=/;`;
         modal.style.display = "none";
-        // loadProfilePage();
+        loadProfilePage();
       } else {
         const data = await res.json();
         errorMsg.textContent = data.error || "Invalid code";
@@ -270,54 +208,31 @@ export const loadNotFoundPage = (): void => {
   signInBtn.disabled = !enabled;
 };
 
+function handlePostAuth() {
+  if (isTwoFactorEnabled()) {
+    const userId = getUserIdFromToken();
+    loadHomePage();
+    setTimeout(() => {openTwoFAModal(String(userId));}, 0);
+    openTwoFAModal(String(userId));
+  } else {
+    loadProfilePage();
+  }
+}
+(window as any).handlePostAuth = handlePostAuth;
+
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
-  window.addEventListener("loadHomePage", loadHomePage);
-  window.addEventListener("loadProfilePage", () => loadProfilePage());
-  window.addEventListener("loadTermsPage", loadTermsPage);
-  window.addEventListener("loadHomePage", loadHomePage);
-  // window.addEventListener("loadProfilePage", () => loadProfilePage());
-  const app = getElement<HTMLElement>("app");
-  app.innerHTML = homeTemplate;
-
-  // Add event listeners
-  getElement<HTMLButtonElement>("loginPopupLoginBtn").addEventListener(
-    "click",
-    handleLogin
-  );
-  getElement<HTMLButtonElement>("loginPopupSignInBtn").addEventListener(
-    "click",
-    handleRegister
-  );
-  getElement<HTMLButtonElement>("googleSignInBtn").addEventListener(
-    "click",
-    handleGoogleSignIn
-  );
-  getElement<HTMLButtonElement>("usernameLoginBtn").addEventListener(
-    "click",
-    handleSetUsername
-  );
-  getElement<HTMLButtonElement>("termsLink").addEventListener(
-    "click",
-    loadTermsPage
-  );
-
-  // Add input event listeners
-  getElement<HTMLInputElement>("loginUsernameInput").addEventListener(
-    "input",
-    toggleLoginPopupButtons
-  );
-  getElement<HTMLInputElement>("loginPasswordInput").addEventListener(
-    "input",
-    toggleLoginPopupButtons
-  );
-  getElement<HTMLInputElement>("newUsernameInput").addEventListener(
-    "input",
-    toggleUsernameLoginButton
-  );
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  if (token) {
+    document.cookie = `jwt=${token}; path=/;`;
+    window.history.replaceState({}, "", window.location.pathname);
+    handlePostAuth();
+    return;
+  }
   if (!isAuthenticated()) {
     loadHomePage();
   } else {
-    loadProfilePage();
+    handlePostAuth();
   }
 });
