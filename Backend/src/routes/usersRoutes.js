@@ -16,7 +16,7 @@ export default async function (fastify, opts) {
 	fastify.get("/users", {
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.getAllUsers(request, reply, request.lang),
+			await usersController.getAllUsers(request, reply),
 	});
 	/**
 	 * @name getUserById
@@ -36,7 +36,7 @@ export default async function (fastify, opts) {
 		},
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.getUserById(request, reply, request.lang),
+			await usersController.getUserById(request, reply),
 	});
 	/**
 	 * @name getUserByUsername
@@ -56,7 +56,7 @@ export default async function (fastify, opts) {
 		},
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.getUserByUsername(request, reply, request.lang),
+			await usersController.getUserByUsername(request, reply),
 	});
 	/**
 	 * @name createUser
@@ -76,7 +76,7 @@ export default async function (fastify, opts) {
 		},
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.createUser(request, reply, request.lang),
+			await usersController.createUser(request, reply),
 	});
 	/**
 	 * @name updateUser
@@ -98,7 +98,7 @@ export default async function (fastify, opts) {
 		},
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.updateUser(request, reply, request.lang),
+			await usersController.updateUser(request, reply),
 	});
 	/**
 	 * @name deleteUser
@@ -119,7 +119,7 @@ export default async function (fastify, opts) {
 		},
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.deleteUser(request, reply, request.lang),
+			await usersController.deleteUser(request, reply),
 	});
 	/**
 	 * @name uploadAvatar
@@ -138,7 +138,7 @@ export default async function (fastify, opts) {
 	fastify.post("/users/avatar", {
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.uploadAvatar(request, reply, request.lang),
+			await usersController.uploadAvatar(request, reply),
 	});
 
 	//Authentication routes
@@ -157,7 +157,7 @@ export default async function (fastify, opts) {
 	 */
 	fastify.post("/login", {
 		handler: async (request, reply) =>
-			await usersController.login(request, reply, request.lang),
+			await usersController.login(request, reply),
 	});
 	/**
 	 * @name register
@@ -177,7 +177,7 @@ export default async function (fastify, opts) {
 			body: bodyUserSchema,
 		},
 		handler: async (request, reply) =>
-			await usersController.register(request, reply, request.lang),
+			await usersController.register(request, reply),
 	});
 	/**
 	 * @name registerUsername
@@ -194,7 +194,7 @@ export default async function (fastify, opts) {
 	 */
 	fastify.post("/register/username", {
 		handler: async (request, reply) =>
-			await usersController.registerUsername(request, reply, request.lang),
+			await usersController.registerUsername(request, reply),
 	});
 	/**
 	 * @name logout
@@ -212,7 +212,7 @@ export default async function (fastify, opts) {
 	fastify.post("/logout", {
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.logout(request, reply, request.lang),
+			await usersController.logout(request, reply),
 	});
 
 	//Social routes
@@ -234,7 +234,7 @@ export default async function (fastify, opts) {
 		},
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.getUserFriends(request, reply, request.lang),
+			await usersController.getUserFriends(request, reply),
 	});
 	/**
 	 * @name addFriend
@@ -256,7 +256,7 @@ export default async function (fastify, opts) {
 		},
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.addFriend(request, reply, request.lang),
+			await usersController.addFriend(request, reply),
 	});
 	/**
 	 * @name deleteFriend
@@ -279,7 +279,7 @@ export default async function (fastify, opts) {
 		},
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.deleteFriend(request, reply, request.lang),
+			await usersController.deleteFriend(request, reply),
 	});
 	/**
 	 * @name blockUser
@@ -299,7 +299,7 @@ export default async function (fastify, opts) {
 		},
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.blockUser(request, reply, request.lang),
+			await usersController.blockUser(request, reply),
 	});
 	/**
 	 * @name unblockUser
@@ -320,7 +320,7 @@ export default async function (fastify, opts) {
 		},
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.unblockUser(request, reply, request.lang),
+			await usersController.unblockUser(request, reply),
 	});
 	/**
 	 * @name getBlockedUsers
@@ -340,7 +340,7 @@ export default async function (fastify, opts) {
 		},
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.getBlockedUsers(request, reply, request.lang),
+			await usersController.getBlockedUsers(request, reply),
 	});
 
 	// Stats routes
@@ -362,7 +362,7 @@ export default async function (fastify, opts) {
 		},
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.getUserMatches(request, reply, request.lang),
+			await usersController.getUserMatches(request, reply),
 	});
 	/**
 	 * @name getUserStats
@@ -382,7 +382,7 @@ export default async function (fastify, opts) {
 		},
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.getUserStats(request, reply, request.lang),
+			await usersController.getUserStats(request, reply),
 	});
 
 	//Presence/matchmaking routes
@@ -404,7 +404,7 @@ export default async function (fastify, opts) {
 		},
 		// preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.getUserStatus(request, reply, request.lang),
+			await usersController.getUserStatus(request, reply),
 	});
 	/**
 	 * @name getOnlineUsers
@@ -419,7 +419,7 @@ export default async function (fastify, opts) {
 	fastify.get("/users/online", {
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.getOnlineUsers(request, reply, request.lang),
+			await usersController.getOnlineUsers(request, reply),
 	});
 	/**
 	 * @name joinMatchmaking
@@ -434,7 +434,7 @@ export default async function (fastify, opts) {
 	fastify.post("/matchmaking/join", {
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.joinMatchmaking(request, reply, request.lang),
+			await usersController.joinMatchmaking(request, reply),
 	});
 	/**
 	 * @name leaveMatchmaking
@@ -449,6 +449,6 @@ export default async function (fastify, opts) {
 	fastify.post("/matchmaking/leave", {
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.leaveMatchmaking(request, reply, request.lang),
+			await usersController.leaveMatchmaking(request, reply),
 	});
 }
