@@ -71,7 +71,6 @@ export const login = async (): Promise<void> => {
     }
 
     const data: LoginResponse = await response.json();
-    console.log("data:", data);
     if (data.token) {
       setInputError(usernameInput, false);
       setInputError(passwordInput, false);
