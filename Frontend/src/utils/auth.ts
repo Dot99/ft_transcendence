@@ -156,10 +156,6 @@ export const logout = async (): Promise<void> => {
         } else {
             throw new Error('Logout failed');
         }
-    } catch (error) {
-        console.error('Logout failed:', error);
-        alert('Logout failed. Please try again.');
-    }
   } catch (error) {
     console.error("Logout failed:", error);
     alert("Logout failed. Please try again.");
