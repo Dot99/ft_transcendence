@@ -1,5 +1,6 @@
 import { menuTemplate } from "./templates/menuTemplate.js";
 import { loadProfilePage } from "./profile.js";
+import { loadPlayPage } from "./play.js";
 
 // Utility to get element by id
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -261,6 +262,49 @@ export const loadMenuPage = async (): Promise<void> => {
 		});
 	}
 
+	// Player vs AI button logic
+	const btnPvAI = document.getElementById("btnPvAI");
+	if (btnPvAI) {
+		btnPvAI.addEventListener("click", () => {
+			window.dispatchEvent(new Event("loadPlayPage"));
+		});
+	}
+
+	// Player vs Player button logic
+	const btnPvP = document.getElementById("btnPvP");
+	const pvpModal = document.getElementById("pvpModal");
+	const closePvpModal = document.getElementById("closePvpModal");
+	const pvpForm = document.getElementById("pvpForm") as HTMLFormElement | null;
+	const pvpOpponent = document.getElementById("pvpOpponent") as HTMLInputElement | null;
+	const pvpError = document.getElementById("pvpError");
+
+	if (btnPvP && pvpModal && closePvpModal && pvpForm && pvpOpponent && pvpError) {
+		btnPvP.addEventListener("click", () => {
+			pvpModal.classList.remove("hidden");
+			pvpError.classList.add("hidden");
+			pvpForm.reset();
+		});
+		closePvpModal.addEventListener("click", () => {
+			pvpModal.classList.add("hidden");
+		});
+		pvpForm.addEventListener("submit", async (e) => {
+			e.preventDefault();
+			const opponent = pvpOpponent.value.trim();
+			if (!opponent) return;
+			// PLACEHOLDER: Check if player is online
+			const isOnline = true; //  PLACEHOLDER flag
+			if (!isOnline) {
+				pvpError.textContent = "User not found or not online.";
+				pvpError.classList.remove("hidden");
+				return;
+			}
+			// Store opponent username in sessionStorage and load play page
+			sessionStorage.setItem("pvpOpponent", opponent);
+			pvpModal.classList.add("hidden");
+			window.dispatchEvent(new Event("loadPlayPage"));
+		});
+	}
+
 	// Navigate to home page on title click
 	const pongTitle = document.getElementById("pongTitle");
 	if (pongTitle) {
@@ -275,4 +319,5 @@ export const loadMenuPage = async (): Promise<void> => {
 document.addEventListener("DOMContentLoaded", () => {
 	window.addEventListener("loadMenuPage", loadMenuPage);
 	window.addEventListener("loadProfilePage", () => loadProfilePage());
+	window.addEventListener("loadPlayPage", () => loadPlayPage()); // <-- Add this
 });

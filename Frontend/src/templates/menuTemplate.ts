@@ -141,6 +141,22 @@ export const menuTemplate = `
                 </ul>
             </div>
         </div>
+        <!-- PvP Modal -->
+        <div id="pvpModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
+          <div class="bg-[#001B26] border-4 border-[#4CF190] rounded-xl p-8 w-full max-w-sm flex flex-col items-center shadow-2xl relative">
+            <button id="closePvpModal" class="absolute top-3 right-4 text-[#4CF190] text-2xl font-bold hover:text-white focus:outline-none">&times;</button>
+            <form id="pvpForm" class="w-full flex flex-col gap-4">
+              <label class="flex flex-col gap-1">
+                <span class="text-white font-semibold">Opponent Username</span>
+                <input type="text" id="pvpOpponent" required maxlength="32" class="px-3 py-2 rounded bg-[#01222c] border-2 border-[#4CF190] text-white focus:outline-none" />
+              </label>
+              <button type="submit" class="w-full mt-2 bg-[#4CF190] text-[#001B26] text-lg font-semibold px-6 py-3 rounded-md border-4 border-[#001B26] shadow-[3px_3px_0_0_#001B26] hover:bg-[#34c47c] active:scale-95 transition-all duration-75">
+                Start Game
+              </button>
+              <div id="pvpError" class="text-red-400 text-center text-sm mt-2 hidden"></div>
+            </form>
+          </div>
+        </div>
     </div>
 </div>
 `;
