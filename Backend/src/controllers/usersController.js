@@ -313,7 +313,7 @@ const registerUsername = async (request, reply) => {
 			userId,
 			username,
 			request.server,
-			lang || "en"
+			request.lang
 		);
 		if (!result.success) {
 			return reply.code(400).send({ success: false, message: result.message });
