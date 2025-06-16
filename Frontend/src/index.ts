@@ -1,6 +1,7 @@
 import { homeTemplate } from './templates/homeTemplate.js';
 import { login, register, usernameGoogle, handleGoogleSignIn } from './utils/auth.js';
 import { loadProfilePage } from './profile.js';
+import { loadMenuPage } from './menu.js';
 
 // Types
 interface URLParams {
@@ -22,6 +23,7 @@ const handleLogin = (): void => {
     const username = getElement<HTMLInputElement>('loginUsernameInput').value.trim();
     const password = getElement<HTMLInputElement>('loginPasswordInput').value.trim();
     login();
+    window.dispatchEvent(new Event('loadMenuPage'));
 };
 
 const handleRegister = (): void => {
@@ -54,6 +56,9 @@ export const loadHomePage = (): void => {
     getElement<HTMLButtonElement>('loginPopupSignInBtn').addEventListener('click', handleRegister);
     getElement<HTMLButtonElement>('googleSignInBtn').addEventListener('click', handleGoogleSignIn);
     getElement<HTMLButtonElement>('usernameLoginBtn').addEventListener('click', handleSetUsername);
+    getElement<HTMLButtonElement>('startGameBtn').addEventListener('click', () => { // menu dev (delete later)
+        window.dispatchEvent(new Event('loadMenuPage')); ///menu dev (delete later)
+    });
 
     // Add input event listeners
     getElement<HTMLInputElement>('loginUsernameInput').addEventListener('input', toggleLoginPopupButtons);
@@ -159,14 +164,14 @@ const toggleLoginPopupButtons = (): void => {
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    // Listen for route events
     window.addEventListener('loadHomePage', loadHomePage);
     window.addEventListener('loadProfilePage', loadProfilePage);
-    
+    window.addEventListener('loadMenuPage', loadMenuPage);
+
     // Load initial route
     loadHomePage();
 });
 
 const openTwoFAModal = (userId: string): void => {
     // Implementation needed
-}; 
+};
