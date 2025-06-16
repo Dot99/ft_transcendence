@@ -45,7 +45,7 @@ export const profileTemplate = `
             <div class="flex flex-col items-center justify-center gap-2 h-full pr-0 -mr-20 relative top-2">
                 <div class="bg-[rgba(239,214,113,0.1)] border border-[#EFD671] p-4 font-['Press_Start_2P'] text-sm text-center whitespace-nowrap text-[#EFD671] mt-4">
                     <span id="hoursPlayed"></span>
-                    <span class="text-sm">hours played</span>
+                    <span id="hoursPlayedLabel" class="text-sm">hours played</span>
                 </div>
                 <a id="friendsBtn" class="menu-button mt-4">FRIENDS</a>
             </div>
@@ -96,7 +96,7 @@ export const profileTemplate = `
     <!-- Performance Overview -->
     <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6 mb-6">
         <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold">
-            <h2 class="text-xl font-bold">Performance Overview</h2>
+            <h2 id="overviewTitle" class="text-xl font-bold">Performance Overview</h2>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
             <div class="bg-[rgba(76,241,144,0.05)] border-2 border-[#4CF190] p-4 rounded-lg">
@@ -125,7 +125,7 @@ export const profileTemplate = `
             </div>
         </div>
         <div class="bg-[rgba(76,241,144,0.05)] border-2 border-[#EFD671] p-4 rounded-lg text-center">
-            <div class="text-gray-400 text-sm mb-2">🏆 Leaderboard Rank</div>
+            <div id="leaderboardLabel" class="text-gray-400 text-sm mb-2">🏆 Leaderboard Rank</div>
             <div id="leaderboard" class="text-3xl text-[#EFD671]"></div>
         </div>
     </div>
@@ -137,9 +137,9 @@ export const profileTemplate = `
     <!-- left chard-->
     <div class="flex-1 flex flex-col">
       <!-- Título estilo "Performance Overview" -->
-      <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold rounded-md text-center">
-        <h2 class="text-lg md:text-xl">All Time Stats</h2>
-      </div>
+        <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold rounded-md text-center">
+        <h2 id="allTimeStatsTitle" class="text-lg md:text-xl">All Time Stats</h2>
+        </div>
       <div class="flex-1 flex items-center justify-center">
         <canvas id="doughnutChart" class="max-w-full max-h-full"></canvas>
       </div>
@@ -148,9 +148,9 @@ export const profileTemplate = `
     <!-- right chart -->
     <div class="flex-1 flex flex-col">
       <!-- Título estilo "Performance Overview" -->
-      <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold rounded-md text-center">
-        <h2 class="text-lg md:text-xl">Stats per Tournament</h2>
-      </div>
+        <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold rounded-md text-center">
+        <h2 id="statsPerTournamentTitle" class="text-lg md:text-xl">Stats per Tournament</h2>
+        </div>
       <div class="flex-1 flex items-center justify-center">
         <canvas id="barChart" class="w-full h-full"></canvas>
       </div>
@@ -167,7 +167,7 @@ export const profileTemplate = `
             <!-- Recent Matches -->
             <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6">
                 <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold">
-                    <h2 class="text-xl font-bold">Recent Matches</h2>
+                    <h2 id="recentMatchesTitle" class="text-xl font-bold">Recent Matches</h2>
                 </div>
                 <div id="matchTableBody" class="space-y-2 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-[#4CF190] scrollbar-track-[rgba(76,241,144,0.1)]">
                     <!-- Match entries populated by JS -->
@@ -177,7 +177,7 @@ export const profileTemplate = `
             <!-- Past Tournaments -->
             <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6">
                 <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold">
-                    <h2 class="text-xl font-bold">Past Tournaments</h2>
+                    <h2 id="pastTournamentsTitle" class="text-xl font-bold">Past Tournaments</h2>
                 </div>
                 <div id="tournamentTableBody" class="space-y-2 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-[#4CF190] scrollbar-track-[rgba(76,241,144,0.1)]">
                     <!-- Past tournaments populated by JS -->
@@ -190,7 +190,7 @@ export const profileTemplate = `
             <!-- Upcoming Matches -->
             <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6">
                 <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold">
-                    <h2 class="text-xl font-bold">Upcoming Matches</h2>
+                    <h2 id="upcomingMatchesTitle" class="text-xl font-bold">Upcoming Matches</h2>
                 </div>
                 <div id="upcomingMatches" class="space-y-2 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-[#4CF190] scrollbar-track-[rgba(76,241,144,0.1)]">
                     <!-- Upcoming matches populated by JS -->
@@ -200,7 +200,7 @@ export const profileTemplate = `
             <!-- Current Tournament -->
             <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6">
                 <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold">
-                    <h2 class="text-xl font-bold">Current Tournament</h2>
+                    <h2 id="currentTournamentTitle" class="text-xl font-bold">Current Tournament</h2>
                 </div>
                 <div class="bg-[rgba(239,214,113,0.1)] border-2 border-[#EFD671] p-4 mb-4 rounded">
                     <div id="currTournamentName" class="text-[#EFD671] text-xl mb-2"></div>
