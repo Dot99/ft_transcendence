@@ -1,204 +1,203 @@
-import { loadProfilePage } from '../profile.js';
-import { loadHomePage } from '../index.js';
-import { getLang } from '../locales/localeMiddleware.js';
+import { loadHomePage } from "../index.js";
+import { getLang } from "../locales/localeMiddleware.js";
 const API_BASE_URL = "http://localhost:3000/api";
 
 // Types
 interface LoginResponse {
-  token?: string;
-  message?: string;
-  success?: boolean;
-  userId?: string | number;
-  twofa?: boolean;
-  google_id?: string;
+	token?: string;
+	message?: string;
+	success?: boolean;
+	userId?: string | number;
+	twofa?: boolean;
+	google_id?: string;
 }
 
 interface RegisterResponse {
-  token?: string;
-  message?: string;
-  success?: boolean;
-  userId?: string | number;
-  twofa?: boolean;
-  google_id?: string;
+	token?: string;
+	message?: string;
+	success?: boolean;
+	userId?: string | number;
+	twofa?: boolean;
+	google_id?: string;
 }
 
 // DOM Elements
 const getElement = <T extends HTMLElement>(id: string): T => {
-  const element = document.getElementById(id) as T;
-  if (!element) throw new Error(`Element with id ${id} not found`);
-  return element;
+	const element = document.getElementById(id) as T;
+	if (!element) throw new Error(`Element with id ${id} not found`);
+	return element;
 };
 
 // Authentication functions
 const setInputError = (input: HTMLInputElement, hasError: boolean): void => {
-  if (hasError) {
-    input.classList.remove("border-[#4CF190]");
-    input.classList.add("border-red-500", "bg-red-900/20");
-  } else {
-    input.classList.remove("border-red-500", "bg-red-900/20");
-    input.classList.add("border-[#4CF190]");
-  }
+	if (hasError) {
+		input.classList.remove("border-[#4CF190]");
+		input.classList.add("border-red-500", "bg-red-900/20");
+	} else {
+		input.classList.remove("border-red-500", "bg-red-900/20");
+		input.classList.add("border-[#4CF190]");
+	}
 };
 
 export const login = async (): Promise<void> => {
-  const usernameInput = getElement<HTMLInputElement>("loginUsernameInput");
-  const passwordInput = getElement<HTMLInputElement>("loginPasswordInput");
-  const username = usernameInput.value.trim();
-  const password = passwordInput.value.trim();
-  const errorElement = getElement<HTMLElement>("loginErrorMsg");
+	const usernameInput = getElement<HTMLInputElement>("loginUsernameInput");
+	const passwordInput = getElement<HTMLInputElement>("loginPasswordInput");
+	const username = usernameInput.value.trim();
+	const password = passwordInput.value.trim();
+	const errorElement = getElement<HTMLElement>("loginErrorMsg");
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                "Accept-Language": getLang(),
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify({ username, password }),
-            credentials: 'include',
-            mode: 'cors',
-        });
+	try {
+		const response = await fetch(`${API_BASE_URL}/login`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"Accept-Language": getLang(),
+				Accept: "application/json",
+			},
+			body: JSON.stringify({ username, password }),
+			credentials: "include",
+			mode: "cors",
+		});
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || response.statusText);
-    }
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({}));
+			throw new Error(errorData.message || response.statusText);
+		}
 
-    const contentType = response.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-      throw new Error("Server did not return JSON");
-    }
+		const contentType = response.headers.get("content-type");
+		if (!contentType || !contentType.includes("application/json")) {
+			throw new Error("Server did not return JSON");
+		}
 
-    const data: LoginResponse = await response.json();
-    if (data.token) {
-      setInputError(usernameInput, false);
-      setInputError(passwordInput, false);
-      errorElement.textContent = "";
-      document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
-      (window as any).handlePostAuth?.();
-    } else {
-      throw new Error("Login failed: " + (data?.message || "Unknown error"));
-    }
-  } catch (error) {
-    setInputError(usernameInput, true);
-    setInputError(passwordInput, true);
-    errorElement.textContent =
-      error instanceof Error ? error.message : "An error occurred";
-    errorElement.style.display = "block";
-  }
+		const data: LoginResponse = await response.json();
+		if (data.token) {
+			setInputError(usernameInput, false);
+			setInputError(passwordInput, false);
+			errorElement.textContent = "";
+			document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
+			(window as any).handlePostAuth?.();
+		} else {
+			throw new Error("Login failed: " + (data?.message || "Unknown error"));
+		}
+	} catch (error) {
+		setInputError(usernameInput, true);
+		setInputError(passwordInput, true);
+		errorElement.textContent =
+			error instanceof Error ? error.message : "An error occurred";
+		errorElement.style.display = "block";
+	}
 };
 
 export const register = async (): Promise<void> => {
-  const usernameInput = getElement<HTMLInputElement>("loginUsernameInput");
-  const passwordInput = getElement<HTMLInputElement>("loginPasswordInput");
-  const username = usernameInput.value.trim();
-  const password = passwordInput.value.trim();
-  const locale = navigator.language;
-  const [lang, country] = locale.split("-");
-  const errorElement = getElement<HTMLElement>("loginErrorMsg");
+	const usernameInput = getElement<HTMLInputElement>("loginUsernameInput");
+	const passwordInput = getElement<HTMLInputElement>("loginPasswordInput");
+	const username = usernameInput.value.trim();
+	const password = passwordInput.value.trim();
+	const locale = navigator.language;
+	const [lang, country] = locale.split("-");
+	const errorElement = getElement<HTMLElement>("loginErrorMsg");
 
-    try {
-        const response = await fetch(`${API_BASE_URL}/register`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                "Accept-Language": getLang(),
-            },
-            body: JSON.stringify({ username, password, country }),
-            credentials: 'include',
-        });
+	try {
+		const response = await fetch(`${API_BASE_URL}/register`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"Accept-Language": getLang(),
+			},
+			body: JSON.stringify({ username, password, country }),
+			credentials: "include",
+		});
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || response.statusText);
-    }
+		if (!response.ok) {
+			const errorData = await response.json().catch(() => ({}));
+			throw new Error(errorData.message || response.statusText);
+		}
 
-    const contentType = response.headers.get("content-type");
-    if (!contentType || !contentType.includes("application/json")) {
-      throw new Error("Server did not return JSON");
-    }
+		const contentType = response.headers.get("content-type");
+		if (!contentType || !contentType.includes("application/json")) {
+			throw new Error("Server did not return JSON");
+		}
 
-    const data: RegisterResponse = await response.json();
-    if (data.success) {
-      document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
-      setInputError(usernameInput, false);
-      setInputError(passwordInput, false);
-      errorElement.textContent = "";
-      document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
-      loadHomePage();
-    } else {
-      throw new Error(data?.message || "Unknown error");
-    }
-  } catch (error) {
-    setInputError(usernameInput, true);
-    setInputError(passwordInput, true);
-    errorElement.textContent =
-      error instanceof Error ? error.message : "An error occurred";
-    errorElement.style.display = "block";
-  }
+		const data: RegisterResponse = await response.json();
+		if (data.success) {
+			document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
+			setInputError(usernameInput, false);
+			setInputError(passwordInput, false);
+			errorElement.textContent = "";
+			document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
+			loadHomePage();
+		} else {
+			throw new Error(data?.message || "Unknown error");
+		}
+	} catch (error) {
+		setInputError(usernameInput, true);
+		setInputError(passwordInput, true);
+		errorElement.textContent =
+			error instanceof Error ? error.message : "An error occurred";
+		errorElement.style.display = "block";
+	}
 };
 
 export const logout = async (): Promise<void> => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/logout`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                "Accept-Language": getLang(),
-            },
-            body: JSON.stringify({ token: getCookie('jwt') }),
-            credentials: 'include',
-        });
-        if (response.ok) {
-            deleteCookie('jwt');
-        } else {
-            throw new Error('Logout failed');
-        }
-  } catch (error) {
-    console.error("Logout failed:", error);
-    alert("Logout failed. Please try again.");
-  }
+	try {
+		const response = await fetch(`${API_BASE_URL}/logout`, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"Accept-Language": getLang(),
+			},
+			body: JSON.stringify({ token: getCookie("jwt") }),
+			credentials: "include",
+		});
+		if (response.ok) {
+			deleteCookie("jwt");
+		} else {
+			throw new Error("Logout failed");
+		}
+	} catch (error) {
+		console.error("Logout failed:", error);
+		alert("Logout failed. Please try again.");
+	}
 };
 
 export const handleGoogleSignIn = (): void => {
-  window.location.replace(`${API_BASE_URL}/auth/google`);
+	window.location.replace(`${API_BASE_URL}/auth/google`);
 };
 
 export const isAuthenticated = (): boolean => {
-  const token = getCookie("jwt");
-  return !!token;
+	const token = getCookie("jwt");
+	return !!token;
 };
 
 export const isTwoFactorEnabled = (): boolean => {
-  const jwt = getCookie("jwt");
-  if (!jwt) return false;
-  try {
-    const payload = jwt.split(".")[1];
-    const decoded = JSON.parse(atob(payload));
-    return decoded.twofa_enabled === true && decoded.twofa_verified !== true;
-  } catch {
-    return false;
-  }
+	const jwt = getCookie("jwt");
+	if (!jwt) return false;
+	try {
+		const payload = jwt.split(".")[1];
+		const decoded = JSON.parse(atob(payload));
+		return decoded.twofa_enabled === true && decoded.twofa_verified !== true;
+	} catch {
+		return false;
+	}
 };
 
 export function getCookie(name: string): string | undefined {
-  const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
-  return match ? match[2] : undefined;
+	const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+	return match ? match[2] : undefined;
 }
 
 export function deleteCookie(name: string): void {
-  document.cookie = `${name}=; Max-Age=0; path=/;`;
+	document.cookie = `${name}=; Max-Age=0; path=/;`;
 }
 
 export function getUserIdFromToken(): number | null {
-  const token = getCookie("jwt");
-  if (!token) return null;
-  try {
-    const payload = token.split(".")[1];
-    const decoded = JSON.parse(atob(payload));
-    return decoded.id || decoded.sub || null;
-  } catch {
-    return null;
-  }
+	const token = getCookie("jwt");
+	if (!token) return null;
+	try {
+		const payload = token.split(".")[1];
+		const decoded = JSON.parse(atob(payload));
+		return decoded.id || decoded.sub || null;
+	} catch {
+		return null;
+	}
 }
