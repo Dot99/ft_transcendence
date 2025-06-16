@@ -25,8 +25,11 @@ const routes: Routes = {
 		const event = new CustomEvent("loadMenuPage");
 		window.dispatchEvent(event);
 	},
+	"/friends": () => {
+		const event = new CustomEvent("loadFriendsPage");
+		window.dispatchEvent(event);
+	},
 	// '/play': loadPlayPage,
-	// '/friends': loadFriendsPage,
 };
 
 const loadRoute = (path: string): void => {

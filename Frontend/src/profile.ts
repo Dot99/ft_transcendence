@@ -2,6 +2,7 @@ import { loadHomePage } from "./index.js";
 import { profileTemplate } from "./templates/profileTemplate.js";
 import { deleteCookie, getCookie, getUserIdFromToken } from "./utils/auth.js";
 import { getLang, setLang, t } from "./locales/localeMiddleware.js";
+import { loadFriendsPage } from "./friends.js";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -80,8 +81,7 @@ const handleConfirmDelete = async (): Promise<void> => {
 };
 
 const handleFriendsClick = (): void => {
-	console.log("FRIENDS"); //TODO: Implement friends page navigation
-	//navigateTo('/friends');
+	loadFriendsPage();
 };
 
 const handleCancelDelete = (): void => {
@@ -114,7 +114,10 @@ export const loadProfilePage = (pushState: boolean = true): void => {
 	const hoursPlayedLabel = document.getElementById("hoursPlayedLabel");
 	if (hoursPlayedLabel) hoursPlayedLabel.textContent = t("hours_played");
 	const friendsBtn = document.getElementById("friendsBtn");
-	if (friendsBtn) friendsBtn.textContent = t("friends");
+	if (friendsBtn) {
+		friendsBtn.textContent = t("friends");
+		friendsBtn.onclick = () => loadFriendsPage();
+	}
 
 	// Top-right buttons
 	const logoutBtn = document.getElementById("logoutButton");
@@ -459,6 +462,20 @@ function showEditProfileModal(user: User, twofaEnabled: boolean): void {
 			</label>
 		`;
 	}
+	const langSelector = document.getElementById(
+		"languageSelector"
+	) as HTMLSelectElement | null;
+	if (langSelector) {
+		langSelector.value = getLang();
+		langSelector.onchange = (e) => {
+			const newLang = (e.target as HTMLSelectElement).value;
+			setLang(newLang as "en" | "pt" | "zh");
+			loadProfilePage(false);
+		};
+		// Optionally translate the label
+		const langLabel = document.querySelector("label[for='languageSelector']");
+		if (langLabel) langLabel.textContent = t("language") || "Language";
+	}
 }
 
 function closeEditProfileModal(): void {
@@ -532,13 +549,11 @@ function attachProfileEventListeners(user: User, twofaEnabled: boolean) {
 
 					getElement<HTMLButtonElement>("closeTwofaQrBtn").onclick = () => {
 						qrModal.style.display = "none";
-						// loadProfilePage();
 					};
 
 					qrModal.onclick = (e) => {
 						if (e.target === qrModal) {
 							qrModal.style.display = "none";
-							// loadProfilePage();
 						}
 					};
 				} else {
@@ -588,7 +603,7 @@ async function confirmDelete(): Promise<void> {
 			method: "DELETE",
 			headers: {
 				"Accept-Language": getLang(),
-				Authorization: `Bearer ${token}`,
+				Authorization: `Bearer ${getCookie("jwt")}`,
 			},
 			body: JSON.stringify({ token: getCookie("jwt") }),
 			credentials: "include",
