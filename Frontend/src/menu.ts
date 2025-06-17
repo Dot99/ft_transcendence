@@ -135,8 +135,9 @@ export const loadMenuPage = async (): Promise<void> => {
 			try {
 				const res = await fetch(`${API_BASE_URL}/tournaments`, {
 					headers: {
-						Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+						Authorization: `Bearer ${getCookie("jwt")}`,
 					},
+					credentials: "include",
 				});
 				if (res.ok) {
 					const data = await res.json();
