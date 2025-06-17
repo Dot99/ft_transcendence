@@ -387,6 +387,35 @@ const getUserFriends = async (request, reply) => {
 };
 
 /**
+ * @description Controller to get friend requests for the current user
+ * @param {Object} request - The request object
+ * @param {Object} reply - The reply object
+ * @returns {Promise<void>}
+ */
+const getFriendsRequests = async (request, reply) => {
+	try {
+		const user = request.user;
+		if (!user?.id) {
+			throw new UserNotFoundError();
+		}
+		const result = await userService.getUserFriendRequests(
+			user.id,
+			request.lang
+		);
+		reply.code(200).send({
+			success: true,
+			friendsRequests: result.friendsRequests || [],
+		});
+	} catch (err) {
+		console.error("Internal Server Error", err);
+		reply.code(500).send({
+			success: false,
+			error: err.message,
+		});
+	}
+};
+
+/**
  * @description Controller to add a friend
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
@@ -406,6 +435,37 @@ const addFriend = async (request, reply) => {
 			});
 		}
 		const result = await userService.addFriend(user.id, friendId, request.lang);
+		if (!result.success) {
+			return reply.code(400).send({ success: false, message: result.message });
+		}
+		reply.code(200).send({ success: true });
+	} catch (err) {
+		console.error("Internal Server Error", err);
+		reply.code(500).send({
+			success: false,
+			error: err.message,
+		});
+	}
+};
+
+const acceptFriend = async (request, reply) => {
+	try {
+		const user = request.user;
+		if (!user?.id) {
+			throw new UserNotFoundError();
+		}
+		const friendId = request.params.id;
+		if (!friendId) {
+			return reply.code(400).send({
+				success: false,
+				message: messages.missingFields[request.lang],
+			});
+		}
+		const result = await userService.acceptFriendRequest(
+			user.id,
+			friendId,
+			request.lang
+		);
 		if (!result.success) {
 			return reply.code(400).send({ success: false, message: result.message });
 		}
@@ -727,6 +787,8 @@ export default {
 	registerUsername,
 	logout,
 	getUserFriends,
+	getFriendsRequests,
+	acceptFriend,
 	addFriend,
 	deleteFriend,
 	blockUser,

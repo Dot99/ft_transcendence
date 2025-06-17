@@ -7,6 +7,14 @@ export const friendsTemplate = `
     </svg>
     MENU
   </button>
+  <!-- Friend Requests Panel -->
+  <div class="absolute top-32 left-8 w-80 bg-[#001B26] bg-opacity-80 border-2 border-[#4CF190] rounded-xl shadow-lg p-4 z-10">
+    <h2 class="text-2xl text-[#4CF190] font-bold mb-4">Friend Requests</h2>
+    <div id="friendRequestsList" class="space-y-3 max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-[#4CF190] scrollbar-track-[rgba(76,241,144,0.1)]">
+      <!-- Requests will be loaded here -->
+      <div class="text-gray-400 text-sm" id="noFriendRequests">No friend requests.</div>
+    </div>
+  </div>
   <!-- Title -->
   <div class="flex justify-center items-center pt-16">
     <h1 class="text-4xl text-[#4CF190]">FRIENDS</h1>
@@ -42,6 +50,10 @@ export const friendsTemplate = `
     <div id="friendInputError" class="ml-2 text-red-400 text-sm hidden">
       <!-- Error text will be set dynamically -->
     </div>
+  </div>
+  <!-- Friend Request Sent Notification -->
+  <div id="friendAdded" class="fixed bottom-32 left-1/2 transform -translate-x-1/2 bg-[#4CF190] text-[#001B26] px-6 py-3 rounded shadow-lg text-lg font-bold hidden z-50 transition-all" style="min-width: 250px; text-align: center;">
+    Friend request sent!
   </div>
 
   <!-- Invite Modal -->

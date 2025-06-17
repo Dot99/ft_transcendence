@@ -13,18 +13,16 @@ let selectedFriendId: number | null = null;
 let selectedFriendName: string | null = null;
 
 export async function loadFriendsPage(): Promise<void> {
-	// Render the template
 	const app = document.getElementById("app");
 	if (!app) return;
 	app.innerHTML = friendsTemplate;
-	// Attach event listeners
 	document.getElementById("addFriendBtn")?.addEventListener("click", addFriend);
 	document.getElementById("inviteBtn")?.addEventListener("click", inviteToGame);
 	document
 		.getElementById("cancelInviteBtn")
 		?.addEventListener("click", closeInviteModal);
-	// Load friends
 	await loadFriends();
+	await loadFriendRequests();
 }
 
 async function loadFriends(): Promise<void> {
@@ -65,6 +63,105 @@ async function loadFriends(): Promise<void> {
 	}
 }
 
+async function loadFriendRequests(): Promise<void> {
+	try {
+		const res = await fetch(`${API_BASE_URL}/users/friends-requests`, {
+			headers: {
+				"Accept-Language": getLang(),
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+			credentials: "include",
+		});
+		const data = await res.json();
+		const requests = Array.isArray(data.friendsRequests)
+			? data.friendsRequests
+			: [];
+		const requestsList = document.getElementById("friendRequestsList");
+		const noRequests = document.getElementById("noFriendRequests");
+		if (!requestsList) return;
+
+		requestsList.innerHTML = "";
+
+		if (requests.length === 0) {
+			requestsList.innerHTML = `<div class="text-gray-400 text-sm" id="noFriendRequests">
+				No friend requests. Looks like you're too cool for requests right now 😎
+			</div>`;
+			return;
+		}
+		if (noRequests) noRequests.classList.add("hidden");
+		requests.forEach((req: { id: number; username: string }) => {
+			const reqDiv = document.createElement("div");
+			reqDiv.className =
+				"flex items-center justify-between border border-[#4CF190] rounded px-3 py-2 bg-[#002733]";
+
+			reqDiv.innerHTML = `
+				<span class="text-[#4CF190] font-semibold">${req.username}</span>
+				<div class="flex gap-2">
+					<button class="accept-btn text-green-400 hover:text-green-600 text-xl" title="Accept" data-id="${req.id}">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+						</svg>
+					</button>
+					<button class="reject-btn text-red-400 hover:text-red-600 text-xl" title="Reject" data-id="${req.id}">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
+			`;
+
+			requestsList.appendChild(reqDiv);
+		});
+
+		// Attach event listeners for accept/reject
+		requestsList.querySelectorAll(".accept-btn").forEach((btn) => {
+			btn.addEventListener("click", async (e) => {
+				const id = (e.currentTarget as HTMLElement).getAttribute("data-id");
+				await respondToFriendRequest(id, true);
+				await loadFriendRequests();
+				await loadFriends();
+			});
+		});
+		requestsList.querySelectorAll(".reject-btn").forEach((btn) => {
+			btn.addEventListener("click", async (e) => {
+				const id = (e.currentTarget as HTMLElement).getAttribute("data-id");
+				await respondToFriendRequest(id, false);
+				await loadFriendRequests();
+			});
+		});
+	} catch (error) {
+		console.error("Failed to load friend requests:", error);
+	}
+}
+
+async function respondToFriendRequest(
+	requesterId: string | null,
+	accept: boolean
+) {
+	if (!requesterId) return;
+	if (accept) {
+		const endpoint = `${API_BASE_URL}/users/${requesterId}/accept-friend`;
+		await fetch(endpoint, {
+			method: "POST",
+			headers: {
+				"Accept-Language": getLang(),
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+			credentials: "include",
+		});
+	} else {
+		const endpoint = `${API_BASE_URL}/users/friends/${requesterId}`;
+		await fetch(endpoint, {
+			method: "DELETE",
+			headers: {
+				"Accept-Language": getLang(),
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+			credentials: "include",
+		});
+	}
+}
+
 function openInviteModal(friendId: number, friendName: string): void {
 	selectedFriendId = friendId;
 	selectedFriendName = friendName;
@@ -95,26 +192,22 @@ async function addFriend(): Promise<void> {
 	const input = document.getElementById("friendInput") as HTMLInputElement;
 	const friendName = input?.value.trim();
 	if (!friendName) return;
-	const friendUsername = await fetch(
-		`${API_BASE_URL}/users/username/${friendName}`,
-		{
-			headers: {
-				"Accept-Language": getLang(),
-				Authorization: `Bearer ${getCookie("jwt")}`,
-			},
-			credentials: "include",
-		}
-	);
+	const friend = await fetch(`${API_BASE_URL}/users/username/${friendName}`, {
+		headers: {
+			"Accept-Language": getLang(),
+			Authorization: `Bearer ${getCookie("jwt")}`,
+		},
+		credentials: "include",
+	});
 
-	if (!friendUsername.ok) {
+	if (!friend.ok) {
 		const errorMsg = document.getElementById("friendInputError");
 		let errorText = "Unknown error";
 		try {
-			const data = await friendUsername.json();
+			const data = await friend.json();
 			errorText = data?.error || errorText;
 		} catch {
-			// fallback to status text if JSON parsing fails
-			errorText = friendUsername.statusText || errorText;
+			errorText = friend.statusText || errorText;
 		}
 		if (errorMsg) {
 			errorMsg.textContent = errorText;
@@ -127,9 +220,37 @@ async function addFriend(): Promise<void> {
 		}
 		return;
 	}
-	// } else {
-	// 	const response = await fetch()
-	// }
+	const friendData = await friend.json();
+	const friendId = friendData?.user?.id;
+	const response = await fetch(`${API_BASE_URL}/users/${friendId}/friends`, {
+		headers: {
+			"Accept-Language": getLang(),
+			Authorization: `Bearer ${getCookie("jwt")}`,
+		},
+		method: "POST",
+		credentials: "include",
+	});
+	if (!response.ok) {
+		const errorMsg = document.getElementById("friendInputError");
+		let errorText = "Unknown error";
+		try {
+			const data = await response.json();
+			errorText = data?.error || errorText;
+		} catch {
+			errorText = response.statusText || errorText;
+		}
+		if (errorMsg) {
+			errorMsg.textContent = errorText;
+			errorMsg.classList.remove("hidden");
+			errorMsg.classList.add("show");
+			setTimeout(() => {
+				errorMsg.classList.remove("show");
+				setTimeout(() => errorMsg.classList.add("hidden"), 400);
+			}, 2000);
+		}
+		return;
+	}
+
 	input.value = "";
 
 	const msg = document.getElementById("friendAdded");

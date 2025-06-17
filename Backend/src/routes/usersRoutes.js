@@ -237,6 +237,21 @@ export default async function (fastify, opts) {
 			await usersController.getUserFriends(request, reply),
 	});
 	/**
+	 * @name getFriendsRequests
+	 * @description Get friends requests
+	 * @route GET /users/friends-requests
+	 * @group Social - Social operations about users
+	 * @returns {Array.<User>} 200 - An array of users
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.get("/users/friends-requests", {
+		preHandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await usersController.getFriendsRequests(request, reply),
+	});
+	/**
 	 * @name addFriend
 	 * @description Add friend
 	 * @route POST /users/{id}/friends
@@ -257,6 +272,29 @@ export default async function (fastify, opts) {
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.addFriend(request, reply),
+	});
+
+	/**
+	 * @name acceptFriend
+	 * @description Accept friend request
+	 * @route POST /users/{id}/accept-friend
+	 * @group Social - Social operations about users
+	 * @param {string} id - user id
+	 * @param {User} user.body - user object
+	 * @returns {User} 200 - User object
+	 * @returns {Error} 400 - Bad request
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 404 - User not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.post("/users/:id/accept-friend", {
+		schema: {
+			params: paramsJsonSchema,
+		},
+		preHandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await usersController.acceptFriend(request, reply),
 	});
 	/**
 	 * @name deleteFriend
