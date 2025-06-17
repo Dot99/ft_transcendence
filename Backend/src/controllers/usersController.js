@@ -365,7 +365,6 @@ const logout = async (request, reply) => {
  */
 const getUserFriends = async (request, reply) => {
 	try {
-		request.user = { id: 1 };
 		const user = request.user;
 		if (!user?.id) {
 			throw new UserNotFoundError();

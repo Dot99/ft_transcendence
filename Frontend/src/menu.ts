@@ -1,7 +1,13 @@
 import { menuTemplate } from "./templates/menuTemplate.js";
 import { loadProfilePage } from "./profile.js";
+<<<<<<< HEAD
 import { deleteCookie } from "./utils/auth.js";
 import { loadHomePage } from "./index.js";
+=======
+import { getCookie, getUserIdFromToken } from "./utils/auth.js";
+
+const API_BASE_URL = "http://localhost:3000/api";
+>>>>>>> c54e7bfae98601af4f667c8a2d24dbd86aba7480
 
 // Utility to get element by id
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -12,6 +18,7 @@ const getElement = <T extends HTMLElement>(id: string): T => {
 
 // Fetch username
 const fetchUsername = async (): Promise<string> => {
+<<<<<<< HEAD
   try {
     const res = await fetch("/api/user/profile", {
       headers: {
@@ -24,6 +31,22 @@ const fetchUsername = async (): Promise<string> => {
   } catch {
     return "Username";
   }
+=======
+	try {
+		const userId = getUserIdFromToken();
+		const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
+			headers: {
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+			credentials: "include",
+		});
+		if (!res.ok) throw new Error("Failed to fetch username");
+		const data = await res.json();
+		return data.user.username || "Username";
+	} catch {
+		return "Username";
+	}
+>>>>>>> c54e7bfae98601af4f667c8a2d24dbd86aba7480
 };
 
 // Load Menu Page
@@ -186,6 +209,7 @@ export const loadMenuPage = async (): Promise<void> => {
   );
   const tournamentList = document.getElementById("tournamentList");
 
+<<<<<<< HEAD
   if (
     btnJoinTournament &&
     joinTournamentModal &&
@@ -215,6 +239,37 @@ export const loadMenuPage = async (): Promise<void> => {
         console.error("Failed to fetch tournaments:", e);
         tournaments = [];
       }
+=======
+	if (
+		btnJoinTournament &&
+		joinTournamentModal &&
+		closeJoinTournamentModal &&
+		tournamentList &&
+		tournamentModal
+	) {
+		btnJoinTournament.addEventListener("click", async () => {
+			let tournaments: { name: string; players: number; maxPlayers: number }[] =
+				[];
+			try {
+				const res = await fetch(`${API_BASE_URL}/tournaments`, {
+					headers: {
+						Authorization: `Bearer ${getCookie("jwt")}`,
+					},
+					credentials: "include",
+				});
+				if (res.ok) {
+					const data = await res.json();
+					// Only include tournaments that are not full
+					tournaments = data.tournaments.filter(
+						(t: { players: number; maxPlayers: number }) =>
+							t.players < t.maxPlayers
+					);
+				}
+			} catch (e) {
+				console.error("Failed to fetch tournaments:", e);
+				tournaments = [];
+			}
+>>>>>>> c54e7bfae98601af4f667c8a2d24dbd86aba7480
 
       // Populate tournament list
       tournamentList.innerHTML = tournaments.length

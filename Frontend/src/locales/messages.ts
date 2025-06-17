@@ -1,5 +1,6 @@
 export const messages = {
 	en: {
+		language: "Language",
 		//Index Page
 		welcome: "Welcome to PONG",
 		ultimate_experience: "The ultimate multiplayer ping pong experience",
@@ -28,6 +29,7 @@ export const messages = {
 		hours_played: "Hours Played",
 		edit_profile: "Edit Profile",
 		pfp: "Profile Picture",
+		friends: "Friends",
 		save: "Save",
 		overview: "Overview",
 		matches: "Matches",
@@ -59,6 +61,7 @@ export const messages = {
 		tournaments: "Tournaments",
 	},
 	pt: {
+		language: "Idioma",
 		//Index Page
 		welcome: "Bem-vindo ao PONG",
 		ultimate_experience:
@@ -88,6 +91,7 @@ export const messages = {
 		hours_played: "Horas Jogadas",
 		edit_profile: "Editar Perfil",
 		pfp: "Foto de Perfil",
+		friends: "Amigos",
 		save: "Salvar",
 		overview: "Visão Geral",
 		matches: "Partidas",
@@ -119,6 +123,7 @@ export const messages = {
 		tournaments: "Torneios",
 	},
 	zh: {
+		language: "语言",
 		//Index Page
 		welcome: "欢迎来到 PONG",
 		ultimate_experience: "终极多人乒乓体验",
@@ -146,6 +151,7 @@ export const messages = {
 		hours_played: "游戏时长",
 		edit_profile: "编辑个人资料",
 		pfp: "头像",
+		friends: "好友",
 		save: "保存",
 		overview: "概览",
 		matches: "比赛",

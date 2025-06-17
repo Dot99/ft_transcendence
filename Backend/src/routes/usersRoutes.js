@@ -228,7 +228,7 @@ export default async function (fastify, opts) {
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
 	 */
-	fastify.get("/users/friends", {
+	fastify.get("/users/:id/friends", {
 		schema: {
 			params: paramsJsonSchema,
 		},

@@ -219,6 +219,21 @@ export default async function (fastify, opts) {
       ),
   });
   /**
+   * @name getAllTournaments
+   * @description Get all tournaments
+   * @route GET /games/tournaments
+   * @group Games
+   * @returns {Array} 200 - An array of tournaments
+   * @returns {Error} 401 - Unauthorized
+   * @returns {Error} 500 - Internal server error
+   * @security JWT
+   */
+  fastify.get("/tournaments", {
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) =>
+      await gamesController.getAllTournaments(request, reply, request.lang),
+  });
+  /**
    * @name updateCostumization
    * @description Update game customization for a user
    * @route PUT /games/costumization

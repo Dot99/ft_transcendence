@@ -91,7 +91,28 @@ const getRecentGamesByUserId = async (request, reply) => {
     });
   }
 };
+/**
+ * @description Get all tournaments
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @returns {Promise<void>}
+ */
+const getTournaments = async (request, reply) => {
+  try {
+    const result = await gameService.getTournaments();
+    if (!result.success) {
+      return reply.code(404).send(result);
+    }
 
+    reply.send({ success: true, tournaments: result.tournaments });
+  } catch (error) {
+    console.error("Internal Server Error:", error);
+    reply.code(500).send({
+      success: false,
+      error: error.message,
+    });
+  }
+};
 /**
  * @description Get past tournaments by user ID
  * @param {Object} request - The request object
@@ -267,5 +288,5 @@ export default {
   getTournamentById,
   getUpcomingTournamentMatchesById,
   getTournamentPlayersById,
-  updateGameCustomization,
+  updateCostumization,
 };

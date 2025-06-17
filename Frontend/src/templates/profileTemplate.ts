@@ -47,7 +47,7 @@ export const profileTemplate = `
                     <span id="hoursPlayed"></span>
                     <span id="hoursPlayedLabel" class="text-sm">hours played</span>
                 </div>
-                <a id="friendsBtn" class="menu-button mt-4">FRIENDS</a>
+                <button id="friendsBtn" type="button" class="menu-button bg-[#4CF190] text-[#001B26] py-1 px-2 rounded text-[0.65rem] leading-tight flex items-center justify-center h-6 min-w-[70px] mt-4">FRIENDS</button>
             </div>
             <!-- Delete and Arcade Section -->
             <div class="flex flex-col items-end h-full relative">
@@ -62,33 +62,40 @@ export const profileTemplate = `
     <div id="editProfileModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
         <div class="bg-[#001B26] p-6 rounded-xl border-2 border-[#4CF190] max-w-md w-full">
             <div class="text-2xl text-[#4CF190] font-bold mb-4">Edit Profile</div>
-            <form id="editProfileForm" class="space-y-4">
-                <div>
-                    <label class="block text-[#4CF190] mb-1" for="editUsername">Username</label>
-                    <input id="editUsername" name="username" type="text" class="w-full px-3 py-2 rounded bg-[#012733] text-white border border-[#4CF190] focus:outline-none" />
-                    <div id="editUsernameError" class="text-red-400 text-xs mt-1"></div>
-                </div>
-                <div>
-                    <label class="block text-[#4CF190] mb-1" for="editPfp">Profile Picture</label>
-                    <input id="editPfp" name="pfp" type="text" class="w-full px-3 py-2 rounded bg-[#012733] text-white border border-[#4CF190] focus:outline-none" />
-                </div>
-                <div id="twofaSection">
-                    <!-- 2FA toggle will be injected by JS -->
-                </div>
-
-                <!-- DELETE button on top -->
-                <div class="flex justify-center mb-4 ">
-                    <button type="button" id="deleteAccountBtn" class="bg-red-600 hover:bg-red-700 menu-button px-4 py-2">
-                        DELETE ACCOUNT
-                    </button>
-                </div>
-
-                <!-- EDIT / CANCEL buttons -->
-                <div class="flex justify-end space-x-4 pt-2">
-                    <button type="button" id="cancelEditProfileBtn" class="bg-red-800 menu-button px-6 py-2">CANCEL</button>
-                    <button type="submit" class="menu-button px-6 py-2 bg-[#4CF190] text-[#001B26]">SAVE</button>
-                </div>
-            </form>
+        <form id="editProfileForm" class="space-y-4">
+            <div>
+                <label class="block text-[#4CF190] mb-1" for="editUsername">Username</label>
+                <input id="editUsername" name="username" type="text" class="w-full px-3 py-2 rounded bg-[#012733] text-white border border-[#4CF190] focus:outline-none" />
+                <div id="editUsernameError" class="text-red-400 text-xs mt-1"></div>
+            </div>
+            <div>
+                <label class="block text-[#4CF190] mb-1" for="editPfp">Profile Picture</label>
+                <input id="editPfp" name="pfp" type="text" class="w-full px-3 py-2 rounded bg-[#012733] text-white border border-[#4CF190] focus:outline-none" />
+            </div>
+            <!-- Language Selector -->
+            <div class="mb-2 flex items-center gap-2">
+                <label for="languageSelector" class="text-[#4CF190]">Language</label>
+                <select id="languageSelector" class="bg-[#012733] border border-[#4CF190] text-white rounded px-2 py-1 focus:outline-none">
+                    <option value="en">English</option>
+                    <option value="pt">Português</option>
+                    <option value="zh">中文</option>
+                </select>
+            </div>
+            <div id="twofaSection">
+                <!-- 2FA toggle will be injected by JS -->
+            </div>
+            <!-- DELETE button on top -->
+            <div class="flex justify-center mb-4 ">
+                <button type="button" id="deleteAccountBtn" class="bg-red-600 hover:bg-red-700 menu-button px-4 py-2">
+                    DELETE ACCOUNT
+                </button>
+            </div>
+            <!-- EDIT / CANCEL buttons -->
+            <div class="flex justify-end space-x-4 pt-2">
+                <button type="button" id="cancelEditProfileBtn" class="bg-red-800 menu-button px-6 py-2">CANCEL</button>
+                <button type="submit" class="menu-button px-6 py-2 bg-[#4CF190] text-[#001B26]">SAVE</button>
+            </div>
+        </form>
         </div>
     </div>
 
