@@ -871,5 +871,3 @@ async function renderPerformanceChart(): Promise<void> {
 		});
 	}
 }
-
-// (window as any).loadProfilePage = loadProfilePage;

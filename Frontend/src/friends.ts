@@ -17,22 +17,12 @@ export async function loadFriendsPage(): Promise<void> {
 	const app = document.getElementById("app");
 	if (!app) return;
 	app.innerHTML = friendsTemplate;
-	const btn = document.getElementById("backToMenuBtn");
-	if (btn) {
-		btn.onclick = function () {
-			import("./index.js").then((module) => {
-				module.loadHomePage();
-			});
-		};
-	}
-
 	// Attach event listeners
 	document.getElementById("addFriendBtn")?.addEventListener("click", addFriend);
 	document.getElementById("inviteBtn")?.addEventListener("click", inviteToGame);
 	document
 		.getElementById("cancelInviteBtn")
 		?.addEventListener("click", closeInviteModal);
-
 	// Load friends
 	await loadFriends();
 }

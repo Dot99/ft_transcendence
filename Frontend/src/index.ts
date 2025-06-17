@@ -1,5 +1,4 @@
 import { homeTemplate } from "./templates/homeTemplate.js";
-import { loadProfilePage } from "./profile.js";
 import { loadTermsPage } from "./terms.js";
 import {
 	login,
@@ -239,3 +238,5 @@ document.addEventListener("DOMContentLoaded", () => {
 		handlePostAuth();
 	}
 });
+
+(window as any).loadMenuPage = loadMenuPage;
