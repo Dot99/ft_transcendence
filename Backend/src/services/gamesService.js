@@ -75,6 +75,23 @@ export function getRecentGamesByUserId(userId, lang = "en") {
 	});
 }
 
+export function getTournaments() {
+	return new Promise((resolve, reject) => {
+		db.all("SELECT * FROM tournaments", (err, rows) => {
+			if (err) {
+				return reject({ success: false, error: err });
+			}
+			if (!rows || rows.length === 0) {
+				return resolve({
+					success: false,
+					message: messages[lang].noTournament,
+				});
+			}
+			resolve({ success: true, tournaments: rows });
+		});
+	});
+}
+
 export function getPastTournamentsByUserId(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.all(

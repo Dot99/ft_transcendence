@@ -58,7 +58,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		// preHandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await gamesController.getGamesByUserId(
 				request,
@@ -83,7 +83,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		// preHandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await gamesController.getRecentGamesByUserId(
 				request,
@@ -91,6 +91,21 @@ export default async function (fastify, opts) {
 				request.params.id,
 				request.lang
 			),
+	});
+	/**
+	 * @name getAllTournaments
+	 * @description Get all tournaments
+	 * @route GET /games/tournaments
+	 * @group Games
+	 * @returns {Array} 200 - An array of tournaments
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.get("tournaments", {
+		preHandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await gamesController.getAllTournaments(request, reply, request.lang),
 	});
 	/**
 	 * @name getPastTournamentsByUserId
@@ -108,7 +123,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		// preHandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await gamesController.getPastTournamentsByUserId(
 				request,
@@ -133,7 +148,7 @@ export default async function (fastify, opts) {
 		schema: {
 			params: paramsJsonSchema,
 		},
-		// preHandler: [fastify.authenticate],
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await gamesController.getUpcomingTournamentsByUserId(
 				request,
