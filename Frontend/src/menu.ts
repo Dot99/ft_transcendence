@@ -1,5 +1,8 @@
 import { menuTemplate } from "./templates/menuTemplate.js";
 import { loadProfilePage } from "./profile.js";
+import { getCookie, getUserIdFromToken } from "./utils/auth.js";
+
+const API_BASE_URL = "http://localhost:3000/api";
 
 // Utility to get element by id
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -11,14 +14,16 @@ const getElement = <T extends HTMLElement>(id: string): T => {
 // Fetch username
 const fetchUsername = async (): Promise<string> => {
 	try {
-		const res = await fetch("/api/user/profile", {
+		const userId = getUserIdFromToken();
+		const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
 			headers: {
-				Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+				Authorization: `Bearer ${getCookie("jwt")}`,
 			},
+			credentials: "include",
 		});
 		if (!res.ok) throw new Error("Failed to fetch username");
 		const data = await res.json();
-		return data.username || "Username";
+		return data.user.username || "Username";
 	} catch {
 		return "Username";
 	}
@@ -125,11 +130,10 @@ export const loadMenuPage = async (): Promise<void> => {
 		tournamentModal
 	) {
 		btnJoinTournament.addEventListener("click", async () => {
-			// Fetch tournaments from backend
 			let tournaments: { name: string; players: number; maxPlayers: number }[] =
 				[];
 			try {
-				const res = await fetch("/api/tournaments", {
+				const res = await fetch(`${API_BASE_URL}/tournaments`, {
 					headers: {
 						Authorization: `Bearer ${localStorage.getItem("jwt")}`,
 					},
