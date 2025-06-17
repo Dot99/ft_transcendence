@@ -1,6 +1,6 @@
 import { friendsTemplate } from "./templates/friendsTemplate.js";
 import { getLang } from "./locales/localeMiddleware.js";
-import { getCookie } from "./utils/auth.js";
+import { getCookie, getUserIdFromToken } from "./utils/auth.js";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -29,13 +29,16 @@ export async function loadFriendsPage(): Promise<void> {
 
 async function loadFriends(): Promise<void> {
 	try {
-		const res = await fetch(`${API_BASE_URL}/users/friends`, {
+		const userId = getUserIdFromToken();
+		const res = await fetch(`${API_BASE_URL}/users/${userId}/friends`, {
 			headers: {
 				"Accept-Language": getLang(),
 				Authorization: `Bearer ${getCookie("jwt")}`,
 			},
 		});
-		const friends: Friend[] = await res.json();
+		if (res.status === 404) return;
+		const data = await res.json();
+		const friends: Friend[] = Array.isArray(data.friends) ? data.friends : [];
 		const friendsList = document.getElementById("friendsList");
 		if (!friendsList) return;
 
@@ -88,13 +91,45 @@ function inviteToGame(): void {
 	}, 2000);
 }
 
-function addFriend(): void {
+async function addFriend(): Promise<void> {
 	const input = document.getElementById("friendInput") as HTMLInputElement;
 	const friendName = input?.value.trim();
 	if (!friendName) return;
+	const friendUsername = await fetch(
+		`${API_BASE_URL}/users/username/${friendName}`,
+		{
+			headers: {
+				"Accept-Language": getLang(),
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+			credentials: "include",
+		}
+	);
 
-	// TODO: Implement add friend logic (API call)
-
+	if (!friendUsername.ok) {
+		const errorMsg = document.getElementById("friendInputError");
+		let errorText = "Unknown error";
+		try {
+			const data = await friendUsername.json();
+			errorText = data?.error || errorText;
+		} catch {
+			// fallback to status text if JSON parsing fails
+			errorText = friendUsername.statusText || errorText;
+		}
+		if (errorMsg) {
+			errorMsg.textContent = errorText;
+			errorMsg.classList.remove("hidden");
+			errorMsg.classList.add("show");
+			setTimeout(() => {
+				errorMsg.classList.remove("show");
+				setTimeout(() => errorMsg.classList.add("hidden"), 400);
+			}, 2000);
+		}
+		return;
+	}
+	// } else {
+	// 	const response = await fetch()
+	// }
 	input.value = "";
 
 	const msg = document.getElementById("friendAdded");

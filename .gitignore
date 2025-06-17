@@ -3,6 +3,7 @@ data.db
 Backend/node_modules
 Backend/package-lock.json
 Backend/db/data.db
+Backend/db/data.db-journal
 Backend/Frontend
 Frontend/node_modules
 Frontend/package-lock.json

@@ -38,6 +38,10 @@ export const friendsTemplate = `
         />
       </div>
     </div>
+    <!-- Error Message -->
+    <div id="friendInputError" class="ml-2 text-red-400 text-sm hidden">
+      <!-- Error text will be set dynamically -->
+    </div>
   </div>
 
   <!-- Invite Modal -->

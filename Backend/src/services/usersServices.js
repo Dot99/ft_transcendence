@@ -261,22 +261,23 @@ export function getUserFriends(userId, lang = "en") {
 		if (!userId) {
 			return resolve({ success: false, message: messages[lang].noUserId });
 		}
-		const sql = `
-			SELECT * FROM users 
-			WHERE id IN (
-				SELECT friend_id FROM friends 
-				WHERE user_id = ? AND status = 'accepted'
-			)
-		`;
-		db.all(sql, [userId], (err, rows) => {
-			if (err) {
-				return reject({ success: false, error: err });
+		db.all(
+			`SELECT * FROM users WHERE id IN (
+                SELECT friend_id FROM friends WHERE user_id = ? AND status = 'accepted'
+                UNION
+                SELECT user_id FROM friends WHERE friend_id = ? AND status = 'accepted'
+            )`,
+			[userId, userId],
+			(err, rows) => {
+				if (err) {
+					return reject({ success: false, error: err });
+				}
+				if (!rows || rows.length === 0) {
+					return resolve({ success: false, message: messages[lang].noFriends });
+				}
+				resolve({ success: true, friends: rows });
 			}
-			if (!rows || rows.length === 0) {
-				return resolve({ success: false, message: messages[lang].noFriends });
-			}
-			resolve({ success: true, friends: rows });
-		});
+		);
 	});
 }
 
