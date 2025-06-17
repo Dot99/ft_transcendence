@@ -102,7 +102,7 @@ export default async function (fastify, opts) {
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
 	 */
-	fastify.get("tournaments", {
+	fastify.get("/tournaments", {
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await gamesController.getAllTournaments(request, reply, request.lang),
