@@ -124,9 +124,8 @@ export function joinTournament(
       `SELECT * FROM tournaments WHERE tournament_id = ? AND name = ?`,
       [tournamentId, tournamentName],
       (err, row) => {
-        if (err) {
-          return reject({ success: false, error: err });
-        }
+        if (err) return reject({ success: false, error: err });
+
         if (!row) {
           return resolve({
             success: false,
@@ -138,25 +137,41 @@ export function joinTournament(
             message: messages[lang].tournamentFull,
           });
         }
-        db.run(
-          `INSERT INTO tournament_players (tournament_id, tournament_name, player_id, current_position, wins, losses)
-           VALUES (?, ?, ?, 0, 0, 0)`,
-          [tournamentId, tournamentName, userId],
-          function (err) {
-            if (err) {
-              return reject({ success: false, error: err });
+
+        db.get(
+          `SELECT * FROM tournament_players WHERE tournament_id = ? AND player_id = ?`,
+          [tournamentId, userId],
+          (err, existingPlayer) => {
+            if (err) return reject({ success: false, error: err });
+
+            if (existingPlayer) {
+              return resolve({
+                success: false,
+                message:
+                  messages[lang].alreadyJoined ||
+                  "You already joined this tournament.",
+              });
             }
+
             db.run(
-              `UPDATE tournaments SET PLAYER_COUNT = PLAYER_COUNT + 1 WHERE tournament_id = ?`,
-              [tournamentId],
-              (err) => {
-                if (err) {
-                  return reject({ success: false, error: err });
-                }
-                resolve({
-                  success: true,
-                  message: messages[lang].tournamentJoined,
-                });
+              `INSERT INTO tournament_players (tournament_id, tournament_name, player_id, current_position, wins, losses)
+               VALUES (?, ?, ?, 0, 0, 0)`,
+              [tournamentId, tournamentName, userId],
+              function (err) {
+                if (err) return reject({ success: false, error: err });
+
+                db.run(
+                  `UPDATE tournaments SET PLAYER_COUNT = PLAYER_COUNT + 1 WHERE tournament_id = ?`,
+                  [tournamentId],
+                  (err) => {
+                    if (err) return reject({ success: false, error: err });
+
+                    resolve({
+                      success: true,
+                      message: messages[lang].tournamentJoined,
+                    });
+                  }
+                );
               }
             );
           }
