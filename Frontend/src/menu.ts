@@ -291,10 +291,10 @@ export const loadMenuPage = async (): Promise<void> => {
 			e.preventDefault();
 			const opponent = pvpOpponent.value.trim();
 			if (!opponent) return;
-			// PLACEHOLDER: Check if player is online
-			const isOnline = true; //  PLACEHOLDER flag
-			if (!isOnline) {
-				pvpError.textContent = "User not found or not online.";
+			// PLACEHOLDER: Check if player exists
+			const isUser = true; //  PLACEHOLDER flag
+			if (!isUser) {
+				pvpError.textContent = "User not found";
 				pvpError.classList.remove("hidden");
 				return;
 			}
@@ -319,5 +319,5 @@ export const loadMenuPage = async (): Promise<void> => {
 document.addEventListener("DOMContentLoaded", () => {
 	window.addEventListener("loadMenuPage", loadMenuPage);
 	window.addEventListener("loadProfilePage", () => loadProfilePage());
-	window.addEventListener("loadPlayPage", () => loadPlayPage()); // <-- Add this
+	window.addEventListener("loadPlayPage", () => loadPlayPage()); 
 });

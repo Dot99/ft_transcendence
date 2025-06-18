@@ -10,24 +10,25 @@ export const playTemplate = `
 
   <!-- Left Player Panel -->
   <div class="fixed left-10 top-1/2 -translate-y-1/2 flex flex-col items-center w-48 z-30">
-    <span id="player-username" class="text-[#4CF190] text-2xl mb-3">player</span>
+    <span id="player-username" class="text-[#4CF190] text-2xl mb-3 w-full text-center">player</span>
     <div id="player-banner" class="border-4 border-[#4CF190] p-1 mb-3 w-28 h-28 flex items-center justify-center transition-all">
+        <img id="player-avatar" class="w-24 h-24 rounded" style="display:none;" />
     </div>
     <div class="relative w-36 h-20 flex items-center justify-center mb-2">
-      <img src="images/score.svg" class="absolute inset-0 w-full h-full" alt="score" />
-      <span id="player-score" class="relative z-10 text-[#EFD671] text-xl flex items-center justify-center w-full h-full text-center" style="margin-left:32px;">09</span>
+        <img src="images/score.svg" class="absolute inset-0 w-full h-full" alt="score" />
+        <span id="player-score" class="relative z-10 text-[#EFD671] text-xl flex items-center justify-center w-full h-full text-center" style="margin-left:32px;">09</span>
     </div>
   </div>
 
   <!-- Right Player Panel -->
   <div class="fixed right-10 top-1/2 -translate-y-1/2 flex flex-col items-center w-48 z-30">
-    <span class="text-[#4CF190] text-2xl mb-3">Bot</span>
+    <span id="bot-username" class="text-[#4CF190] text-2xl mb-3 w-full text-center">Bot</span>
     <div id="bot-banner" class="border-4 border-[#4CF190] p-1 mb-3 w-28 h-28 flex items-center justify-center transition-all">
-      <img src="images/robot.svg" alt="Bot" class="w-24 h-24 rounded" />
+        <img src="images/robot.svg" alt="Bot" class="w-24 h-24 rounded" />
     </div>
     <div class="relative w-36 h-20 flex items-center justify-center mb-2">
-      <img src="images/score.svg" class="absolute inset-0 w-full h-full" alt="score" />
-      <span id="bot-score" class="relative z-10 text-[#EFD671] text-xl flex items-center justify-center w-full h-full text-center" style="margin-left:32px;">05</span>
+        <img src="images/score.svg" class="absolute inset-0 w-full h-full" alt="score" />
+        <span id="bot-score" class="relative z-10 text-[#EFD671] text-xl flex items-center justify-center w-full h-full text-center" style="margin-left:32px;">05</span>
     </div>
   </div>
 
