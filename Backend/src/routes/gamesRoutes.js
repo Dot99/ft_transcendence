@@ -234,6 +234,45 @@ export default async function (fastify, opts) {
       await gamesController.getAllTournaments(request, reply, request.lang),
   });
   /**
+   * @name createTournament
+   * @description Create a new tournament
+   * @route POST /games/tournaments
+   * @group Games
+   * @param {Object} request.body - Tournament data
+   * @returns {Object} 201 - Created tournament data
+   * @returns {Error} 401 - Unauthorized
+   * @returns {Error} 500 - Internal server error
+   * @security JWT
+   */
+  fastify.post("/tournaments", {
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) =>
+      await gamesController.createTournament(request, reply, request.body),
+  });
+  /**
+   * @name joinTournament
+   * @description Join a tournament
+   * @route POST /games/tournaments/join
+   * @group Games
+   * @param {Object} request.body - Tournament join data
+   * @returns {Object} 200 - Success message
+   * @returns {Error} 401 - Unauthorized
+   * @returns {Error} 404 - Tournament not found
+   * @returns {Error} 500 - Internal server error
+   * @security JWT
+   */
+  fastify.post("/tournaments/join", {
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) =>
+      await gamesController.joinTournament(
+        request,
+        reply,
+        request.body.tournamentName,
+        request.body.tournamentId,
+        request.body.userId
+      ),
+  });
+  /**
    * @name updateCostumization
    * @description Update game customization for a user
    * @route PUT /games/costumization
@@ -250,8 +289,31 @@ export default async function (fastify, opts) {
       return await gamesController.updateCostumization(
         request,
         reply,
-        request.body
+        request.body,
+        request.params.userid
       );
     },
+  });
+  /**
+   * @name getCustomization
+   * @description Get game customization for a user
+   * @route GET /games/costumization/:userid
+   * @group Games
+   * @param {string} userid - User ID
+   * @returns {Object} 200 - Customization data
+   * @returns {Error} 401 - Unauthorized
+   * @returns {Error} 404 - Customization not found
+   * @returns {Error} 500 - Internal server error
+   * @security JWT
+   */
+  fastify.get("/games/costumization/:userid", {
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) =>
+      await gamesController.getCustomization(
+        request,
+        reply,
+        request.params.userid,
+        request.lang
+      ),
   });
 }

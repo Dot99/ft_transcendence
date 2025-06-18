@@ -97,7 +97,7 @@ const getRecentGamesByUserId = async (request, reply) => {
  * @param {Object} reply - The response object
  * @returns {Promise<void>}
  */
-const getTournaments = async (request, reply) => {
+const getAllTournaments = async (request, reply) => {
   try {
     const result = await gameService.getTournaments();
     if (!result.success) {
@@ -113,6 +113,56 @@ const getTournaments = async (request, reply) => {
     });
   }
 };
+
+/**
+ * @description Create a new tournament
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @returns {Promise<void>}
+ */
+const createTournament = async (request, reply) => {
+  try {
+    const tournamentData = request.body;
+    const result = await gameService.createTournament(tournamentData);
+    if (!result.success) {
+      return reply.code(400).send(result);
+    }
+    reply.code(201).send({ success: true, tournament: result.tournament });
+  } catch (error) {
+    console.error("Internal Server Error:", error);
+    reply.code(500).send({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
+/** * @description Join a tournament
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @returns {Promise<void>}
+ */
+const joinTournament = async (request, reply) => {
+  try {
+    const { tournamentName, tournamentId, userId } = request.body;
+    const result = await gameService.joinTournament(
+      tournamentName,
+      tournamentId,
+      userId
+    );
+    if (!result.success) {
+      return reply.code(404).send(result);
+    }
+    reply.send({ success: true, message: result.message });
+  } catch (error) {
+    console.error("Internal Server Error:", error);
+    reply.code(500).send({
+      success: false,
+      error: error.message,
+    });
+  }
+};
+
 /**
  * @description Get past tournaments by user ID
  * @param {Object} request - The request object
@@ -246,35 +296,38 @@ const getTournamentPlayersById = async (request, reply) => {
  * @returns {Promise<void>}
  */
 async function updateCostumization(request, reply, customization) {
-  const userId = request.params.userid;
-
   try {
+    const userId = request.params.userid;
     const { paddle_color, ball_color, board_color, border_color } =
       customization;
 
-    await new Promise((resolve, reject) => {
-      db.run(
-        `
-        INSERT INTO game_configurations (user_id, paddle_color, ball_color, board_color, border_color)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(user_id) DO UPDATE SET 
-          paddle_color = excluded.paddle_color,
-          ball_color = excluded.ball_color,
-          board_color = excluded.board_color,
-          border_color = excluded.border_color
-        `,
-        [userId, paddle_color, ball_color, board_color, border_color],
-        function (err) {
-          if (err) reject(err);
-          else resolve();
-        }
-      );
-    });
+    const result = await gameService.updateCustomization(userId, customization);
+    if (!result.success) {
+      return reply.code(404).send(result);
+    }
 
-    reply.code(200).send({ success: true, message: "Customization updated" });
+    return reply.code(200).send(result);
   } catch (err) {
     console.error(err);
-    reply.code(500).send({ success: false, error: "Internal server error" });
+    return reply
+      .code(500)
+      .send({ success: false, error: "Internal server error" });
+  }
+}
+
+async function getCustomization(request, reply) {
+  try {
+    const userId = request.params.userid;
+    const result = await gameService.getCustomization(userId);
+    if (!result.success) {
+      return reply.code(404).send(result);
+    }
+    return reply.code(200).send(result.customization);
+  } catch (err) {
+    console.error(err);
+    return reply
+      .code(500)
+      .send({ success: false, error: "Internal server error" });
   }
 }
 
@@ -289,4 +342,8 @@ export default {
   getUpcomingTournamentMatchesById,
   getTournamentPlayersById,
   updateCostumization,
+  getCustomization,
+  getAllTournaments,
+  createTournament,
+  joinTournament,
 };

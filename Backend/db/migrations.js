@@ -90,7 +90,9 @@ export default function runMigrations(db) {
     tournament_id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     start_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    end_date DATETIME
+    end_date DATETIME,
+    PLAYER_COUNT INTEGER DEFAULT 0,
+    max_players INTEGER NOT NULL
   )`);
 
   // Tournament Players
@@ -137,13 +139,13 @@ export default function runMigrations(db) {
   )`);
 
   // Costumization
-  db.run(`
-    CREATE TABLE game_configurations (
-    user_id INTEGER,
+  db.run(`  
+    CREATE TABLE IF NOT EXISTS game_costumization (
+    user_id INTEGER PRIMARY KEY,
     paddle_color TEXT NOT NULL DEFAULT '#4CF190',
     ball_color TEXT NOT NULL DEFAULT '#4CF190',
     board_color TEXT NOT NULL DEFAULT '#07303c',
     border_color TEXT NOT NULL DEFAULT '#4CF190',
-    FOREIGN KEY (user_id) REFERENCESS users(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)  
     )`);
 }

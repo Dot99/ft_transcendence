@@ -76,20 +76,94 @@ export function getRecentGamesByUserId(userId, lang = "en") {
 }
 
 export function getTournaments() {
-	return new Promise((resolve, reject) => {
-		db.all("SELECT * FROM tournaments", (err, rows) => {
-			if (err) {
-				return reject({ success: false, error: err });
-			}
-			if (!rows || rows.length === 0) {
-				return resolve({
-					success: false,
-					message: messages[lang].noTournament,
-				});
-			}
-			resolve({ success: true, tournaments: rows });
-		});
-	});
+  return new Promise((resolve, reject) => {
+    db.all("SELECT * FROM tournaments", (err, rows) => {
+      if (err) {
+        return reject({ success: false, error: err });
+      }
+      if (!rows || rows.length === 0) {
+        return resolve({
+          success: false,
+          message: messages[lang].noTournament,
+        });
+      }
+      resolve({ success: true, tournaments: rows });
+    });
+  });
+}
+
+export function createTournament(tournamentData, lang = "en") {
+  return new Promise((resolve, reject) => {
+    const { name, maxPlayers, startDate } = tournamentData;
+    db.run(
+      `INSERT INTO tournaments (name, start_date, max_players)
+       VALUES (?, ?, ?)`,
+      [name, startDate, maxPlayers],
+      function (err) {
+        if (err) {
+          return reject({ success: false, error: err });
+        }
+        resolve({
+          success: true,
+          tournamentId: this.lastID,
+          message: messages[lang].tournamentCreated,
+        });
+      }
+    );
+  });
+}
+
+export function joinTournament(
+  tournamentName,
+  tournamentId,
+  userId,
+  lang = "en"
+) {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `SELECT * FROM tournaments WHERE tournament_id = ? AND name = ?`,
+      [tournamentId, tournamentName],
+      (err, row) => {
+        if (err) {
+          return reject({ success: false, error: err });
+        }
+        if (!row) {
+          return resolve({
+            success: false,
+            message: messages[lang].tournamentNotFound,
+          });
+        } else if (row.max_players <= row.PLAYER_COUNT) {
+          return resolve({
+            success: false,
+            message: messages[lang].tournamentFull,
+          });
+        }
+        db.run(
+          `INSERT INTO tournament_players (tournament_id, tournament_name, player_id, current_position, wins, losses)
+           VALUES (?, ?, ?, 0, 0, 0)`,
+          [tournamentId, tournamentName, userId],
+          function (err) {
+            if (err) {
+              return reject({ success: false, error: err });
+            }
+            db.run(
+              `UPDATE tournaments SET PLAYER_COUNT = PLAYER_COUNT + 1 WHERE tournament_id = ?`,
+              [tournamentId],
+              (err) => {
+                if (err) {
+                  return reject({ success: false, error: err });
+                }
+                resolve({
+                  success: true,
+                  message: messages[lang].tournamentJoined,
+                });
+              }
+            );
+          }
+        );
+      }
+    );
+  });
 }
 
 export function getPastTournamentsByUserId(userId, lang = "en") {
@@ -234,13 +308,13 @@ export function getTournamentPlayersById(tournamentId, userId) {
   });
 }
 
-export function updateCustomization(userId, customization) {
+export function updateCustomization(userId, customization, lang = "en") {
   const { paddle_color, ball_color, board_color, border_color } = customization;
 
   return new Promise((resolve, reject) => {
     db.run(
       `
-      INSERT INTO game_configurations (user_id, paddle_color, ball_color, board_color, border_color)
+      INSERT INTO game_costumization (user_id, paddle_color, ball_color, board_color, border_color)
       VALUES (?, ?, ?, ?, ?)
       ON CONFLICT(user_id) DO UPDATE SET 
         paddle_color = excluded.paddle_color,
@@ -255,6 +329,27 @@ export function updateCustomization(userId, customization) {
         } else {
           resolve({ success: true, message: "Customization saved." });
         }
+      }
+    );
+  });
+}
+
+export function getCustomization(userId, lang = "en") {
+  return new Promise((resolve, reject) => {
+    db.get(
+      "SELECT * FROM game_costumization WHERE user_id = ?",
+      [userId],
+      (err, row) => {
+        if (err) {
+          reject({ success: false, error: err });
+        }
+        if (!row) {
+          return resolve({
+            success: false,
+            message: messages[lang].noCustomization,
+          });
+        }
+        resolve({ success: true, customization: row });
       }
     );
   });

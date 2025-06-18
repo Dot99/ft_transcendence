@@ -54,7 +54,7 @@ install:
 # Deploy using docker-compose
 deploy:
 	@echo "$(GREEN)Deploying with docker-compose...$(NC)"
-	@touch $(BACKEND_DIR)/db/data.db
+	@touch $(BACKEND_DIR)/db/data.db && chmod 777 $(BACKEND_DIR)/db/data.db
 	@docker compose up --build
 
 # Stop all services

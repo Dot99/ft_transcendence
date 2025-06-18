@@ -1,13 +1,10 @@
 import { menuTemplate } from "./templates/menuTemplate.js";
 import { loadProfilePage } from "./profile.js";
-<<<<<<< HEAD
 import { deleteCookie } from "./utils/auth.js";
 import { loadHomePage } from "./index.js";
-=======
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
 
 const API_BASE_URL = "http://localhost:3000/api";
->>>>>>> c54e7bfae98601af4f667c8a2d24dbd86aba7480
 
 // Utility to get element by id
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -18,41 +15,27 @@ const getElement = <T extends HTMLElement>(id: string): T => {
 
 // Fetch username
 const fetchUsername = async (): Promise<string> => {
-<<<<<<< HEAD
   try {
-    const res = await fetch("/api/user/profile", {
+    const userId = getUserIdFromToken();
+    const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
       headers: {
-        Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+        Authorization: `Bearer ${getCookie("jwt")}`,
       },
+      credentials: "include",
     });
     if (!res.ok) throw new Error("Failed to fetch username");
     const data = await res.json();
-    return data.username || "Username";
+    return data.user.username || "Username";
   } catch {
     return "Username";
   }
-=======
-	try {
-		const userId = getUserIdFromToken();
-		const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
-			headers: {
-				Authorization: `Bearer ${getCookie("jwt")}`,
-			},
-			credentials: "include",
-		});
-		if (!res.ok) throw new Error("Failed to fetch username");
-		const data = await res.json();
-		return data.user.username || "Username";
-	} catch {
-		return "Username";
-	}
->>>>>>> c54e7bfae98601af4f667c8a2d24dbd86aba7480
 };
 
 // Load Menu Page
 export const loadMenuPage = async (): Promise<void> => {
   const app = getElement<HTMLElement>("app");
   app.innerHTML = menuTemplate;
+  applyGameCustomizations();
 
   // Set username
   const username = await fetchUsername();
@@ -94,6 +77,73 @@ export const loadMenuPage = async (): Promise<void> => {
     loadHomePage();
   });
 
+  const DEFAULTS = {
+    paddle_color: "#4CF190",
+    ball_color: "#4CF190",
+    board_color: "#07303c",
+    border_color: "#4CF190",
+  };
+
+  async function applyGameCustomizations() {
+    try {
+      const userId = getUserIdFromToken();
+      const response = await fetch(
+        `${API_BASE_URL}/games/costumization/${userId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getCookie("jwt")}`,
+          },
+        }
+      );
+      const data = await response.json();
+
+      const paddleColor = data.paddle_color ?? DEFAULTS.paddle_color;
+      const ballColor = data.ball_color ?? DEFAULTS.ball_color;
+      const boardColor = data.board_color ?? DEFAULTS.board_color;
+      const borderColor = data.border_color ?? DEFAULTS.border_color;
+
+      const paddle = getElement<HTMLDivElement>("previewPaddle");
+      const ball = getElement<HTMLDivElement>("previewBall");
+      const board = getElement<HTMLDivElement>("previewBoard");
+      const dottedLine = getElement<HTMLDivElement>("previewDottedLine");
+      const paddleChanger = getElement<HTMLInputElement>("colorPaddle");
+      const ballChanger = getElement<HTMLInputElement>("colorBall");
+      const boardChanger = getElement<HTMLInputElement>("colorBoard");
+      const borderChanger = getElement<HTMLInputElement>("colorBoardBorder");
+
+      if (paddle) paddle.style.backgroundColor = paddleColor;
+      if (ball) ball.style.backgroundColor = ballColor;
+      if (board) board.style.backgroundColor = boardColor;
+      if (dottedLine) dottedLine.style.backgroundColor = borderColor;
+      if (paddleChanger) paddleChanger.value = paddleColor;
+      if (ballChanger) ballChanger.value = ballColor;
+      if (boardChanger) boardChanger.value = boardColor;
+      if (borderChanger) {
+        borderChanger.value = borderColor;
+        board.style.borderColor = borderColor;
+        dottedLine.style.background = `repeating-linear-gradient(
+          to bottom,
+          ${borderColor} 0 8px,
+          transparent 8px 20px
+          )`;
+      }
+    } catch (err) {
+      console.error("Erro ao buscar customizações:", err);
+      const paddle = getElement<HTMLDivElement>("previewPaddle");
+
+      const ball = getElement<HTMLDivElement>("previewBall");
+      const board = getElement<HTMLDivElement>("previewBoard");
+      const dottedLine = getElement<HTMLDivElement>("previewDottedLine");
+
+      if (paddle) paddle.style.backgroundColor = DEFAULTS.paddle_color;
+      if (ball) ball.style.backgroundColor = DEFAULTS.ball_color;
+      if (board) board.style.backgroundColor = DEFAULTS.board_color;
+      if (dottedLine) dottedLine.style.backgroundColor = DEFAULTS.border_color;
+    }
+  }
+
   const paddle = getElement<HTMLDivElement>("previewPaddle");
   const ball = getElement<HTMLDivElement>("previewBall");
   const board = getElement<HTMLDivElement>("previewBoard");
@@ -102,41 +152,54 @@ export const loadMenuPage = async (): Promise<void> => {
   getElement<HTMLInputElement>("colorPaddle").addEventListener(
     "input",
     async (e) => {
-      paddle.style.backgroundColor = (e.target as HTMLInputElement).value;
+      const userId = getUserIdFromToken();
       const color = (e.target as HTMLInputElement).value;
-
-      await fetch(`/games/costumization/1`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + localStorage.getItem("token"),
-        },
-        body: JSON.stringify({
-          paddle_color: color,
-          ball_color: ball.style.backgroundColor,
-          board_color: board.style.backgroundColor,
-          border_color: dottedLine.style.backgroundColor,
-        }),
-      });
+      paddle.style.backgroundColor = color;
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/games/costumization/${userId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${getCookie("jwt")}`,
+            },
+            body: JSON.stringify({
+              paddle_color: color,
+              ball_color: getElement<HTMLInputElement>("colorBall").value,
+              board_color: getElement<HTMLInputElement>("colorBoard").value,
+              border_color:
+                getElement<HTMLInputElement>("colorBoardBorder").value,
+            }),
+          }
+        );
+        if (!response.ok) {
+          console.warn("Something went wrong with the update");
+        }
+      } catch (error) {
+        console.error("Fetch error:", error);
+      }
     }
   );
+
   getElement<HTMLInputElement>("colorBall").addEventListener(
     "input",
     async (e) => {
+      const userId = getUserIdFromToken();
       ball.style.backgroundColor = (e.target as HTMLInputElement).value;
       const color = (e.target as HTMLInputElement).value;
 
-      await fetch(`/games/costumization/1`, {
+      await fetch(`${API_BASE_URL}/games/costumization/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Bearer " + localStorage.getItem("token"),
+          Authorization: `Bearer ${getCookie("jwt")}`,
         },
         body: JSON.stringify({
-          paddle_color: paddle.style.backgroundColor,
+          paddle_color: getElement<HTMLInputElement>("colorPaddle").value,
           ball_color: color,
-          board_color: board.style.backgroundColor,
-          border_color: dottedLine.style.backgroundColor,
+          board_color: getElement<HTMLInputElement>("colorBoard").value,
+          border_color: getElement<HTMLInputElement>("colorBoardBorder").value,
         }),
       });
     }
@@ -144,20 +207,21 @@ export const loadMenuPage = async (): Promise<void> => {
   getElement<HTMLInputElement>("colorBoard").addEventListener(
     "input",
     async (e) => {
+      const userId = getUserIdFromToken();
       board.style.backgroundColor = (e.target as HTMLInputElement).value;
       const color = (e.target as HTMLInputElement).value;
 
-      await fetch(`/games/costumization/1`, {
+      await fetch(`${API_BASE_URL}/games/costumization/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Bearer " + localStorage.getItem("token"),
+          Authorization: `Bearer ${getCookie("jwt")}`,
         },
         body: JSON.stringify({
-          paddle_color: paddle.style.backgroundColor,
-          ball_color: ball.style.backgroundColor,
+          paddle_color: getElement<HTMLInputElement>("colorPaddle").value,
+          ball_color: getElement<HTMLInputElement>("colorBall").value,
           board_color: color,
-          border_color: dottedLine.style.backgroundColor,
+          border_color: getElement<HTMLInputElement>("colorBoardBorder").value,
         }),
       });
     }
@@ -165,6 +229,7 @@ export const loadMenuPage = async (): Promise<void> => {
   getElement<HTMLInputElement>("colorBoardBorder").addEventListener(
     "input",
     async (e) => {
+      const userId = getUserIdFromToken();
       const color = (e.target as HTMLInputElement).value;
       board.style.borderColor = color;
       dottedLine.style.background = `repeating-linear-gradient(
@@ -172,16 +237,16 @@ export const loadMenuPage = async (): Promise<void> => {
       ${color} 0 8px,
       transparent 8px 20px
     )`;
-      await fetch(`/games/costumization/1`, {
+      await fetch(`${API_BASE_URL}/games/costumization/${userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Bearer " + localStorage.getItem("token"),
+          Authorization: `Bearer ${getCookie("jwt")}`,
         },
         body: JSON.stringify({
-          paddle_color: paddle.style.backgroundColor,
-          ball_color: ball.style.backgroundColor,
-          board_color: board.style.backgroundColor,
+          paddle_color: getElement<HTMLInputElement>("colorPaddle").value,
+          ball_color: getElement<HTMLInputElement>("colorBall").value,
+          board_color: getElement<HTMLInputElement>("colorBoard").value,
           border_color: color,
         }),
       });
@@ -209,7 +274,6 @@ export const loadMenuPage = async (): Promise<void> => {
   );
   const tournamentList = document.getElementById("tournamentList");
 
-<<<<<<< HEAD
   if (
     btnJoinTournament &&
     joinTournamentModal &&
@@ -218,58 +282,33 @@ export const loadMenuPage = async (): Promise<void> => {
     tournamentModal
   ) {
     btnJoinTournament.addEventListener("click", async () => {
-      // Fetch tournaments from backend
-      let tournaments: { name: string; players: number; maxPlayers: number }[] =
-        [];
+      let tournaments: {
+        tournament_id: number;
+        name: string;
+        PLAYER_COUNT: number;
+        max_players: number;
+      }[] = [];
       try {
-        const res = await fetch("/api/tournaments", {
+        const res = await fetch(`${API_BASE_URL}/tournaments`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+            Authorization: `Bearer ${getCookie("jwt")}`,
           },
+          credentials: "include",
         });
         if (res.ok) {
           const data = await res.json();
-          // Only include tournaments that are not full
           tournaments = data.tournaments.filter(
-            (t: { players: number; maxPlayers: number }) =>
-              t.players < t.maxPlayers
+            (t: {
+              tournament_id: number;
+              PLAYER_COUNT: number;
+              max_players: number;
+            }) => t.PLAYER_COUNT < t.max_players
           );
         }
       } catch (e) {
         console.error("Failed to fetch tournaments:", e);
         tournaments = [];
       }
-=======
-	if (
-		btnJoinTournament &&
-		joinTournamentModal &&
-		closeJoinTournamentModal &&
-		tournamentList &&
-		tournamentModal
-	) {
-		btnJoinTournament.addEventListener("click", async () => {
-			let tournaments: { name: string; players: number; maxPlayers: number }[] =
-				[];
-			try {
-				const res = await fetch(`${API_BASE_URL}/tournaments`, {
-					headers: {
-						Authorization: `Bearer ${getCookie("jwt")}`,
-					},
-					credentials: "include",
-				});
-				if (res.ok) {
-					const data = await res.json();
-					// Only include tournaments that are not full
-					tournaments = data.tournaments.filter(
-						(t: { players: number; maxPlayers: number }) =>
-							t.players < t.maxPlayers
-					);
-				}
-			} catch (e) {
-				console.error("Failed to fetch tournaments:", e);
-				tournaments = [];
-			}
->>>>>>> c54e7bfae98601af4f667c8a2d24dbd86aba7480
 
       // Populate tournament list
       tournamentList.innerHTML = tournaments.length
@@ -278,12 +317,52 @@ export const loadMenuPage = async (): Promise<void> => {
               (t) =>
                 `<li class="flex justify-between items-center bg-[#01222c] px-6 py-3 rounded border-2 border-[#4CF190]">
                         <span class="font-semibold">${t.name}</span>
-                        <span class="text-[#4CF190]">${t.players}/${t.maxPlayers} players</span>
-                        <button class="ml-4 px-4 py-2 bg-[#4CF190] text-[#001B26] rounded font-bold border-2 border-[#001B26] hover:bg-[#34c47c]">Join</button>
+                        <span class="text-[#4CF190]">${t.PLAYER_COUNT}/${t.max_players} players</span>
+                       <button class="join-tournament-btn ml-4 px-4 py-2 bg-[#4CF190] text-[#001B26] rounded font-bold border-2 border-[#001B26] hover:bg-[#34c47c]" data-id="${t.tournament_id}" data-name="${t.name}"> Join </button>
                     </li>`
             )
             .join("")
         : `<li class="text-center text-white py-4">No tournaments available.</li>`;
+      const joinButtons = tournamentList.querySelectorAll(
+        ".join-tournament-btn"
+      );
+
+      joinButtons.forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const tournamentId = (btn as HTMLElement).dataset.id;
+          const userId = getUserIdFromToken();
+          const tournamentName = (btn as HTMLElement).dataset.name;
+          if (!tournamentId || !userId) {
+            alert("Missing tournament or user information.");
+            return;
+          }
+
+          try {
+            const res = await fetch(`${API_BASE_URL}/tournaments/join`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${getCookie("jwt")}`,
+              },
+              credentials: "include",
+              body: JSON.stringify({
+                tournamentName: tournamentName,
+                tournamentId: Number(tournamentId),
+                userId: Number(userId),
+              }),
+            });
+
+            if (!res.ok) throw new Error("Failed to join tournament");
+
+            const result = await res.json();
+            alert(`Joined tournament successfully!`);
+          } catch (err) {
+            console.error("Join failed:", err);
+            console.error(err);
+            alert("Failed to join tournament.");
+          }
+        });
+      });
 
       tournamentModal.classList.add("hidden");
       joinTournamentModal.classList.remove("hidden");
@@ -349,6 +428,56 @@ export const loadMenuPage = async (): Promise<void> => {
         const playerCountInput =
           form.querySelector<HTMLInputElement>("#tournamentPlayers");
         if (playerCountInput) playerCountInput.value = "4";
+      }
+    });
+  }
+  const createTournamentForm = document.getElementById(
+    "createTournamentForm"
+  ) as HTMLFormElement | null;
+
+  if (createTournamentForm) {
+    createTournamentForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const nameInput = document.getElementById(
+        "tournamentName"
+      ) as HTMLInputElement;
+      const playersInput = document.getElementById(
+        "tournamentPlayers"
+      ) as HTMLInputElement;
+      const dateInput = document.getElementById(
+        "tournamentDate"
+      ) as HTMLInputElement;
+
+      const tournamentData = {
+        name: nameInput.value.trim(),
+        maxPlayers: parseInt(playersInput.value),
+        startDate: dateInput.value,
+      };
+
+      try {
+        const res = await fetch(`${API_BASE_URL}/tournaments`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getCookie("jwt")}`,
+          },
+          credentials: "include",
+          body: JSON.stringify(tournamentData),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          alert("Error creating tournament: " + errorData.message);
+          return;
+        }
+
+        const created = await res.json();
+
+        createTournamentModal?.classList.add("hidden");
+        createTournamentForm.reset();
+      } catch (err) {
+        console.error("Error creating tournament", err);
       }
     });
   }
