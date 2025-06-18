@@ -5,6 +5,7 @@ import { loadHomePage } from "./index.js";
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
 
 const API_BASE_URL = "http://localhost:3000/api";
+import { loadPlayPage } from "./play.js";
 
 // Utility to get element by id
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -522,10 +523,54 @@ export const loadMenuPage = async (): Promise<void> => {
       window.dispatchEvent(new Event("loadHomePage"));
     });
   }
+	// Player vs AI button logic
+	const btnPvAI = document.getElementById("btnPvAI");
+	if (btnPvAI) {
+		btnPvAI.addEventListener("click", () => {
+			window.dispatchEvent(new Event("loadPlayPage"));
+		});
+	}
+
+	// Player vs Player button logic
+	const btnPvP = document.getElementById("btnPvP");
+	const pvpModal = document.getElementById("pvpModal");
+	const closePvpModal = document.getElementById("closePvpModal");
+	const pvpForm = document.getElementById("pvpForm") as HTMLFormElement | null;
+	const pvpOpponent = document.getElementById("pvpOpponent") as HTMLInputElement | null;
+	const pvpError = document.getElementById("pvpError");
+
+	if (btnPvP && pvpModal && closePvpModal && pvpForm && pvpOpponent && pvpError) {
+		btnPvP.addEventListener("click", () => {
+			pvpModal.classList.remove("hidden");
+			pvpError.classList.add("hidden");
+			pvpForm.reset();
+		});
+		closePvpModal.addEventListener("click", () => {
+			pvpModal.classList.add("hidden");
+		});
+		pvpForm.addEventListener("submit", async (e) => {
+			e.preventDefault();
+			const opponent = pvpOpponent.value.trim();
+			if (!opponent) return;
+			// PLACEHOLDER: Check if player exists
+			const isUser = true; //  PLACEHOLDER flag
+			if (!isUser) {
+				pvpError.textContent = "User not found";
+				pvpError.classList.remove("hidden");
+				return;
+			}
+			// Store opponent username in sessionStorage and load play page
+			sessionStorage.setItem("pvpOpponent", opponent);
+			pvpModal.classList.add("hidden");
+			window.dispatchEvent(new Event("loadPlayPage"));
+		});
+	}
+
 };
 
 // Auto-load if routed directly
 document.addEventListener("DOMContentLoaded", () => {
-  window.addEventListener("loadMenuPage", loadMenuPage);
-  window.addEventListener("loadProfilePage", () => loadProfilePage());
+	window.addEventListener("loadMenuPage", loadMenuPage);
+	window.addEventListener("loadProfilePage", () => loadProfilePage());
+	window.addEventListener("loadPlayPage", () => loadPlayPage()); 
 });
