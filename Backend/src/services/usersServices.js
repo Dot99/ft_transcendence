@@ -262,7 +262,7 @@ export function getUserFriends(userId, lang = "en") {
 			return resolve({ success: false, message: messages[lang].noUserId });
 		}
 		db.all(
-			`SELECT * FROM users WHERE id IN (
+			`SELECT id, username FROM users WHERE id IN (
                 SELECT friend_id FROM friends WHERE user_id = ? AND status = 'accepted'
                 UNION
                 SELECT user_id FROM friends WHERE friend_id = ? AND status = 'accepted'
@@ -281,11 +281,38 @@ export function getUserFriends(userId, lang = "en") {
 	});
 }
 
+export function getUserFriendRequests(userId, lang = "en") {
+	return new Promise((resolve, reject) => {
+		if (!userId) {
+			return resolve({ success: false, message: messages[lang].noUserId });
+		}
+		db.all(
+			`SELECT users.id, users.username, friends.status
+			FROM users
+			JOIN friends ON users.id = friends.friend_id
+			WHERE friends.user_id = ? AND friends.status = 'pending'
+			AND users.id NOT IN (
+				SELECT blocked_user_id FROM blocked_users WHERE user_id = ?
+			)
+			AND users.id NOT IN (
+				SELECT user_id FROM blocked_users WHERE blocked_user_id = ?
+			)`,
+			[userId, userId, userId],
+			(err, rows) => {
+				if (err) {
+					return reject({ success: false, error: err });
+				}
+				resolve({ success: true, friendsRequests: rows || [] });
+			}
+		);
+	});
+}
+
 export function addFriend(userId, friendId, lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.run(
-			"INSERT INTO friends (user_id, friend_id) VALUES (?, ?)",
-			[userId, friendId],
+			"INSERT INTO friends (user_id, friend_id, status) VALUES (?, ?, ?)",
+			[userId, friendId, "pending"],
 			function (err) {
 				if (err) {
 					return reject(err);
@@ -299,6 +326,28 @@ export function addFriend(userId, friendId, lang = "en") {
 				resolve({ success: true });
 			}
 		);
+	});
+}
+
+export function acceptFriendRequest(userId, friendId, lang = "en") {
+	return new Promise((resolve, reject) => {
+		db.serialize(() => {
+			db.run(
+				"UPDATE friends SET status = 'accepted' WHERE user_id = ? AND friend_id = ? AND status = 'pending'",
+				[friendId, userId],
+				function (err) {
+					if (err) return reject(err);
+					db.run(
+						"UPDATE friends SET status = 'accepted' WHERE user_id = ? AND friend_id = ? AND status = 'pending'",
+						[userId, friendId],
+						function (err2) {
+							if (err2) return reject(err2);
+							resolve({ success: true });
+						}
+					);
+				}
+			);
+		});
 	});
 }
 

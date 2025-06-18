@@ -12,8 +12,9 @@ const paramsJsonSchema = {
 			maxLength: parseInt(process.env.USERNAME_MAX_LENGTH),
 		},
 		friendId: {
-			type: "string",
-			format: "uuid",
+			type: "integer",
+			minimum: 1,
+			maximum: 2147483647,
 		},
 	},
 };
