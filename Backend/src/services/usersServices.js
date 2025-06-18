@@ -262,7 +262,7 @@ export function getUserFriends(userId, lang = "en") {
 			return resolve({ success: false, message: messages[lang].noUserId });
 		}
 		db.all(
-			`SELECT username FROM users WHERE id IN (
+			`SELECT id, username FROM users WHERE id IN (
                 SELECT friend_id FROM friends WHERE user_id = ? AND status = 'accepted'
                 UNION
                 SELECT user_id FROM friends WHERE friend_id = ? AND status = 'accepted'
@@ -288,10 +288,16 @@ export function getUserFriendRequests(userId, lang = "en") {
 		}
 		db.all(
 			`SELECT users.id, users.username, friends.status
-             FROM users
-             JOIN friends ON users.id = friends.friend_id
-             WHERE friends.user_id = ? AND friends.status = 'pending'`,
-			[userId],
+			FROM users
+			JOIN friends ON users.id = friends.friend_id
+			WHERE friends.user_id = ? AND friends.status = 'pending'
+			AND users.id NOT IN (
+				SELECT blocked_user_id FROM blocked_users WHERE user_id = ?
+			)
+			AND users.id NOT IN (
+				SELECT user_id FROM blocked_users WHERE blocked_user_id = ?
+			)`,
+			[userId, userId, userId],
 			(err, rows) => {
 				if (err) {
 					return reject({ success: false, error: err });

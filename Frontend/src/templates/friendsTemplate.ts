@@ -21,11 +21,10 @@ export const friendsTemplate = `
   </div>
   <!-- Friends List -->
   <div class="flex justify-center mt-8">
-    <div class="w-96 space-y-3 pr-2 max-h-[calc(100vh/4)] overflow-y-auto scrollbar-thin scrollbar-thumb-[#4CF190] scrollbar-track-[rgba(76,241,144,0.1)]" id="friendsList">
+    <div class="w-[640px] space-y-3 pr-2 max-h-[calc(100vh/2)] overflow-y-auto scrollbar-thin scrollbar-thumb-[#4CF190] scrollbar-track-[rgba(76,241,144,0.1)]" id="friendsList">
       <!-- Friends will be loaded here -->
     </div>
   </div>
-
   <!-- Input + Button Container -->
   <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-4">
     <!-- Add Friend Button -->
@@ -69,5 +68,22 @@ export const friendsTemplate = `
     </div>
   </div>
   <img src="images/computer.svg" class="fixed bottom-14 right-28 w-64 animate-[float_3s_ease-in-out_infinite] z-10" alt="paddle">
+  <!-- Blocked Users Panel Trigger & Panel -->
+  <div class="absolute top-32 right-8 flex flex-col items-end z-10">
+    <button id="toggleBlockedBtn"
+      class="flex items-center gap-2 px-5 py-3 rounded border-2 border-red-400 text-red-400 bg-[#001B26] hover:bg-red-400 hover:text-[#001B26] transition-all font-bold"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
+      </svg>
+      BLOCKED USERS
+    </button>
+    <div id="blockedUsersPanel" class="w-80 mt-2 bg-[#001B26] bg-opacity-90 border-2 border-red-400 rounded-xl shadow-lg p-4 hidden">
+      <h2 class="text-xl text-red-400 font-bold mb-4">Blocked Users</h2>
+      <div id="blockedUsersList" class="space-y-3">
+        <!-- Blocked users will be loaded here -->
+      </div>
+    </div>
+  </div>
 </div>
 `;

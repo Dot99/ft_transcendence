@@ -373,9 +373,6 @@ export default async function (fastify, opts) {
 	 * @security JWT
 	 */
 	fastify.get("/users/blocked", {
-		schema: {
-			params: paramsJsonSchema,
-		},
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.getBlockedUsers(request, reply),
