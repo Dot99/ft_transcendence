@@ -3,6 +3,7 @@ import cors from "@fastify/cors";
 import AutoLoad from "@fastify/autoload"; // Automatically load routes
 import fastifyJwt from "@fastify/jwt"; // JWT authentication
 import googleOAuth2 from "@fastify/oauth2"; // OAuth2 support
+import ws from "@fastify/websocket"; // WebSocket support
 import { fileURLToPath } from "url"; // Import fileURLToPath to get the current directory
 import { dirname, join } from "path"; // Import dirname and join from path to handle file paths
 import dotenv from "dotenv"; // Load environment variables from .env file
@@ -54,6 +55,8 @@ await fastify.register(googleOAuth2, {
 		"https://www.googleapis.com/auth/userinfo.email",
 	],
 });
+
+await fastify.register(ws);
 
 await fastify.register(AutoLoad, {
 	dir: join(__dirname, "routes"),

@@ -1,5 +1,6 @@
 import { loadHomePage } from "../index.js";
 import { getLang } from "../locales/localeMiddleware.js";
+import { stopOnlineWebSocket } from "./ws.js";
 const API_BASE_URL = "http://localhost:3000/api";
 
 // Types
@@ -140,6 +141,8 @@ export const register = async (): Promise<void> => {
 
 export const logout = async (): Promise<void> => {
 	try {
+		await endSession();
+		stopOnlineWebSocket();
 		const response = await fetch(`${API_BASE_URL}/logout`, {
 			method: "POST",
 			headers: {
@@ -159,6 +162,27 @@ export const logout = async (): Promise<void> => {
 		alert("Logout failed. Please try again.");
 	}
 };
+
+//TODO: CHANGE THIS TO BE INGAME
+export async function startSession() {
+	await fetch(`${API_BASE_URL}/users/session/start`, {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${getCookie("jwt")}`,
+			"Accept-Language": getLang(),
+		},
+	});
+}
+
+export async function endSession() {
+	await fetch(`${API_BASE_URL}/users/session/stop`, {
+		method: "POST",
+		headers: {
+			Authorization: `Bearer ${getCookie("jwt")}`,
+			"Accept-Language": getLang(),
+		},
+	});
+}
 
 export const handleGoogleSignIn = (): void => {
 	window.location.replace(`${API_BASE_URL}/auth/google`);

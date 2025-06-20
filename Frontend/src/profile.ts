@@ -3,6 +3,8 @@ import { profileTemplate } from "./templates/profileTemplate.js";
 import { deleteCookie, getCookie, getUserIdFromToken } from "./utils/auth.js";
 import { getLang, setLang, t } from "./locales/localeMiddleware.js";
 import { loadFriendsPage } from "./friends.js";
+import { loadMenuPage } from "./menu.js";
+import { stopOnlineWebSocket } from "./utils/ws.js";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -56,6 +58,7 @@ const handleDeleteAccount = (): void => {
 
 const handleLogout = (): void => {
 	deleteCookie("jwt");
+	stopOnlineWebSocket();
 	loadHomePage();
 };
 
@@ -92,7 +95,7 @@ export const loadProfilePage = (pushState: boolean = true): void => {
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = profileTemplate;
 
-	// === TRANSLATE STATIC TEXTS ===
+	// === TRANSLATION STATIC TEXTS ===
 	// Delete Modal
 	const deleteModalTitle = document.querySelector("#deleteModal .text-2xl");
 	if (deleteModalTitle) deleteModalTitle.textContent = t("delete_account");
@@ -208,6 +211,8 @@ export const loadProfilePage = (pushState: boolean = true): void => {
 			': <span id="currTournamentPosition" class="text-[#EFD671]"></span>';
 	}
 	// === END TRANSLATE STATIC TEXTS ===
+	const homeBtn = document.getElementById("homeBtn");
+	if (homeBtn) homeBtn.onclick = () => loadMenuPage();
 	getElement<HTMLButtonElement>("deleteAccountBtn").addEventListener(
 		"click",
 		handleDeleteAccount
@@ -264,10 +269,16 @@ async function loadDashboardData(): Promise<void> {
 	} else {
 		getElement<HTMLImageElement>("pfp").src = "/images/default_pfp.png";
 	}
-
-	getElement<HTMLSpanElement>("hoursPlayed").textContent = (
-		user.total_play_time / 3600
-	).toFixed(2);
+	const totalHours = await fetch(`${API_BASE_URL}/users/status/totalhours`, {
+		headers: {
+			"Accept-Language": getLang(),
+			Authorization: `Bearer ${getCookie("jwt")}`,
+		},
+	});
+	const totalHoursData = await totalHours.json();
+	const totalHoursPlayed = totalHoursData.totalHoursPlayed || 0;
+	getElement<HTMLSpanElement>("hoursPlayed").textContent =
+		totalHoursPlayed.toFixed(2);
 
 	const statsRes = await fetch(`/api/users/${userId}/stats`, {
 		headers: {

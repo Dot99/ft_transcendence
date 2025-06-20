@@ -422,24 +422,49 @@ export default async function (fastify, opts) {
 
 	//Presence/matchmaking routes
 	/**
-	 * @name getUserStatus
-	 * @description Get user status
-	 * @route GET /users/{id}/status
+	 * @name startUserStatus
+	 * @description Start user status
+	 * @route POST /users/session/start
 	 * @group Presence - Presence operations about users
-	 * @param {string} id - user id
 	 * @returns {User} 200 - User object
 	 * @returns {Error} 401 - Unauthorized
-	 * @returns {Error} 404 - User not found
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
 	 */
-	fastify.get("/users/:id/status", {
-		schema: {
-			params: paramsJsonSchema,
-		},
-		// preHandler: [fastify.authenticate],
+	fastify.post("/users/session/start", {
+		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.getUserStatus(request, reply),
+			await usersController.startUserStatus(request, reply),
+	});
+	/**
+	 *  @name stopUserStatus
+	 * @description Stop user status
+	 * @route POST /users/session/stop
+	 * @group Presence - Presence operations about users
+	 * @returns {User} 200 - User object
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.post("/users/session/stop", {
+		preHandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await usersController.stopUserStatus(request, reply),
+	});
+	/**
+	 * @name getTotalHoursPlayed
+	 * @description Get total hours played by user on request
+	 * @route GET /users/status/totalhours
+	 * @group Presence - Presence operations about users
+	 * @returns {Object} 200 - An object containing total hours played
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.get("/users/status/totalhours", {
+		preHandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await usersController.getTotalHoursPlayed(request, reply),
 	});
 	/**
 	 * @name getOnlineUsers

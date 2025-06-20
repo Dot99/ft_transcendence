@@ -21,17 +21,22 @@ export const profileTemplate = `
     </div>
 </div>
 
-<div class="w-screen min-h-screen px-4 py-8 bg-[url(./images/background.png)]">
+<div class="w-screen min-h-screen px-4 py-8 bg-[url(./images/background.png)] relative">
+    <!-- Home Button -->
+    <button id="homeBtn"
+        class="flex items-center justify-center gap-2 bg-[#4CF190] text-[#001B26] px-4 py-2 rounded-full shadow-lg hover:bg-[#38c172] transition absolute left-14 top-20 z-50 leading-none">
+        <span class="text-lg relative top-[1px]">←</span>
+        <span class="text-base font-semibold relative top-[1px]">Home</span>
+    </button>
     <!-- Main Profile Card -->
     <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6 mb-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8 items-start relative p-4 bg-[rgba(76,241,144,0.03)] rounded-lg min-h-[180px]">
-            <!-- Left side - Avatar -->
-            <div class="flex flex-col items-center">
+            <!-- Avatar Row -->
+            <div class="flex flex-row items-center justify-center md:col-span-1">
                 <div class="w-[140px] h-[140px] rounded-full overflow-hidden border-3 border-[#4CF190] shadow-[0_0_20px_rgba(76,241,144,0.2)] bg-[rgba(76,241,144,0.1)]">
                     <img id="pfp" src="" alt="Avatar" class="w-full h-full object-cover" />
                 </div>
             </div>
-
             <!-- Middle - User info -->
             <div class="flex flex-col pt-4 w-full min-w-0">
                 <h1 id="name" class="text-[#4CF190] font-['Press_Start_2P'] text-[clamp(1rem,5vw,2rem)] mb-2 whitespace-nowrap w-full text-ellipsis overflow-hidden">Power Guido</h1>
@@ -40,14 +45,16 @@ export const profileTemplate = `
                     <div id="email" class="font-mono text-white opacity-70">powerguido@gmail.com</div>
                 </div>
             </div>
-
             <!-- Time Played Section -->
             <div class="flex flex-col items-center justify-center gap-2 h-full pr-0 -mr-20 relative top-2">
                 <div class="bg-[rgba(239,214,113,0.1)] border border-[#EFD671] p-4 font-['Press_Start_2P'] text-sm text-center whitespace-nowrap text-[#EFD671] mt-4">
                     <span id="hoursPlayed"></span>
                     <span id="hoursPlayedLabel" class="text-sm">hours played</span>
                 </div>
-                <button id="friendsBtn" type="button" class="menu-button bg-[#4CF190] text-[#001B26] py-1 px-2 rounded text-[0.65rem] leading-tight flex items-center justify-center h-6 min-w-[70px] mt-4">FRIENDS</button>
+                <button id="friendsBtn" type="button"
+                    class="menu-button bg-[#4CF190] text-[#001B26] py-2 px-4 rounded text-[0.8rem] leading-tight flex items-center justify-center h-8 min-w-[90px] mt-4">
+                    FRIENDS
+                </button>
             </div>
             <!-- Delete and Arcade Section -->
             <div class="flex flex-col items-end h-full relative">

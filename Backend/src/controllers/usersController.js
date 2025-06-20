@@ -448,6 +448,12 @@ const addFriend = async (request, reply) => {
 	}
 };
 
+/**
+ * @description Controller to accept a friend request
+ * @param {Object} request - The request object
+ * @param {Object} reply - The reply object
+ * @returns {Promise<void>}
+ */
 const acceptFriend = async (request, reply) => {
 	try {
 		const user = request.user;
@@ -669,22 +675,105 @@ const getUserStats = async (request, reply) => {
 	}
 };
 
-/**
- * @description Controller to get user status
+/** * @description Controller to update user status
  * @param {Object} request - The request object
  * @param {Object} reply - The reply object
  * @returns {Promise<void>}
  */
-const getUserStatus = async (request, reply) => {
+const updateUserStatus = async (request, reply) => {
 	try {
-		const id = request.params.id;
-		const result = await userService.getUserStatus(id, request.lang);
+		const user = request.user;
+		const { status } = request.body;
+		if (!user?.id) {
+			throw new UserNotFoundError();
+		}
+		const result = await userService.updateUserStatus(
+			user.id,
+			status,
+			request.lang
+		);
+		if (!result.success) {
+			return reply.code(400).send({ success: false, message: result.message });
+		}
+		reply.code(200).send({ success: true });
+	} catch (err) {
+		console.error("Internal Server Error", err);
+		reply.code(500).send({
+			success: false,
+			error: err.message,
+		});
+	}
+};
+
+/** * @description Controller to update user status
+ * @param {Object} request - The request object
+ * @param {Object} reply - The reply object
+ * @returns {Promise<void>}
+ */
+const startUserStatus = async (request, reply) => {
+	try {
+		const user = request.user;
+		if (!user?.id) {
+			throw new UserNotFoundError();
+		}
+		const result = await userService.startSession(user.id, request.lang);
+		if (!result.success) {
+			return reply.code(400).send({ success: false, message: result.message });
+		}
+		reply.code(200).send({ success: true });
+	} catch (err) {
+		console.error("Internal Server Error", err);
+		reply.code(500).send({
+			success: false,
+			error: err.message,
+		});
+	}
+};
+
+/** * @description Controller to stop user status
+ * @param {Object} request - The request object
+ * @param {Object} reply - The reply object
+ *  @returns {Promise<void>}
+ */
+const stopUserStatus = async (request, reply) => {
+	try {
+		const user = request.user;
+		if (!user?.id) {
+			throw new UserNotFoundError();
+		}
+		const result = await userService.stopSession(user.id, request.lang);
+		if (!result.success) {
+			return reply.code(400).send({ success: false, message: result.message });
+		}
+		reply.code(200).send({ success: true });
+	} catch (err) {
+		console.error("Internal Server Error", err);
+		reply.code(500).send({
+			success: false,
+			error: err.message,
+		});
+	}
+};
+
+/**
+ * @description Controller to get total hours played by the user
+ * @param {Object} request - The request object
+ * @param {Object} reply - The reply object
+ * @returns {Promise<void>}
+ */
+const getTotalHoursPlayed = async (request, reply) => {
+	try {
+		const user = request.user;
+		if (!user?.id) {
+			throw new UserNotFoundError();
+		}
+		const result = await userService.getTotalHours(user.id, request.lang);
 		if (!result.success) {
 			return reply.code(404).send({ success: false, message: result.message });
 		}
 		reply.code(200).send({
 			success: true,
-			status: result.status,
+			totalHoursPlayed: result.hours,
 		});
 	} catch (err) {
 		console.error("Internal Server Error", err);
@@ -797,6 +886,10 @@ export default {
 	getUserMatches,
 	getUserStats,
 	getUserStatus,
+	updateUserStatus,
+	startUserStatus,
+	stopUserStatus,
+	getTotalHoursPlayed,
 	getOnlineUsers,
 	joinMatchmaking,
 	leaveMatchmaking,

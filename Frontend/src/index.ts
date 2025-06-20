@@ -7,11 +7,13 @@ import {
 	isAuthenticated,
 	isTwoFactorEnabled,
 	getUserIdFromToken,
+	startSession,
 } from "./utils/auth.js";
 import { forohforTemplate } from "./templates/FourOhFour.js";
 import { getCookie, deleteCookie } from "./utils/auth.js";
 import { getLang, setLang, t } from "./locales/localeMiddleware.js";
 import { loadMenuPage } from "./menu.js";
+import { startOnlineWebSocket } from "./utils/ws.js";
 
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -175,6 +177,8 @@ const openTwoFAModal = (userId: string): void => {
 				const data = await res.json();
 				document.cookie = `jwt=${data.token}; path=/;`;
 				modal.style.display = "none";
+				startOnlineWebSocket();
+				startSession();
 				loadMenuPage();
 			} else {
 				const data = await res.json();
@@ -217,6 +221,8 @@ function handlePostAuth() {
 		}, 0);
 		openTwoFAModal(String(userId));
 	} else {
+		startOnlineWebSocket();
+		startSession();
 		loadMenuPage();
 	}
 }

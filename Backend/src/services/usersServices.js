@@ -467,20 +467,58 @@ export function getUserStats(userId, lang = "en") {
 	});
 }
 
-export function getUserStatus(userId, lang = "en") {
+export function startSession(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		db.get("SELECT * FROM status WHERE player_id = ?", [userId], (err, row) => {
-			if (err) {
-				return reject(err);
+		db.get(
+			`SELECT id FROM sessions WHERE user_id = ? AND end_time IS NULL`,
+			[userId],
+			(err, row) => {
+				if (err) return reject(err);
+				if (row) {
+					// Session already open, do not insert a new one
+					return resolve({ success: true, sessionId: row.id });
+				}
+				// No open session, insert new
+				db.run(
+					`INSERT INTO sessions (user_id, start_time) VALUES (?, CURRENT_TIMESTAMP)`,
+					[userId],
+					function (err) {
+						if (err) return reject(err);
+						resolve({ success: true, sessionId: this.lastID });
+					}
+				);
 			}
-			if (!row) {
-				return resolve({
-					success: false,
-					message: messages[lang].noOnlineUsers,
-				});
+		);
+	});
+}
+
+export function endSession(userId) {
+	return new Promise((resolve, reject) => {
+		db.run(
+			`UPDATE sessions SET end_time = CURRENT_TIMESTAMP
+       WHERE user_id = ? AND end_time IS NULL`,
+			[userId],
+			function (err) {
+				if (err) return reject(err);
+				resolve({ success: true });
 			}
-			resolve({ success: true, status: row });
-		});
+		);
+	});
+}
+
+export function getTotalHours(userId) {
+	return new Promise((resolve, reject) => {
+		db.get(
+			`SELECT SUM(
+         (JULIANDAY(COALESCE(end_time, CURRENT_TIMESTAMP)) - JULIANDAY(start_time)) * 24
+       ) as hours
+       FROM sessions WHERE user_id = ?`,
+			[userId],
+			(err, row) => {
+				if (err) return reject(err);
+				resolve({ success: true, hours: row.hours || 0 });
+			}
+		);
 	});
 }
 
