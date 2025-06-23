@@ -126,7 +126,7 @@ export const register = async (): Promise<void> => {
 			setInputError(passwordInput, false);
 			errorElement.textContent = "";
 			document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
-			loadHomePage();
+			(window as any).handlePostAuth?.();
 		} else {
 			throw new Error(data?.message || "Unknown error");
 		}
