@@ -13,7 +13,7 @@ import fastifyStatic from "@fastify/static";
 dotenv.config();
 
 const fastify = Fastify({
-	logger: false,
+	logger: true,
 });
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

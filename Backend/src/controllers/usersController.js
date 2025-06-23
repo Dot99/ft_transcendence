@@ -885,7 +885,6 @@ export default {
 	getBlockedUsers,
 	getUserMatches,
 	getUserStats,
-	getUserStatus,
 	updateUserStatus,
 	startUserStatus,
 	stopUserStatus,
