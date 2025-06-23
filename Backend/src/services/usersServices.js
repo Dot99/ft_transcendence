@@ -289,8 +289,8 @@ export function getUserFriendRequests(userId, lang = "en") {
 		db.all(
 			`SELECT users.id, users.username, friends.status
 			FROM users
-			JOIN friends ON users.id = friends.friend_id
-			WHERE friends.user_id = ? AND friends.status = 'pending'
+			JOIN friends ON users.id = friends.user_id
+			WHERE friends.friend_id = ? AND friends.status = 'pending'
 			AND users.id NOT IN (
 				SELECT blocked_user_id FROM blocked_users WHERE user_id = ?
 			)

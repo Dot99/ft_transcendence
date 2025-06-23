@@ -36,7 +36,6 @@ export function startOnlineWebSocket() {
 		//console.log("WebSocket closed (user offline)");
 	};
 	ws.onmessage = (event) => {
-		console.log("WS message received:", event.data);
 		try {
 			const data = JSON.parse(event.data);
 			if (data.type === "onlineFriends" && Array.isArray(data.userIds)) {

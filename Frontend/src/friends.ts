@@ -64,7 +64,6 @@ async function loadFriends(): Promise<void> {
 			return;
 		}
 		friends.forEach((friend: Friend) => {
-			console.log("onlineUserIds:", onlineUserIds);
 			const isOnline = onlineUserIds.includes(friend.id);
 			const friendDiv = document.createElement("div");
 			friendDiv.className =
