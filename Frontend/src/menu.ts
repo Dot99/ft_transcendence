@@ -535,45 +535,72 @@ export const loadMenuPage = async (): Promise<void> => {
 
 	// Player vs Player button logic
 	const btnPvP = document.getElementById("btnPvP");
-	const pvpModal = document.getElementById("pvpModal");
-	const closePvpModal = document.getElementById("closePvpModal");
-	const pvpForm = document.getElementById("pvpForm") as HTMLFormElement | null;
-	const pvpOpponent = document.getElementById(
-		"pvpOpponent"
-	) as HTMLInputElement | null;
-	const pvpError = document.getElementById("pvpError");
 
-	if (
-		btnPvP &&
-		pvpModal &&
-		closePvpModal &&
-		pvpForm &&
-		pvpOpponent &&
-		pvpError
-	) {
-		btnPvP.addEventListener("click", () => {
-			pvpModal.classList.remove("hidden");
-			pvpError.classList.add("hidden");
-			pvpForm.reset();
-		});
-		closePvpModal.addEventListener("click", () => {
-			pvpModal.classList.add("hidden");
-		});
-		pvpForm.addEventListener("submit", async (e) => {
-			e.preventDefault();
-			const opponent = pvpOpponent.value.trim();
-			if (!opponent) return;
-			// PLACEHOLDER: Check if player exists
-			const isUser = true; //  PLACEHOLDER flag
-			if (!isUser) {
-				pvpError.textContent = "User not found";
-				pvpError.classList.remove("hidden");
+	if (btnPvP) {
+		btnPvP.addEventListener("click", async () => {
+			// Show searching modal/spinner
+			const searchingModal = document.createElement("div");
+			searchingModal.innerHTML = `
+            <div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+                <div class="bg-[#001B26] border-4 border-[#4CF190] rounded-xl p-8 flex flex-col items-center shadow-2xl">
+                    <span class="text-2xl font-bold text-[#4CF190] mb-4">Searching for opponent...</span>
+                    <div class="loader"></div>
+                    <button id="cancelMatchmaking" class="mt-6 px-4 py-2 bg-red-500 text-white rounded">Cancel</button>
+                </div>
+            </div>
+        `;
+			document.body.appendChild(searchingModal);
+
+			// Join matchmaking
+			const res = await fetch(`${API_BASE_URL}/matchmaking/join`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${getCookie("jwt")}`,
+				},
+			});
+			if (!res.ok) {
+				alert("Failed to join matchmaking.");
+				document.body.removeChild(searchingModal);
 				return;
 			}
-			// Store opponent username in sessionStorage and load play page
-			sessionStorage.setItem("pvpOpponent", opponent);
-			pvpModal.classList.add("hidden");
-			window.dispatchEvent(new Event("loadPlayPage"));
+			let polling = true;
+			// Cancel matchmaking
+			searchingModal
+				.querySelector("#cancelMatchmaking")
+				?.addEventListener("click", async () => {
+					polling = false;
+					await fetch(`${API_BASE_URL}/matchmaking/leave`, {
+						method: "POST",
+						headers: {
+							Authorization: `Bearer ${getCookie("jwt")}`,
+						},
+					});
+					document.body.removeChild(searchingModal);
+				});
+
+			// Poll for match found
+			while (polling) {
+				await new Promise((r) => setTimeout(r, 2000));
+				const matchRes = await fetch(
+					`${API_BASE_URL}/users/matchmaking/status`,
+					{
+						headers: {
+							Authorization: `Bearer ${getCookie("jwt")}`,
+						},
+					}
+				);
+				if (matchRes.ok) {
+					const data = await matchRes.json();
+					const status = data.matchmakingStatus;
+					if (status && status.matched) {
+						polling = false;
+						document.body.removeChild(searchingModal);
+						// Store opponent info if needed
+						sessionStorage.setItem("pvpOpponent", status.opponentUsername);
+						window.dispatchEvent(new Event("loadPlayPage"));
+					}
+				}
+			}
 		});
 	}
 };

@@ -642,13 +642,55 @@ export function leaveMatchmaking(userId, lang = "en") {
 				if (err) {
 					return reject(err);
 				}
-				if (this.changes === 0) {
+				resolve({ success: true });
+			}
+		);
+	});
+}
+
+export function getMatchmakingStatus(userId, lang = "en") {
+	return new Promise((resolve, reject) => {
+		db.all(
+			"SELECT user_id FROM matchmaking WHERE user_id != ? ORDER BY rowid ASC",
+			[userId],
+			(err, rows) => {
+				if (err) return reject({ success: false, error: err });
+				if (!rows || rows.length === 0) {
 					return resolve({
-						success: false,
-						message: messages[lang].failLeaveMM,
+						success: true,
+						matchmakingStatus: { matched: false },
 					});
 				}
-				resolve({ success: true });
+				const opponentId = rows[0].user_id;
+				db.run(
+					"DELETE FROM matchmaking WHERE user_id = ? OR user_id = ?",
+					[userId, opponentId],
+					function (err2) {
+						if (err2) return reject({ success: false, error: err2 });
+						db.get(
+							"SELECT username FROM users WHERE id = ?",
+							[opponentId],
+							(err3, row) => {
+								if (err3 || !row) {
+									return resolve({
+										success: true,
+										matchmakingStatus: {
+											matched: true,
+											opponentUsername: "Unknown",
+										},
+									});
+								}
+								resolve({
+									success: true,
+									matchmakingStatus: {
+										matched: true,
+										opponentUsername: row.username,
+									},
+								});
+							}
+						);
+					}
+				);
 			}
 		);
 	});

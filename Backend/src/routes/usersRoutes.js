@@ -511,4 +511,19 @@ export default async function (fastify, opts) {
 		handler: async (request, reply) =>
 			await usersController.leaveMatchmaking(request, reply),
 	});
+	/**
+	 * @name getMatchmakingStatus
+	 * @description Get matchmaking status
+	 * @route GET /users/matchmaking/status
+	 * @group Presence - Presence operations about users
+	 * @returns {Object} 200 - An object containing matchmaking status
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.get("/users/matchmaking/status", {
+		preHandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await usersController.getMatchmakingStatus(request, reply),
+	});
 }

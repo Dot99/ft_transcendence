@@ -863,6 +863,32 @@ const leaveMatchmaking = async (request, reply) => {
 	}
 };
 
+const getMatchmakingStatus = async (request, reply) => {
+	try {
+		const user = request.user;
+		if (!user?.id) {
+			throw new UserNotFoundError();
+		}
+		const result = await userService.getMatchmakingStatus(
+			user.id,
+			request.lang
+		);
+		if (!result.success) {
+			return reply.code(404).send({ success: false, message: result.message });
+		}
+		reply.code(200).send({
+			success: true,
+			matchmakingStatus: result.matchmakingStatus,
+		});
+	} catch (err) {
+		console.error("Internal Server Error", err);
+		reply.code(500).send({
+			success: false,
+			error: err.message,
+		});
+	}
+};
+
 export default {
 	getAllUsers,
 	getUserById,
@@ -892,4 +918,5 @@ export default {
 	getOnlineUsers,
 	joinMatchmaking,
 	leaveMatchmaking,
+	getMatchmakingStatus,
 };
