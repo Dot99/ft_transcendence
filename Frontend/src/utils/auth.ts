@@ -1,5 +1,4 @@
-import { loadHomePage } from "../index.js";
-import { getLang } from "../locales/localeMiddleware.js";
+import { getLang, t } from "../locales/localeMiddleware.js";
 import { stopOnlineWebSocket } from "./ws.js";
 const API_BASE_URL = "http://localhost:3000/api";
 
@@ -64,12 +63,6 @@ export const login = async (): Promise<void> => {
 			const errorData = await response.json().catch(() => ({}));
 			throw new Error(errorData.message || response.statusText);
 		}
-
-		const contentType = response.headers.get("content-type");
-		if (!contentType || !contentType.includes("application/json")) {
-			throw new Error("Server did not return JSON");
-		}
-
 		const data: LoginResponse = await response.json();
 		if (data.token) {
 			setInputError(usernameInput, false);
@@ -99,6 +92,16 @@ export const register = async (): Promise<void> => {
 	const errorElement = getElement<HTMLElement>("loginErrorMsg");
 
 	try {
+		if (username.length < 3 || username.length > 20) {
+			throw new Error(t("username_limit"));
+		}
+		//Password must contain at least one number and one letter
+		if (!/\d/.test(username) || !/[a-zA-Z]/.test(username)) {
+			throw new Error(t("username_restrictions"));
+		}
+		if (password.length < 6) {
+			throw new Error(t("password_limit"));
+		}
 		const response = await fetch(`${API_BASE_URL}/register`, {
 			method: "POST",
 			headers: {
@@ -113,12 +116,6 @@ export const register = async (): Promise<void> => {
 			const errorData = await response.json().catch(() => ({}));
 			throw new Error(errorData.message || response.statusText);
 		}
-
-		const contentType = response.headers.get("content-type");
-		if (!contentType || !contentType.includes("application/json")) {
-			throw new Error("Server did not return JSON");
-		}
-
 		const data: RegisterResponse = await response.json();
 		if (data.success) {
 			document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;

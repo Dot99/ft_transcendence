@@ -18,6 +18,9 @@ export const messages = {
 		verify: "Verify",
 		set_username: "Set Username",
 		choose_username: "Choose a username",
+		username_limit: "Username must be between 3 and 20 characters",
+		username_restrictions: "Username must contain a letter and a number",
+		password_limit: "Password must be at least 6 characters long",
 		//Profile Page
 		delete_account: "Delete Account",
 		delete_account_confirmation:
@@ -80,6 +83,10 @@ export const messages = {
 		verify: "Verificar",
 		set_username: "Definir Nome de Usuário",
 		choose_username: "Escolha um nome de usuário",
+		username_limit: "O nome de usuário deve ter entre 3 e 20 caracteres",
+		username_restrictions:
+			"O nome de usuário deve conter uma letra e um número",
+		password_limit: "A senha deve ter pelo menos 6 caracteres",
 		//Profile Page
 		delete_account: "Excluir Conta",
 		delete_account_confirmation:
@@ -141,6 +148,9 @@ export const messages = {
 		verify: "验证",
 		set_username: "设置用户名",
 		choose_username: "选择一个用户名",
+		username_limit: "用户名必须在 3 到 20 个字符之间",
+		username_restrictions: "用户名必须包含字母和数字",
+		password_limit: "密码必须至少 6 个字符",
 		//Profile Page
 		delete_account: "删除账户",
 		delete_account_confirmation: "您确定要删除您的账户吗？此操作无法撤销。",
