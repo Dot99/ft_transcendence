@@ -75,7 +75,7 @@ export function getRecentGamesByUserId(userId, lang = "en") {
   });
 }
 
-export function getTournaments() {
+export function getTournaments(lang = "en") {
   return new Promise((resolve, reject) => {
     db.all("SELECT * FROM tournaments", (err, rows) => {
       if (err) {
