@@ -316,47 +316,33 @@ export const loadMenuPage = async (): Promise<void> => {
       const userId = getUserIdFromToken();
       // Populate tournament list
       tournamentList.innerHTML = tournaments.length
-        ? (
-            await Promise.all(
-              tournaments.map(async (t) => {
-                const usersRes = await fetch(
-                  `${API_BASE_URL}/tournaments/${t.tournament_id}/players`,
-                  {
-                    headers: {
-                      Authorization: `Bearer ${getCookie("jwt")}`,
-                    },
-                  }
-                );
-                const usersData = await usersRes.json();
-                const userId = getUserIdFromToken();
-                const isUserInTournament = usersData.players?.includes(userId);
-                const isFull = t.PLAYER_COUNT >= t.max_players;
-
-                let buttonHTML = "";
-
-                if (isUserInTournament) {
-                  buttonHTML = `<button class="enter-tournament-btn ml-4 px-4 py-2 bg-[#4CF190] text-[#001B26] rounded font-bold border-2 border-[#001B26] hover:bg-[#34c47c]" data-id="${t.tournament_id}">Enter</button>`;
-                } else if (isFull) {
-                  buttonHTML = `<button class="ml-4 px-4 py-2 bg-gray-500 text-white rounded font-bold border-2 border-gray-700 cursor-not-allowed" disabled>Full</button>`;
-                } else {
-                  buttonHTML = `<button class="join-tournament-btn ml-4 px-4 py-2 bg-[#4CF190] text-[#001B26] rounded font-bold border-2 border-[#001B26] hover:bg-[#34c47c]" data-id="${t.tournament_id}" data-name="${t.name}">Join</button>`;
-                }
-
-                return `
-            <li class="flex justify-between items-center bg-[#01222c] px-6 py-3 rounded border-2 border-[#4CF190]">
-              <span class="font-semibold">${t.name}</span>
-              <span class="text-[#4CF190]">${t.PLAYER_COUNT}/${t.max_players} players</span>
-              ${buttonHTML}
-            </li>`;
-              })
-            )
-          ).join("")
+        ? tournaments
+            .map((t) => {
+              const buttonHTML = `
+                <button
+                  class="join-tournament-btn bg-[#4CF190] text-[#001B26] px-4 py-2 rounded font-bold transition hover:bg-[#EFD671]"
+                  data-id="${t.tournament_id}"
+                  data-name="${t.name}"
+                >
+                  Join
+                </button>
+              `;
+              return `
+                <li class="flex justify-between items-center bg-[#01222c] px-6 py-3 rounded border-2 border-[#4CF190]">
+                  <span class="font-semibold">${t.name}</span>
+                  <span class="text-[#4CF190]">${t.PLAYER_COUNT}/${t.max_players} players</span>
+                  ${buttonHTML}
+                </li>
+              `;
+            })
+            .join("")
         : `<li class="text-center text-white py-4">No tournaments available.</li>`;
 
       document.querySelectorAll(".join-tournament-btn").forEach((btn) => {
         btn.addEventListener("click", async () => {
           const tournamentId = btn.getAttribute("data-id");
           const tournamentName = btn.getAttribute("data-name");
+
           try {
             const res = await fetch(`${API_BASE_URL}/tournaments/join`, {
               method: "POST",
@@ -383,49 +369,74 @@ export const loadMenuPage = async (): Promise<void> => {
       });
 
       document.querySelectorAll(".enter-tournament-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const tournamentId = btn.getAttribute("data-id");
-          if (tournamentId) {
-          }
-        });
+        btn.addEventListener("click", () => {});
       });
+      const joinButtons = tournamentList.querySelectorAll(
+        ".join-tournament-btn"
+      );
+      joinButtons.forEach(async (btn) => {
+        const tournamentId = (btn as HTMLElement).dataset.id;
+        const tournamentName = (btn as HTMLElement).dataset.name;
+        if (!tournamentId || !userId) return;
 
-      //   joinButtons.forEach((btn) => {
-      //     btn.addEventListener("click", async () => {
-      //       const tournamentId = (btn as HTMLElement).dataset.id;
-      //       const userId = getUserIdFromToken();
-      //       const tournamentName = (btn as HTMLElement).dataset.name;
-      //       if (!tournamentId || !userId) {
-      //         alert("Missing tournament or user information.");
-      //         return;
-      //       }
+        try {
+          const res = await fetch(
+            `${API_BASE_URL}/tournaments/${tournamentId}/players`,
+            {
+              headers: {
+                Authorization: `Bearer ${getCookie("jwt")}`,
+              },
+            }
+          );
 
-      //       try {
-      //         const res = await fetch(`${API_BASE_URL}/tournaments/join`, {
-      //           method: "POST",
-      //           headers: {
-      //             "Content-Type": "application/json",
-      //             Authorization: `Bearer ${getCookie("jwt")}`,
-      //           },
-      //           credentials: "include",
-      //           body: JSON.stringify({
-      //             tournamentName: tournamentName,
-      //             tournamentId: Number(tournamentId),
-      //             userId: Number(userId),
-      //           }),
-      //         });
+          if (!res.ok) throw new Error("Failed to fetch participants");
+          const participants = await res.json();
+          const alreadyIn = participants.players.some(
+            (p: any) => p.id === Number(userId)
+          );
 
-      //         if (!res.ok) throw new Error("Failed to join tournament");
+          if (alreadyIn) {
+            btn.textContent = "Enter";
+            btn.classList.remove("join-tournament-btn");
+            btn.classList.remove("bg-[#4CF190]");
+            btn.classList.add("bg-[#EFD671]");
 
-      //         const result = await res.json();
-      //         loadTournamentPage();
-      //       } catch (err) {
-      //         console.error("Join failed:", err);
-      //         console.error(err);
-      //         alert("Failed to join tournament.");
-      //       }
-      //     });
-      //   });
+            btn.addEventListener("click", () => {
+              loadTournamentPage(tournamentId);
+            });
+          } else {
+            btn.addEventListener("click", async () => {
+              try {
+                const joinRes = await fetch(
+                  `${API_BASE_URL}/tournaments/join`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${getCookie("jwt")}`,
+                    },
+                    credentials: "include",
+                    body: JSON.stringify({
+                      tournamentName: tournamentName,
+                      tournamentId: Number(tournamentId),
+                      userId: Number(userId),
+                    }),
+                  }
+                );
+
+                if (!joinRes.ok) throw new Error("Failed to join tournament");
+
+                loadTournamentPage(tournamentId);
+              } catch (err) {
+                console.error("Join failed:", err);
+                alert("Failed to join tournament.");
+              }
+            });
+          }
+        } catch (err) {
+          console.error("Error checking tournament participants:", err);
+        }
+      });
 
       tournamentModal.classList.add("hidden");
       joinTournamentModal.classList.remove("hidden");

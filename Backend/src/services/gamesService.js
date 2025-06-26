@@ -154,8 +154,8 @@ export function joinTournament(
             }
 
             db.run(
-              `INSERT INTO tournament_players (tournament_id, tournament_name, player_id, current_position, wins, losses)
-               VALUES (?, ?, ?, 0, 0, 0)`,
+              `INSERT INTO tournament_players (tournament_id, tournament_name, player_id, wins, losses)
+               VALUES (?, ?, ?, 0, 0)`,
               [tournamentId, tournamentName, userId],
               function (err) {
                 if (err) return reject({ success: false, error: err });
@@ -258,7 +258,7 @@ export function getTournamentById(tournamentId, lang = "en") {
     );
   });
 }
-export function getTournamentMatchesById(tournamentId) {
+export function getTournamentMatchesById(tournamentId, lang = "en") {
   return new Promise((resolve, reject) => {
     db.all(
       "SELECT * FROM tournament_matches WHERE tournament_id = ?",
@@ -278,7 +278,7 @@ export function getTournamentMatchesById(tournamentId) {
     );
   });
 }
-export function getUpcomingTournamentMatchesById(tournamentId) {
+export function getUpcomingTournamentMatchesById(tournamentId, lang = "en") {
   return new Promise((resolve, reject) => {
     db.all(
       "SELECT * FROM upcoming_tournament_matches WHERE tournament_id = ?",
@@ -302,11 +302,32 @@ export function getUpcomingTournamentMatchesById(tournamentId) {
   });
 }
 
-export function getTournamentPlayersById(tournamentId, userId) {
+export function getTournamentPlayersById(tournamentId, userId, lang = "en") {
   return new Promise((resolve, reject) => {
     db.all(
       "SELECT * FROM tournament_players WHERE tournament_id = ? AND player_id = ?",
       [tournamentId, userId],
+      (err, rows) => {
+        if (err) {
+          reject({ success: false, error: err });
+        }
+        if (!rows || rows.length === 0) {
+          return resolve({
+            success: false,
+            message: messages[lang].noUsers,
+          });
+        }
+        resolve({ success: true, players: rows });
+      }
+    );
+  });
+}
+
+export function getAllTournamentPlayers(tournamentId, lang = "en") {
+  return new Promise((resolve, reject) => {
+    db.all(
+      "SELECT * FROM tournament_players WHERE tournament_id = ?",
+      [tournamentId],
       (err, rows) => {
         if (err) {
           reject({ success: false, error: err });

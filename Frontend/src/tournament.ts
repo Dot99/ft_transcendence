@@ -1,8 +1,9 @@
 import { tournamentTemplate } from "./templates/tournamentTemplate.js";
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
+declare const JSC: any;
+
 const API_BASE_URL = "http://localhost:3000/api";
 
-// Utility function to get an element by ID with type safety
 function getElement<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
   if (!el) throw new Error(`Element with id '${id}' not found`);
@@ -15,23 +16,23 @@ export const loadTournamentPage = async (
   const app = getElement<HTMLElement>("app");
   app.innerHTML = tournamentTemplate;
 
-  // Aqui podes buscar os torneios da API
-  const res = await fetch(`${API_BASE_URL}/tournaments/${tournament_id}`);
+  const res = await fetch(`${API_BASE_URL}/tournaments/${tournament_id}`, {
+    headers: {
+      Authorization: `Bearer ${getCookie("jwt")}`,
+    },
+  });
   const tournaments = await res.json();
-  const list = getElement<HTMLDivElement>("tournamentList");
-  list.innerHTML = tournaments
-    .map(
-      (t: any) => `
-    <div class="border border-[#4CF190] p-4 rounded hover:bg-[#0a3e4c] transition cursor-pointer" onclick="joinTournament(${t.id})">
-      <h3 class="text-xl font-semibold">${t.name}</h3>
-      <p class="text-sm">Players: ${t.currentPlayers}/${t.maxPlayers}</p>
+  const list = getElement<HTMLDivElement>("bracketContainer");
+  console.log("Tournaments fetched:", tournaments);
+  console.log("test");
+  list.innerHTML = `
+    <div class="border border-[#4CF190] p-4 rounded hover:bg-[#0a3e4c] transition cursor-pointer" onclick="joinTournament(${tournaments.tournament.id})">
+      <h3 class="text-xl font-semibold">${tournaments.tournament.name}</h3>
+      <p class="text-sm">Players: ${tournaments.tournament.PLAYER_COUNT}/${tournaments.tournament.max_players}</p>
     </div>
-  `
-    )
-    .join("");
-  const tournamentId = getCookie("tournamentId");
-  if (tournamentId) {
-    renderBracket(tournamentId);
+  `;
+  if (tournament_id) {
+    renderBracket(tournament_id);
   }
 };
 
@@ -47,35 +48,117 @@ function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
   }, {} as Record<string, T[]>);
 }
 
+type Match = {
+  round_number: number;
+  player1: string;
+  player2: string;
+  scheduled_date: string;
+};
+
 async function renderBracket(tournamentId: string) {
-  const container = document.getElementById("bracketContainer");
-  if (!container) return;
+  const chartContainer = document.getElementById("bracketContainer");
+  if (!chartContainer) return;
 
-  const res = await fetch(`${API_BASE_URL}/tournament/${tournamentId}/games`);
-  const games = await res.json();
+  chartContainer.innerHTML = `<div id="bracketChart" style="width:100%; height:700px;"></div>`;
 
-  const rounds = groupBy(games, "round");
-  const numRounds = Object.keys(rounds).length;
-
-  for (let i = 1; i <= numRounds; i++) {
-    const roundDiv = document.createElement("div");
-    roundDiv.className = "flex flex-col gap-6";
-
-    for (const game of rounds[i]) {
-      const gameDiv = document.createElement("div");
-      gameDiv.className =
-        "border border-[#4CF190] rounded p-4 text-white w-40 text-center bg-[#07303c]";
-      gameDiv.innerHTML = `
-        <div>${game.round.player1}</div>
-        <div class="text-xs text-[#EFD671]">vs</div>
-        <div>${game.round.player2}</div>
-        <div class="text-xs mt-2">${new Date(
-          game.round.startTime
-        ).toLocaleTimeString()}</div>
-      `;
-      roundDiv.appendChild(gameDiv);
+  const res = await fetch(
+    `${API_BASE_URL}/tournaments/${tournamentId}/matches`,
+    {
+      headers: {
+        Authorization: `Bearer ${getCookie("jwt")}`,
+      },
     }
+  );
 
-    container.appendChild(roundDiv);
+  if (!res.ok) {
+    console.error("Erro ao buscar partidas:", await res.text());
+    return;
   }
+
+  const games = await res.json();
+  const matches = games.matches as Match[];
+  matches.forEach((match, index) => {
+    const matchId = `match_${match.round_number}_${index}`;
+    const parentId =
+      match.round_number > 1
+        ? `match_${match.round_number - 1}_${Math.floor(index / 2)}`
+        : undefined;
+
+    chartPoints.push({
+      id: matchId,
+      name: `${match.player1} vs ${match.player2}`,
+      label: {
+        text: `${match.player1} vs ${match.player2}\n${new Date(
+          match.scheduled_date
+        ).toLocaleTimeString()}`,
+      },
+      parent: parentId,
+    });
+  });
+
+  const chartPoints = generateChartPoints(matches);
+
+  JSC.chart("bracketChart", {
+    type: "organizational",
+    series: [{ points: chartPoints }],
+    defaultSeries: {
+      mouseTracking: false,
+      color: "#4CF190",
+      shape: {
+        label: {
+          style: {
+            fontSize: "12px",
+            color: "#001B26",
+            fontWeight: "bold",
+          },
+        },
+      },
+    },
+    defaultPoint: {
+      connectorLine: {
+        color: "#4CF190",
+      },
+    },
+    chartArea: {
+      fill: "#001B26",
+    },
+  });
+}
+
+function generateChartPoints(matches: Match[]) {
+  const rounds = groupBy(matches, "round_number");
+  const chartPoints: any[] = [];
+  const matchIdsByRound: Record<number, string[]> = {};
+
+  Object.keys(rounds)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .forEach((round) => {
+      const roundMatches = rounds[round];
+      matchIdsByRound[round] = [];
+
+      roundMatches.forEach((match, index) => {
+        const matchId = `r${round}_m${index}`;
+        matchIdsByRound[round].push(matchId);
+
+        const parentRound = matchIdsByRound[round - 1];
+        const parentId =
+          round > 1 && parentRound
+            ? parentRound[Math.floor(index / 2)] // Liga aos jogos da ronda anterior
+            : undefined;
+
+        chartPoints.push({
+          id: matchId,
+          name: `${match.player1} vs ${match.player2}`,
+          label: {
+            text: `${match.player1} vs ${match.player2}\n${new Date(
+              match.scheduled_date
+            ).toLocaleTimeString()}`,
+          },
+          ...(parentId && { parent: parentId }),
+        });
+      });
+    });
+
+  return chartPoints;
 }

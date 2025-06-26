@@ -11,7 +11,7 @@ export const tournamentTemplate = `
 
   <!-- Bracket Container -->
   <div id="bracketContainer" class="relative z-10 flex justify-center items-start w-full max-w-7xl overflow-x-auto py-24 px-6">
-    <!-- JS will fill this dynamically -->
+    <div id="bracketColumns" class="flex flex-row space-x-16 p-8"></div>
   </div>
 
   <!-- Start Button -->
