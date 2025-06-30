@@ -69,7 +69,12 @@ await fastify.register(fastifyStatic, {
 });
 
 fastify.setNotFoundHandler((request, reply) => {
-	reply.sendFile("index.html");
+	// Only serve index.html for non-API routes
+	if (request.url.startsWith('/api/')) {
+		reply.status(404).send({ error: 'API endpoint not found' });
+	} else {
+		reply.sendFile("index.html");
+	}
 });
 
 fastify.setErrorHandler((error, request, reply) => {

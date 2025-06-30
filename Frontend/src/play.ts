@@ -1,4 +1,5 @@
 import { playTemplate } from "./templates/playTemplate.js";
+import { getCookie } from "./utils/auth.js";
 
 // Utility to get element by id
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -14,19 +15,24 @@ export const loadPlayPage = async (): Promise<void> => {
     // Fetch user info and update the player panel
     let playerUsername = "Player";
     try {
-        const res = await fetch("/api/user/profile", {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem("jwt")}`,
-            },
-        });
-        if (res.ok) {
-            const user = await res.json();
-            playerUsername = user.username || "Player";
-            getElement<HTMLElement>("player-username").textContent = playerUsername;
-            const avatar = getElement<HTMLImageElement>("player-avatar");
-            if (user.pfp) {
-                avatar.src = `images/${user.pfp}`;
-                avatar.style.display = "";
+        const jwt = getCookie("jwt");
+        if (jwt) {
+            const userId = JSON.parse(atob(jwt.split('.')[1])).id;
+            const res = await fetch(`/api/users/${userId}`, {
+                headers: {
+                    Authorization: `Bearer ${jwt}`,
+                },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const user = data.user;
+                playerUsername = user.username || "Player";
+                getElement<HTMLElement>("player-username").textContent = playerUsername;
+                const avatar = getElement<HTMLImageElement>("player-avatar");
+                if (user.pfp) {
+                    avatar.src = `images/${user.pfp}`;
+                    avatar.style.display = "";
+                }
             }
         }
     } catch {}
@@ -57,6 +63,9 @@ export const loadPlayPage = async (): Promise<void> => {
     });
     menuBtn.addEventListener("click", () => {
         hideWinnerModal();
+        if (ws) {
+            ws.close();
+        }
         window.dispatchEvent(new Event("loadMenuPage"));
     });
 
@@ -69,6 +78,8 @@ export const loadPlayPage = async (): Promise<void> => {
 
     let leftY = fieldHeight / 2 - paddleHeight / 2;
     let rightY = fieldHeight / 2 - paddleHeight / 2;
+    let leftYOld = leftY; // Track previous paddle positions for multiplayer
+    let rightYOld = rightY;
     let ballX = fieldWidth / 2 - ballWidth / 2, ballY = fieldHeight / 2 - ballHeight / 2;
     let ballVX = 0, ballVY = 0;
     let leftScore = 0, rightScore = 0;
@@ -80,6 +91,139 @@ export const loadPlayPage = async (): Promise<void> => {
     let showPressSpace = true;
     let paused = false;
     let opponentDisplayName = "Bot";
+    let isMultiplayer = false;
+    let playerSide: "left" | "right" = "left";
+    let ws: WebSocket | null = null;
+    let gameId: string | null = null;
+
+    // Check PvP
+    const opponentUsername = sessionStorage.getItem("pvpOpponent");
+    const gameIdFromSession = sessionStorage.getItem("gameId");
+    
+    if (opponentUsername && gameIdFromSession) {
+        isMultiplayer = true;
+        gameId = gameIdFromSession;
+        opponentDisplayName = opponentUsername;
+        
+        // Set the right panel username to the opponent
+        const botUsernameElem = document.getElementById("bot-username") as HTMLElement | null;
+        if (botUsernameElem) botUsernameElem.textContent = opponentUsername;
+
+        // Try to fetch opponent profile from backend
+        try {
+            const res = await fetch(`/api/users/username/${encodeURIComponent(opponentUsername)}`, {
+                headers: {
+                    Authorization: `Bearer ${getCookie("jwt")}`,
+                },
+            });
+            if (res.ok) {
+                const user = await res.json();
+                if (botUsernameElem) botUsernameElem.textContent = user.username || opponentUsername;
+                const botBanner = document.getElementById("bot-banner");
+                if (botBanner) {
+                    if (user.pfp) {
+                        botBanner.innerHTML = `<img src="images/${user.pfp}" alt="${user.username}" class="w-24 h-24 rounded" />`;
+                    } else {
+                        botBanner.innerHTML = "";
+                    }
+                }
+            } else {
+                const botBanner = document.getElementById("bot-banner");
+                if (botBanner) botBanner.innerHTML = "";
+            }
+        } catch {
+            const botBanner = document.getElementById("bot-banner");
+            if (botBanner) botBanner.innerHTML = "";
+        }
+        
+        // Clean up session storage
+        sessionStorage.removeItem("pvpOpponent");
+        sessionStorage.removeItem("gameId");
+        
+        // Connect to WebSocket for multiplayer game
+        connectToGame();
+    }
+
+    function connectToGame() {
+        if (!gameId) return;
+        
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/api/ws?token=${getCookie("jwt")}&gameId=${gameId}`;
+        
+        ws = new WebSocket(wsUrl);
+        
+        ws.onopen = () => {
+            console.log("Connected to game WebSocket");
+        };
+        
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === "gameReady") {
+                    playerSide = data.yourSide;
+                    console.log(`You are playing on the ${playerSide} side`);
+                    
+                    // Update game state
+                    leftY = data.gameState.leftY;
+                    rightY = data.gameState.rightY;
+                    ballX = data.gameState.ballX;
+                    ballY = data.gameState.ballY;
+                    ballVX = data.gameState.ballVX;
+                    ballVY = data.gameState.ballVY;
+                    leftScore = data.gameState.leftScore;
+                    rightScore = data.gameState.rightScore;
+                    gameStarted = data.gameState.gameStarted;
+                    winner = data.gameState.winner;
+                    
+                    updateScoreDisplay();
+                } else if (data.type === "paddleUpdate") {
+                    console.log(`[DEBUG] Received paddle update: ${data.side} paddle to Y=${data.y}`);
+                    if (data.side === "left") {
+                        leftY = data.y;
+                    } else if (data.side === "right") {
+                        rightY = data.y;
+                    }
+                } else if (data.type === "ballUpdate") {
+                    ballX = data.ballX;
+                    ballY = data.ballY;
+                    ballVX = data.ballVX;
+                    ballVY = data.ballVY;
+                    gameStarted = data.gameStarted;
+                } else if (data.type === "scoreUpdate") {
+                    leftScore = data.leftScore;
+                    rightScore = data.rightScore;
+                    winner = data.winner;
+                    updateScoreDisplay();
+                    
+                    if (winner) {
+                        setBannerGlow(winner);
+                        showWinnerModal(winner);
+                        gameStarted = false;
+                    }
+                } else if (data.type === "opponentLeft") {
+                    // Opponent left the game - you win!
+                    winner = data.winner;
+                    gameStarted = false;
+                    if (winner) {
+                        setBannerGlow(winner);
+                        showWinnerModal(winner);
+                    }
+                    console.log("Opponent left the game - you win!");
+                }
+            } catch (e) {
+                console.error("WebSocket message parse error:", e);
+            }
+        };
+        
+        ws.onclose = () => {
+            console.log("WebSocket connection closed");
+        };
+        
+        ws.onerror = (error) => {
+            console.error("WebSocket error:", error);
+        };
+    }
 
     function setBannerGlow(winnerSide: "left" | "right" | null) {
         getElement("player-banner").classList.remove("winner-banner");
@@ -131,6 +275,19 @@ export const loadPlayPage = async (): Promise<void> => {
     giveUpMenuBtn.addEventListener("click", () => {
         giveUpModal.classList.add("hidden");
         paused = false;
+        
+        // In multiplayer, notify the opponent that you're giving up
+        if (isMultiplayer && ws) {
+            ws.send(JSON.stringify({
+                type: "giveUp"
+            }));
+        }
+        
+        // Close WebSocket connection
+        if (ws) {
+            ws.close();
+        }
+        
         window.dispatchEvent(new Event("loadMenuPage"));
     });
 
@@ -142,11 +299,26 @@ export const loadPlayPage = async (): Promise<void> => {
             resetGame();
         }
         if (!gameStarted && !winner && !hasGameStartedOnce) {
+            // In multiplayer, only left player can start the game
+            if (isMultiplayer && playerSide !== "left") return;
+            
             gameStarted = true;
             hasGameStartedOnce = true;
             showPressSpace = false;
             ballVX = ballSpeed * (Math.random() > 0.5 ? 1 : -1);
             ballVY = ballSpeed * (Math.random() * 2 - 1);
+            
+            // Send ball update to sync game start
+            if (isMultiplayer && ws && playerSide === "left") {
+                ws.send(JSON.stringify({
+                    type: "ballUpdate",
+                    ballX: ballX,
+                    ballY: ballY,
+                    ballVX: ballVX,
+                    ballVY: ballVY,
+                    gameStarted: gameStarted
+                }));
+            }
         }
     }
 
@@ -198,15 +370,77 @@ export const loadPlayPage = async (): Promise<void> => {
     }
 
     function update() {
-        if (keys.w) leftY -= paddleSpeed;
-        if (keys.s) leftY += paddleSpeed;
-        leftY = Math.max(0, Math.min(fieldHeight - paddleHeight, leftY));
+        // In multiplayer, each player only controls their own paddle
+        if (isMultiplayer) {
+            if (playerSide === "left") {
+                if (keys.w) {
+                    console.log(`[DEBUG] Left player pressing W, leftY: ${leftY} -> ${leftY - paddleSpeed}`);
+                    leftY -= paddleSpeed;
+                }
+                if (keys.s) {
+                    console.log(`[DEBUG] Left player pressing S, leftY: ${leftY} -> ${leftY + paddleSpeed}`);
+                    leftY += paddleSpeed;
+                }
+                leftY = Math.max(0, Math.min(fieldHeight - paddleHeight, leftY));
+            } else if (playerSide === "right") {
+                // Right player can use both WASD and arrow keys for convenience
+                if (keys.ArrowUp || keys.w) {
+                    console.log(`[DEBUG] Right player pressing Up/W, rightY: ${rightY} -> ${rightY - paddleSpeed}`);
+                    rightY -= paddleSpeed;
+                }
+                if (keys.ArrowDown || keys.s) {
+                    console.log(`[DEBUG] Right player pressing Down/S, rightY: ${rightY} -> ${rightY + paddleSpeed}`);
+                    rightY += paddleSpeed;
+                }
+                rightY = Math.max(0, Math.min(fieldHeight - paddleHeight, rightY));
+            }
+        } else {
+            // Single player mode - control both paddles
+            if (keys.w) leftY -= paddleSpeed;
+            if (keys.s) leftY += paddleSpeed;
+            leftY = Math.max(0, Math.min(fieldHeight - paddleHeight, leftY));
 
-        if (keys.ArrowUp) rightY -= paddleSpeed;
-        if (keys.ArrowDown) rightY += paddleSpeed;
-        rightY = Math.max(0, Math.min(fieldHeight - paddleHeight, rightY));
+            if (keys.ArrowUp) rightY -= paddleSpeed;
+            if (keys.ArrowDown) rightY += paddleSpeed;
+            rightY = Math.max(0, Math.min(fieldHeight - paddleHeight, rightY));
+        }
+
+        // Send paddle updates for multiplayer
+        if (isMultiplayer && ws) {
+            if (playerSide === "left" && leftY !== leftYOld) {
+                console.log(`[DEBUG] Left player sending paddle move: Y=${leftY} (was ${leftYOld})`);
+                ws.send(JSON.stringify({
+                    type: "paddleMove",
+                    y: leftY
+                }));
+                leftYOld = leftY; // Update old position immediately after sending
+            } else if (playerSide === "right" && rightY !== rightYOld) {
+                console.log(`[DEBUG] Right player sending paddle move: Y=${rightY} (was ${rightYOld})`);
+                ws.send(JSON.stringify({
+                    type: "paddleMove", 
+                    y: rightY
+                }));
+                rightYOld = rightY; // Update old position immediately after sending
+            } else {
+                // Debug why no paddle update is being sent
+                if (playerSide === "right") {
+                    console.log(`[DEBUG] Right player not sending update: rightY=${rightY}, rightYOld=${rightYOld}, equal=${rightY === rightYOld}`);
+                }
+            }
+        } else {
+            // For single player, update old positions normally
+            leftYOld = leftY;
+            rightYOld = rightY;
+        }
 
         if (!gameStarted) return;
+
+        // In multiplayer, only the left player controls the ball physics
+        if (isMultiplayer && playerSide !== "left") return;
+
+        let ballXOld = ballX, ballYOld = ballY;
+        let ballVXOld = ballVX, ballVYOld = ballVY;
+        let gameStartedOld = gameStarted;
 
         ballX += ballVX;
         ballY += ballVY;
@@ -252,6 +486,16 @@ export const loadPlayPage = async (): Promise<void> => {
             } else {
                 resetBall();
             }
+            
+            // Send score update for multiplayer (only left player)
+            if (isMultiplayer && ws && playerSide === "left") {
+                ws.send(JSON.stringify({
+                    type: "scoreUpdate",
+                    leftScore: leftScore,
+                    rightScore: rightScore,
+                    winner: winner
+                }));
+            }
             return;
         }
         if (ballX + ballWidth > fieldWidth && !winner) {
@@ -265,7 +509,31 @@ export const loadPlayPage = async (): Promise<void> => {
             } else {
                 resetBall();
             }
+            
+            // Send score update for multiplayer (only left player)
+            if (isMultiplayer && ws && playerSide === "left") {
+                ws.send(JSON.stringify({
+                    type: "scoreUpdate",
+                    leftScore: leftScore,
+                    rightScore: rightScore,
+                    winner: winner
+                }));
+            }
             return;
+        }
+
+        // Send ball updates for multiplayer (only left player controls ball)
+        if (isMultiplayer && ws && playerSide === "left") {
+            if (ballX !== ballXOld || ballY !== ballYOld || ballVX !== ballVXOld || ballVY !== ballVYOld || gameStarted !== gameStartedOld) {
+                ws.send(JSON.stringify({
+                    type: "ballUpdate",
+                    ballX: ballX,
+                    ballY: ballY,
+                    ballVX: ballVX,
+                    ballVY: ballVY,
+                    gameStarted: gameStarted
+                }));
+            }
         }
     }
 
@@ -333,14 +601,17 @@ export const loadPlayPage = async (): Promise<void> => {
 
     // Keyboard controls and start game on spacebar
     window.addEventListener("keydown", (e) => {
+        console.log(`[DEBUG] Keydown: ${e.key}, playerSide: ${playerSide}, isMultiplayer: ${isMultiplayer}`);
         if (e.code === "Space") startGame();
         if (e.key === "w" || e.key === "s" || e.key === "ArrowUp" || e.key === "ArrowDown") {
             keys[e.key] = true;
+            console.log(`[DEBUG] Key ${e.key} set to true`);
         }
     });
     window.addEventListener("keyup", (e) => {
         if (e.key === "w" || e.key === "s" || e.key === "ArrowUp" || e.key === "ArrowDown") {
             keys[e.key] = false;
+            console.log(`[DEBUG] Key ${e.key} set to false`);
         }
     });
 
@@ -351,10 +622,9 @@ export const loadPlayPage = async (): Promise<void> => {
     resetBall();
 
     // Check PvP
-    const opponentUsername = sessionStorage.getItem("pvpOpponent");
     if (opponentUsername) {
         opponentDisplayName = opponentUsername;
-        // Set the right panel username to the input by default
+        // Set the right panel username to the opponent username
         const botUsernameElem = document.getElementById("bot-username") as HTMLElement | null;
         if (botUsernameElem) botUsernameElem.textContent = opponentUsername;
 
@@ -362,11 +632,12 @@ export const loadPlayPage = async (): Promise<void> => {
         try {
             const res = await fetch(`/api/users/username/${encodeURIComponent(opponentUsername)}`, {
                 headers: {
-                    Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+                    Authorization: `Bearer ${getCookie("jwt")}`,
                 },
             });
             if (res.ok) {
-                const user = await res.json();
+                const data = await res.json();
+                const user = data.user;
                 if (botUsernameElem) botUsernameElem.textContent = user.username || opponentUsername;
                 const botBanner = document.getElementById("bot-banner");
                 if (botBanner) {
@@ -377,10 +648,13 @@ export const loadPlayPage = async (): Promise<void> => {
                     }
                 }
             } else {
+                // If user lookup fails, just use the username we have
+                console.log("Could not fetch opponent profile, using username:", opponentUsername);
                 const botBanner = document.getElementById("bot-banner");
                 if (botBanner) botBanner.innerHTML = "";
             }
-        } catch {
+        } catch (error) {
+            console.log("Error fetching opponent profile:", error);
             const botBanner = document.getElementById("bot-banner");
             if (botBanner) botBanner.innerHTML = "";
         }

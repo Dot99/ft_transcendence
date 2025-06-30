@@ -63,7 +63,10 @@ const getUserByUsername = async (request, reply) => {
 		const username = request.params.username;
 		const result = await userService.getUserByUsername(username, request.lang);
 		if (!result.success) {
-			throw new UserNotFoundError();
+			return reply.code(404).send({
+				success: false,
+				error: "User not found",
+			});
 		}
 		reply.send({
 			success: true,
@@ -71,10 +74,17 @@ const getUserByUsername = async (request, reply) => {
 		});
 	} catch (err) {
 		console.error("Internal Server Error", err);
-		reply.code(500).send({
-			success: false,
-			error: err.message,
-		});
+		if (err.statusCode === 404 || err.code === 'USER_NOT_FOUND') {
+			reply.code(404).send({
+				success: false,
+				error: "User not found",
+			});
+		} else {
+			reply.code(500).send({
+				success: false,
+				error: err.message,
+			});
+		}
 	}
 };
 
@@ -863,25 +873,30 @@ const leaveMatchmaking = async (request, reply) => {
 	}
 };
 
+/**
+ * @description Controller to get matchmaking status
+ * @param {Object} request - The request object
+ * @param {Object} reply - The reply object
+ * @returns {Promise<void>}
+ * @throws {UserNotFoundError} - If the user is not found
+ */
 const getMatchmakingStatus = async (request, reply) => {
 	try {
 		const user = request.user;
 		if (!user?.id) {
-			throw new UserNotFoundError();
+			throw new UserNotFoundError("User not found");
 		}
-		const result = await userService.getMatchmakingStatus(
-			user.id,
-			request.lang
-		);
+		const result = await userService.getMatchmakingStatus(user.id, request.lang);
 		if (!result.success) {
 			return reply.code(404).send({ success: false, message: result.message });
 		}
 		reply.code(200).send({
 			success: true,
 			matchmakingStatus: result.matchmakingStatus,
+			message: "Matchmaking status retrieved successfully",
 		});
 	} catch (err) {
-		console.error("Internal Server Error", err);
+		console.error("Handler error:", err);
 		reply.code(500).send({
 			success: false,
 			error: err.message,

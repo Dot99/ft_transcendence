@@ -592,11 +592,13 @@ export const loadMenuPage = async (): Promise<void> => {
 				if (matchRes.ok) {
 					const data = await matchRes.json();
 					const status = data.matchmakingStatus;
-					if (status && status.matched) {
+					// Only proceed if matched AND has a valid opponent username
+					if (status && status.matched && status.opponentUsername && status.gameId) {
 						polling = false;
 						document.body.removeChild(searchingModal);
-						// Store opponent info if needed
+						// Store opponent info and game ID for multiplayer
 						sessionStorage.setItem("pvpOpponent", status.opponentUsername);
+						sessionStorage.setItem("gameId", status.gameId);
 						window.dispatchEvent(new Event("loadPlayPage"));
 					}
 				}

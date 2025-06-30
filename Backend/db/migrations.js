@@ -72,14 +72,13 @@ export default function runMigrations(db) {
       FOREIGN KEY (user_id) REFERENCES users(id),
       FOREIGN KEY (blocked_user_id) REFERENCES users(id)
     )
-  `);
-
-	// Matchmaking
-	db.run(`
+  `);  // Matchmaking
+  db.run(`
     CREATE TABLE IF NOT EXISTS matchmaking (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
       status TEXT CHECK(status IN ('waiting', 'matched', 'cancelled')) DEFAULT 'waiting',
+      game_id TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
     )

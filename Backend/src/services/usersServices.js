@@ -614,20 +614,87 @@ export function getOnlineUsers(lang = "en") {
 
 export function joinMatchmaking(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
+		console.log(`[MATCHMAKING] User ${userId} attempting to join matchmaking`);
+		
+		// First, clean up any existing entries for this user (in case they're re-joining)
 		db.run(
-			"INSERT INTO matchmaking (user_id) VALUES (?)",
+			"DELETE FROM matchmaking WHERE user_id = ?",
 			[userId],
-			function (err) {
+			(err) => {
 				if (err) {
+					console.error("DB error cleaning up user matchmaking:", err);
 					return reject(err);
 				}
-				if (this.changes === 0) {
-					return resolve({
-						success: false,
-						message: messages[lang].failJoinMM,
-					});
-				}
-				resolve({ success: true });
+
+				// Simple approach: just look for any waiting opponent
+				db.get(
+					"SELECT m.*, u.username FROM matchmaking m JOIN users u ON m.user_id = u.id WHERE m.status = 'waiting' AND m.user_id != ? ORDER BY m.created_at ASC LIMIT 1",
+					[userId],
+					(err, waitingOpponent) => {
+						if (err) {
+							console.error("DB error:", err);
+							return reject(err);
+						}
+
+						console.log(`[MATCHMAKING] Search result for user ${userId}:`, waitingOpponent);
+
+						if (waitingOpponent) {
+							console.log(`[MATCHMAKING] Found opponent for user ${userId}: user ${waitingOpponent.user_id} (${waitingOpponent.username})`);
+							// Match found! Update both players
+							const gameId = Date.now().toString();
+							db.run(
+								"UPDATE matchmaking SET status = 'matched', game_id = ? WHERE user_id = ?",
+								[gameId, waitingOpponent.user_id],
+								function (err) {
+									if (err) {
+										console.error("DB error:", err);
+										return reject(err);
+									}
+									// Add current user as matched
+									db.run(
+										"INSERT INTO matchmaking (user_id, status, game_id) VALUES (?, 'matched', ?)",
+										[userId, gameId],
+										function (err) {
+											if (err) {
+												console.error("DB error:", err);
+												return reject(err);
+											}
+											console.log(`[MATCHMAKING] Successfully matched users ${userId} and ${waitingOpponent.user_id} with game ID ${gameId}`);
+											resolve({ 
+												success: true, 
+												matched: true, 
+												gameId: gameId,
+												opponentId: waitingOpponent.user_id,
+												opponentUsername: waitingOpponent.username
+											});
+										}
+									);
+								}
+							);
+						} else {
+							console.log(`[MATCHMAKING] No opponents found for user ${userId}, adding to waiting queue`);
+							// No opponent found, add to waiting queue
+							db.run(
+								"INSERT INTO matchmaking (user_id, status) VALUES (?, 'waiting')",
+								[userId],
+								function (err) {
+									if (err) {
+										console.error("DB error:", err);
+										return reject(err);
+									}
+									if (this.changes === 0) {
+										return resolve({
+											success: false,
+											message: messages[lang].failJoinMM,
+										});
+									}
+									console.log(`[MATCHMAKING] User ${userId} added to waiting queue`);
+									resolve({ success: true, waiting: true });
+								}
+							);
+						}
+					}
+				);
 			}
 		);
 	});
@@ -640,7 +707,14 @@ export function leaveMatchmaking(userId, lang = "en") {
 			[userId],
 			function (err) {
 				if (err) {
+					console.error("DB error:", err);
 					return reject(err);
+				}
+				if (this.changes === 0) {
+					return resolve({
+						success: false,
+						message: messages[lang].failLeaveMM,
+					});
 				}
 				resolve({ success: true });
 			}
@@ -650,47 +724,46 @@ export function leaveMatchmaking(userId, lang = "en") {
 
 export function getMatchmakingStatus(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		db.all(
-			"SELECT user_id FROM matchmaking WHERE user_id != ? ORDER BY rowid ASC",
+		db.get(
+			"SELECT * FROM matchmaking WHERE user_id = ?",
 			[userId],
-			(err, rows) => {
-				if (err) return reject({ success: false, error: err });
-				if (!rows || rows.length === 0) {
+			(err, row) => {
+				if (err) {
+					console.error("DB error:", err);
+					return reject(err);
+				}
+				if (!row) {
 					return resolve({
 						success: true,
-						matchmakingStatus: { matched: false },
+						matchmakingStatus: null
 					});
 				}
-				const opponentId = rows[0].user_id;
-				db.run(
-					"DELETE FROM matchmaking WHERE user_id = ? OR user_id = ?",
-					[userId, opponentId],
-					function (err2) {
-						if (err2) return reject({ success: false, error: err2 });
-						db.get(
-							"SELECT username FROM users WHERE id = ?",
-							[opponentId],
-							(err3, row) => {
-								if (err3 || !row) {
-									return resolve({
-										success: true,
-										matchmakingStatus: {
-											matched: true,
-											opponentUsername: "Unknown",
-										},
-									});
-								}
-								resolve({
-									success: true,
-									matchmakingStatus: {
-										matched: true,
-										opponentUsername: row.username,
-									},
-								});
+				
+				const status = {
+					status: row.status,
+					matched: row.status === 'matched',
+					gameId: row.game_id,
+					opponentUsername: null
+				};
+				
+				// If matched, get opponent username
+				if (row.status === 'matched' && row.game_id) {
+					db.get(
+						"SELECT u.username FROM matchmaking m JOIN users u ON m.user_id = u.id WHERE m.game_id = ? AND m.user_id != ?",
+						[row.game_id, userId],
+						(err, opponent) => {
+							if (err) {
+								console.error("DB error getting opponent:", err);
+								// Continue without opponent name
+							} else if (opponent) {
+								status.opponentUsername = opponent.username;
 							}
-						);
-					}
-				);
+							resolve({ success: true, matchmakingStatus: status });
+						}
+					);
+				} else {
+					resolve({ success: true, matchmakingStatus: status });
+				}
 			}
 		);
 	});

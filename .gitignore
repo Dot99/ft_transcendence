@@ -10,3 +10,7 @@ Frontend/package-lock.json
 Frontend/dist
 Frontend/public
 
+node_modules
+*.js
+*.sh
+*.json
