@@ -49,10 +49,10 @@ function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
 }
 
 type Match = {
-  round_number: number;
   player1: string;
   player2: string;
   scheduled_date: string;
+  round_number: string;
 };
 
 async function renderBracket(tournamentId: string) {
@@ -64,24 +64,29 @@ async function renderBracket(tournamentId: string) {
   const res = await fetch(
     `${API_BASE_URL}/tournaments/${tournamentId}/matches`,
     {
-      headers: {
-        Authorization: `Bearer ${getCookie("jwt")}`,
-      },
+      headers: { Authorization: `Bearer ${getCookie("jwt")}` },
     }
   );
 
   if (!res.ok) {
-    console.error("Erro ao buscar partidas:", await res.text());
+    console.error("Error searching matches:", await res.text());
     return;
   }
 
   const games = await res.json();
+
   const matches = games.matches as Match[];
+  console.log("Matches fetched:", matches);
+  if (!matches || matches.length === 0) {
+    console.warn("No matches found for tournament:", tournamentId);
+    return;
+  }
+  const chartPoints = generateChartPoints(matches);
   matches.forEach((match, index) => {
     const matchId = `match_${match.round_number}_${index}`;
     const parentId =
-      match.round_number > 1
-        ? `match_${match.round_number - 1}_${Math.floor(index / 2)}`
+      Number(match.round_number) > 1
+        ? `match_${Number(match.round_number) - 1}_${Math.floor(index / 2)}`
         : undefined;
 
     chartPoints.push({
@@ -96,8 +101,7 @@ async function renderBracket(tournamentId: string) {
     });
   });
 
-  const chartPoints = generateChartPoints(matches);
-
+  console.log("Chart points:", chartPoints);
   JSC.chart("bracketChart", {
     type: "organizational",
     series: [{ points: chartPoints }],
@@ -129,12 +133,12 @@ function generateChartPoints(matches: Match[]) {
   const rounds = groupBy(matches, "round_number");
   const chartPoints: any[] = [];
   const matchIdsByRound: Record<number, string[]> = {};
-
   Object.keys(rounds)
     .map(Number)
     .sort((a, b) => a - b)
     .forEach((round) => {
       const roundMatches = rounds[round];
+      console.log(`Round ${round} matches:`, roundMatches);
       matchIdsByRound[round] = [];
 
       roundMatches.forEach((match, index) => {
@@ -144,7 +148,7 @@ function generateChartPoints(matches: Match[]) {
         const parentRound = matchIdsByRound[round - 1];
         const parentId =
           round > 1 && parentRound
-            ? parentRound[Math.floor(index / 2)] // Liga aos jogos da ronda anterior
+            ? parentRound[Math.floor(index / 2)]
             : undefined;
 
         chartPoints.push({

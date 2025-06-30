@@ -135,6 +135,7 @@ export default function runMigrations(db) {
     player1 INTEGER,
     player2 INTEGER,
     scheduled_date DATETIME,
+    round_number INTEGER,
     FOREIGN KEY (tournament_id) REFERENCES tournaments(tournament_id),
     FOREIGN KEY (player1) REFERENCES users(id),
     FOREIGN KEY (player2) REFERENCES users(id)
