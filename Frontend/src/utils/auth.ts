@@ -4,13 +4,18 @@ import { API_BASE_URL } from "../config.js";
 
 // Helper function to set cookies with appropriate security settings
 const setCookieSecure = (name: string, value: string, options: string = "") => {
-	// Check if we're on HTTPS or localhost
-	const isSecure = window.location.protocol === 'https:' || 
-	                 window.location.hostname === 'localhost' || 
-	                 window.location.hostname === '127.0.0.1';
+	// For local network access over HTTP, don't use secure flag
+	const isLocalNetwork = window.location.hostname.startsWith('10.') || 
+	                       window.location.hostname.startsWith('192.168.') ||
+	                       window.location.hostname.startsWith('172.') ||
+	                       window.location.hostname === 'localhost' || 
+	                       window.location.hostname === '127.0.0.1';
 	
-	const secureFlag = isSecure ? '; secure' : '';
-	const sameSiteFlag = isSecure ? '; samesite=lax' : '; samesite=strict';
+	const isHTTPS = window.location.protocol === 'https:';
+	
+	// Only use secure flag if we're on HTTPS AND not on local network
+	const secureFlag = (isHTTPS && !isLocalNetwork) ? '; secure' : '';
+	const sameSiteFlag = '; samesite=lax';
 	
 	document.cookie = `${name}=${value}; path=/${secureFlag}${sameSiteFlag}${options ? '; ' + options : ''}`;
 };
