@@ -55,11 +55,13 @@ install:
 deploy:
 	@echo "$(GREEN)Deploying with docker-compose...$(NC)"
 	@touch $(BACKEND_DIR)/db/data.db && chmod 777 $(BACKEND_DIR)/db/data.db
+	@docker image prune -f
+	@docker compose down --remove-orphans
 	@docker compose up --build
 
 # Stop all services
 stop:
 	@echo "$(GREEN)Stopping all services...$(NC)"
-	@docker-compose down
+	@docker compose down
 
 .PHONY: all status clean fclean install watch build deploy stop
