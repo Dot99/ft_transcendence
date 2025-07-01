@@ -6,7 +6,7 @@
         "watch": "cp src/index.html dist/index.html && cp -r src/images dist/images && tsc -w",
         "dev": "ts-node-dev --respawn --transpile-only src/index.ts"
     },
-    "devDependencies": {
+    "dependencies": {
         "@tsconfig/recommended": "1.0.1",
         "@types/jest": "27.0.2",
         "@types/node": "^22.15.29",
