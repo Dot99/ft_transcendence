@@ -10,7 +10,7 @@ import {
 	startSession,
 } from "./utils/auth.js";
 import { forohforTemplate } from "./templates/FourOhFour.js";
-import { getCookie, deleteCookie } from "./utils/auth.js";
+import { getCookie, deleteCookie, setCookieSecure } from "./utils/auth.js";
 import { getLang, setLang, t } from "./locales/localeMiddleware.js";
 import { loadMenuPage } from "./menu.js";
 import { startOnlineWebSocket } from "./utils/ws.js";
@@ -174,7 +174,7 @@ const openTwoFAModal = (userId: string): void => {
 			});
 			if (res.ok) {
 				const data = await res.json();
-				document.cookie = `jwt=${data.token}; path=/;`;
+				setCookieSecure('jwt', data.token);
 				modal.style.display = "none";
 				startOnlineWebSocket();
 				startSession();
@@ -232,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	const params = new URLSearchParams(window.location.search);
 	const token = params.get("token");
 	if (token) {
-		document.cookie = `jwt=${token}; path=/;`;
+		setCookieSecure('jwt', token);
 		window.history.replaceState({}, "", window.location.pathname);
 		handlePostAuth();
 		return;

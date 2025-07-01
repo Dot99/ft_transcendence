@@ -2,6 +2,19 @@ import { getLang, t } from "../locales/localeMiddleware.js";
 import { stopOnlineWebSocket } from "./ws.js";
 import { API_BASE_URL } from "../config.js";
 
+// Helper function to set cookies with appropriate security settings
+const setCookieSecure = (name: string, value: string, options: string = "") => {
+	// Check if we're on HTTPS or localhost
+	const isSecure = window.location.protocol === 'https:' || 
+	                 window.location.hostname === 'localhost' || 
+	                 window.location.hostname === '127.0.0.1';
+	
+	const secureFlag = isSecure ? '; secure' : '';
+	const sameSiteFlag = isSecure ? '; samesite=lax' : '; samesite=strict';
+	
+	document.cookie = `${name}=${value}; path=/${secureFlag}${sameSiteFlag}${options ? '; ' + options : ''}`;
+};
+
 // Types
 interface LoginResponse {
 	token?: string;
@@ -68,7 +81,7 @@ export const login = async (): Promise<void> => {
 			setInputError(usernameInput, false);
 			setInputError(passwordInput, false);
 			errorElement.textContent = "";
-			document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
+			setCookieSecure('jwt', data.token);
 			(window as any).handlePostAuth?.();
 		} else {
 			throw new Error("Login failed: " + (data?.message || "Unknown error"));
@@ -118,11 +131,10 @@ export const register = async (): Promise<void> => {
 		}
 		const data: RegisterResponse = await response.json();
 		if (data.success) {
-			document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
+			setCookieSecure('jwt', data.token!);
 			setInputError(usernameInput, false);
 			setInputError(passwordInput, false);
 			errorElement.textContent = "";
-			document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
 			(window as any).handlePostAuth?.();
 		} else {
 			throw new Error(data?.message || "Unknown error");
@@ -210,6 +222,8 @@ export function getCookie(name: string): string | undefined {
 export function deleteCookie(name: string): void {
 	document.cookie = `${name}=; Max-Age=0; path=/;`;
 }
+
+export { setCookieSecure };
 
 export function getUserIdFromToken(): number | null {
 	const token = getCookie("jwt");
