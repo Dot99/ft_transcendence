@@ -331,6 +331,87 @@ async function getCustomization(request, reply) {
 	}
 }
 
+/**
+ * @description Create a game invitation to a friend
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @param {number} friendId - The friend's user ID
+ * @param {string} lang - The language
+ * @returns {Promise<void>}
+ */
+const createGameInvitation = async (request, reply, friendId, lang) => {
+	try {
+		const inviterId = request.user.id;
+		const result = await gameService.createGameInvitation(inviterId, friendId, lang);
+		
+		if (!result.success) {
+			return reply.code(400).send(result);
+		}
+
+		reply.send(result);
+	} catch (error) {
+		console.error("Internal Server Error:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * @description Respond to a game invitation (accept or decline)
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @param {number} invitationId - The invitation ID
+ * @param {boolean} accept - Whether to accept the invitation
+ * @param {string} lang - The language
+ * @returns {Promise<void>}
+ */
+const respondToGameInvitation = async (request, reply, invitationId, accept, lang) => {
+	try {
+		const userId = request.user.id;
+		const result = await gameService.respondToGameInvitation(invitationId, userId, accept, lang);
+		
+		if (!result.success) {
+			return reply.code(400).send(result);
+		}
+
+		reply.send(result);
+	} catch (error) {
+		console.error("Internal Server Error:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * @description Get pending game invitations for current user
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @param {string} lang - The language
+ * @returns {Promise<void>}
+ */
+const getPendingGameInvitations = async (request, reply, lang) => {
+	try {
+		const userId = request.user.id;
+		const result = await gameService.getPendingGameInvitations(userId, lang);
+		
+		if (!result.success) {
+			return reply.code(400).send(result);
+		}
+
+		reply.send(result);
+	} catch (error) {
+		console.error("Internal Server Error:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
 export default {
 	getAllGames,
 	getGameById,
@@ -346,4 +427,7 @@ export default {
 	getAllTournaments,
 	createTournament,
 	joinTournament,
+	createGameInvitation,
+	getPendingGameInvitations,
+	respondToGameInvitation,
 };

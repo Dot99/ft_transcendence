@@ -157,4 +157,18 @@ export default function runMigrations(db) {
     end_time DATETIME,
     FOREIGN KEY (user_id) REFERENCES users(id)
     )`);
+
+	// Game Invitations
+	db.run(`
+    CREATE TABLE IF NOT EXISTS game_invitations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      inviter_id INTEGER NOT NULL,
+      invitee_id INTEGER NOT NULL,
+      status TEXT CHECK(status IN ('pending', 'accepted', 'declined', 'expired')) DEFAULT 'pending',
+      game_id TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      responded_at DATETIME,
+      FOREIGN KEY (inviter_id) REFERENCES users(id),
+      FOREIGN KEY (invitee_id) REFERENCES users(id)
+    )`);
 }

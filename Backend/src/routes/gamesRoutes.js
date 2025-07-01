@@ -316,4 +316,85 @@ export default async function (fastify, opts) {
         request.lang
       ),
   });
+  /**
+   * @name createGameInvitation
+   * @description Create a game invitation to a friend
+   * @route POST /games/invite/{friendId}
+   * @group Games
+   * @param {string} friendId - Friend's user id
+   * @returns {Object} 200 - Invitation created successfully
+   * @returns {Error} 400 - Bad request
+   * @returns {Error} 401 - Unauthorized
+   * @returns {Error} 404 - Friend not found
+   * @returns {Error} 500 - Internal server error
+   * @security JWT
+   */
+  fastify.post("/games/invite/:friendId", {
+    schema: {
+      params: paramsJsonSchema,
+    },
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) =>
+      await gamesController.createGameInvitation(
+        request,
+        reply,
+        request.params.friendId,
+        request.lang
+      ),
+  });
+
+  /**
+   * @name getPendingGameInvitations
+   * @description Get pending game invitations for current user
+   * @route GET /games/invitations/pending
+   * @group Games
+   * @returns {Object} 200 - Array of pending invitations
+   * @returns {Error} 401 - Unauthorized
+   * @returns {Error} 500 - Internal server error
+   * @security JWT
+   */
+  fastify.get("/games/invitations/pending", {
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) =>
+      await gamesController.getPendingGameInvitations(
+        request,
+        reply,
+        request.lang
+      ),
+  });
+
+  /**
+   * @name respondToGameInvitation
+   * @description Accept or decline a game invitation
+   * @route POST /games/invitation/{invitationId}/respond
+   * @group Games
+   * @param {string} invitationId - Invitation id
+   * @returns {Object} 200 - Response processed successfully
+   * @returns {Error} 400 - Bad request
+   * @returns {Error} 401 - Unauthorized
+   * @returns {Error} 404 - Invitation not found
+   * @returns {Error} 500 - Internal server error
+   * @security JWT
+   */
+  fastify.post("/games/invitation/:invitationId/respond", {
+    schema: {
+      params: paramsJsonSchema,
+      body: {
+        type: "object",
+        required: ["accept"],
+        properties: {
+          accept: { type: "boolean" }
+        }
+      }
+    },
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) =>
+      await gamesController.respondToGameInvitation(
+        request,
+        reply,
+        request.params.invitationId,
+        request.body.accept,
+        request.lang
+      ),
+  });
 }

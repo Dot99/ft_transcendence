@@ -3,6 +3,7 @@ import { getUserById } from "../services/usersServices.js";
 const onlineUsers = new Set();
 const connections = new Set();
 const gameRooms = new Map(); // gameId -> { player1: conn, player2: conn, gameState: {...} }
+const userConnections = new Map(); // userId -> connection
 
 function broadcastOnlineUsers() {
 	const userIds = Array.from(onlineUsers);
@@ -11,6 +12,26 @@ function broadcastOnlineUsers() {
 		try {
 			conn.send(message);
 		} catch (e) {}
+	}
+}
+
+export function sendGameInvitationNotification(userId, invitation) {
+	const connection = userConnections.get(userId);
+	if (connection && connection.readyState === 1) { // WebSocket.OPEN
+		try {
+			// Check if this is an invitation acceptance notification
+			if (invitation.type === "invitationAccepted") {
+				connection.send(JSON.stringify(invitation));
+			} else {
+				// Regular game invitation
+				connection.send(JSON.stringify({
+					type: "gameInvitation",
+					invitation: invitation
+				}));
+			}
+		} catch (e) {
+			console.error("Failed to send game invitation notification:", e);
+		}
 	}
 }
 
@@ -39,6 +60,7 @@ export default async function (fastify) {
 			
 			onlineUsers.add(userId);
 			connections.add(connection);
+			userConnections.set(userId, connection);
 			broadcastOnlineUsers();
 			
 			// If gameId is provided, add to game room
@@ -186,6 +208,7 @@ export default async function (fastify) {
 		connection.on("close", () => {
 			onlineUsers.delete(userId);
 			connections.delete(connection);
+			userConnections.delete(userId);
 			broadcastOnlineUsers();
 			
 			// Remove from game room and notify other player

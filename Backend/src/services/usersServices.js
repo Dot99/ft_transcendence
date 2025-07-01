@@ -614,7 +614,6 @@ export function getOnlineUsers(lang = "en") {
 
 export function joinMatchmaking(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		console.log(`[MATCHMAKING] User ${userId} attempting to join matchmaking`);
 		
 		// Use a database transaction to prevent race conditions
 		db.serialize(() => {
@@ -711,8 +710,6 @@ export function joinMatchmaking(userId, lang = "en") {
 												console.error("DB error committing:", err);
 												return reject(err);
 											}
-											
-											console.log(`[MATCHMAKING] User ${userId} added to waiting queue`);
 											resolve({ success: true, waiting: true });
 										});
 									}

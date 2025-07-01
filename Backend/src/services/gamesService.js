@@ -1,5 +1,7 @@
 import db from "../../db/dataBase.js";
 import { messages } from "../locales/messages.js";
+import { v4 as uuidv4 } from "uuid";
+import { sendGameInvitationNotification } from "../routes/wsRoutes.js";
 
 export function getAllGames() {
   return new Promise((resolve, reject) => {
@@ -365,6 +367,208 @@ export function getCustomization(userId, lang = "en") {
           });
         }
         resolve({ success: true, customization: row });
+      }
+    );
+  });
+}
+
+/**
+ * Create a game invitation to a friend
+ * @param {number} inviterId - The user ID of the person sending the invitation
+ * @param {number} inviteeId - The user ID of the person receiving the invitation
+ * @param {string} lang - The language for error messages
+ * @returns {Promise<Object>} - The result of the operation
+ */
+export function createGameInvitation(inviterId, inviteeId, lang = "en") {
+  return new Promise((resolve, reject) => {
+    // First check if they are friends
+    db.get(
+      `SELECT * FROM friends 
+       WHERE ((user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)) 
+       AND status = 'accepted'`,
+      [inviterId, inviteeId, inviteeId, inviterId],
+      (err, friendship) => {
+        if (err) {
+          return reject({ success: false, error: err.message });
+        }
+        
+        if (!friendship) {
+          return resolve({ 
+            success: false, 
+            error: messages[lang].notFriends || "You are not friends with this user" 
+          });
+        }
+
+        // Check if there's already a pending invitation
+        db.get(
+          `SELECT * FROM game_invitations 
+           WHERE inviter_id = ? AND invitee_id = ? AND status = 'pending'`,
+          [inviterId, inviteeId],
+          (err, existingInvitation) => {
+            if (err) {
+              return reject({ success: false, error: err.message });
+            }
+            
+            if (existingInvitation) {
+              return resolve({ 
+                success: false, 
+                error: messages[lang].invitationAlreadySent || "Invitation already sent" 
+              });
+            }
+
+            // Create the game invitation
+            const gameId = uuidv4();
+            db.run(
+              `INSERT INTO game_invitations (inviter_id, invitee_id, game_id) 
+               VALUES (?, ?, ?)`,
+              [inviterId, inviteeId, gameId],
+              function(err) {
+                if (err) {
+                  return reject({ success: false, error: err.message });
+                }
+
+                // Get inviter username for the response
+                db.get(
+                  "SELECT username FROM users WHERE id = ?",
+                  [inviterId],
+                  (err, inviter) => {
+                    if (err) {
+                      return reject({ success: false, error: err.message });
+                    }
+
+                    // Notify the invitee about the new game invitation
+                    // Send real-time notification to the invitee
+                    sendGameInvitationNotification(inviteeId, {
+                      id: this.lastID,
+                      inviter_id: inviterId,
+                      invitee_id: inviteeId,
+                      game_id: gameId,
+                      status: "pending",
+                      inviter_username: inviter.username
+                    });
+
+                    resolve({ 
+                      success: true, 
+                      invitation: {
+                        id: this.lastID,
+                        game_id: gameId
+                      },
+                      message: messages[lang].invitationSent || "Game invitation sent!" 
+                    });
+                  }
+                );
+              }
+            );
+          }
+        );
+      }
+    );
+  });
+}
+
+/**
+ * Respond to a game invitation (accept or decline)
+ * @param {number} invitationId - The invitation ID
+ * @param {number} userId - The user ID of the person responding
+ * @param {boolean} accept - Whether to accept the invitation
+ * @param {string} lang - The language for error messages
+ * @returns {Promise<Object>} - The result of the operation
+ */
+export function respondToGameInvitation(invitationId, userId, accept, lang = "en") {
+  return new Promise((resolve, reject) => {
+    // Get the invitation
+    db.get(
+      `SELECT gi.*, u.username as inviter_username 
+       FROM game_invitations gi
+       JOIN users u ON gi.inviter_id = u.id
+       WHERE gi.id = ? AND gi.invitee_id = ? AND gi.status = 'pending'`,
+      [invitationId, userId],
+      (err, invitation) => {
+        if (err) {
+          return reject({ success: false, error: err.message });
+        }
+        
+        if (!invitation) {
+          return resolve({ 
+            success: false, 
+            error: messages[lang].invitationNotFound || "Invitation not found or already responded to" 
+          });
+        }
+
+        const newStatus = accept ? 'accepted' : 'declined';
+        
+        // Update the invitation status
+        db.run(
+          `UPDATE game_invitations 
+           SET status = ?, responded_at = CURRENT_TIMESTAMP 
+           WHERE id = ?`,
+          [newStatus, invitationId],
+          function(err) {
+            if (err) {
+              return reject({ success: false, error: err.message });
+            }
+
+            const result = {
+              success: true,
+              accepted: accept,
+              gameId: accept ? invitation.game_id : null,
+              inviterUsername: invitation.inviter_username,
+              message: accept 
+                ? (messages[lang].invitationAccepted || "Game invitation accepted!") 
+                : (messages[lang].invitationDeclined || "Game invitation declined")
+            };
+
+            // If invitation was accepted, notify the inviter to join the game
+            if (accept) {
+              // Get the invitee's username to send in the notification
+              db.get(
+                "SELECT username FROM users WHERE id = ?",
+                [userId],
+                (err, invitee) => {
+                  if (!err && invitee) {
+                    sendGameInvitationNotification(invitation.inviter_id, {
+                      type: "invitationAccepted",
+                      gameId: invitation.game_id,
+                      inviteeUsername: invitee.username,
+                      message: `${invitee.username} accepted your game invitation!`
+                    });
+                  }
+                }
+              );
+            }
+
+            resolve(result);
+          }
+        );
+      }
+    );
+  });
+}
+
+/**
+ * Get pending game invitations for a user
+ * @param {number} userId - The user ID
+ * @param {string} lang - The language for error messages
+ * @returns {Promise<Object>} - The result of the operation
+ */
+export function getPendingGameInvitations(userId, lang = "en") {
+  return new Promise((resolve, reject) => {
+    db.all(
+      `SELECT gi.*, u.username as inviter_username 
+       FROM game_invitations gi
+       JOIN users u ON gi.inviter_id = u.id
+       WHERE gi.invitee_id = ? AND gi.status = 'pending'
+       ORDER BY gi.created_at DESC`,
+      [userId],
+      (err, invitations) => {
+        if (err) {
+          return reject({ success: false, error: err.message });
+        }
+        
+        resolve({ 
+          success: true, 
+          invitations: invitations || [] 
+        });
       }
     );
   });
