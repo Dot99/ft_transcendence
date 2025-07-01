@@ -1,3 +1,5 @@
+import { getUserById } from "../services/usersServices.js";
+
 const onlineUsers = new Set();
 const connections = new Set();
 const gameRooms = new Map(); // gameId -> { player1: conn, player2: conn, gameState: {...} }
@@ -61,23 +63,36 @@ export default async function (fastify) {
 				}
 				
 				const room = gameRooms.get(gameId);
+				
+				// Get user info from database
+				const userResult = await getUserById(userId);
+				const username = userResult.success ? userResult.user.username : `Player${userId}`;
+				
 				if (!room.player1) {
-					room.player1 = { connection, userId, side: 'left' };
+					room.player1 = { connection, userId, side: 'left', username };
 				} else if (!room.player2) {
-					room.player2 = { connection, userId, side: 'right' };
+					room.player2 = { connection, userId, side: 'right', username };
 				}
 				
 				// Notify both players when room is ready
 				if (room.player1 && room.player2) {
-					// Send individual messages to each player with their correct side
+					// Send individual messages to each player with their correct side and player names
 					const readyMessageLeft = JSON.stringify({ 
 						type: "gameReady", 
 						yourSide: 'left',
+						leftPlayerName: room.player1.username,
+						rightPlayerName: room.player2.username,
+						leftPlayerId: room.player1.userId,
+						rightPlayerId: room.player2.userId,
 						gameState: room.gameState
 					});
 					const readyMessageRight = JSON.stringify({ 
 						type: "gameReady", 
 						yourSide: 'right',
+						leftPlayerName: room.player1.username,
+						rightPlayerName: room.player2.username,
+						leftPlayerId: room.player1.userId,
+						rightPlayerId: room.player2.userId,
 						gameState: room.gameState
 					});
 					

@@ -538,8 +538,13 @@ export const loadMenuPage = async (): Promise<void> => {
 
 	if (btnPvP) {
 		btnPvP.addEventListener("click", async () => {
+			// Prevent multiple modals from being created
+			if (document.querySelector('.matchmaking-modal')) {
+				return;
+			}
 			// Show searching modal/spinner
 			const searchingModal = document.createElement("div");
+			searchingModal.className = "matchmaking-modal";
 			searchingModal.innerHTML = `
             <div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
                 <div class="bg-[#001B26] border-4 border-[#4CF190] rounded-xl p-8 flex flex-col items-center shadow-2xl">
@@ -551,57 +556,81 @@ export const loadMenuPage = async (): Promise<void> => {
         `;
 			document.body.appendChild(searchingModal);
 
-			// Join matchmaking
-			const res = await fetch(`${API_BASE_URL}/matchmaking/join`, {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${getCookie("jwt")}`,
-				},
-			});
-			if (!res.ok) {
-				alert("Failed to join matchmaking.");
-				document.body.removeChild(searchingModal);
-				return;
-			}
 			let polling = true;
-			// Cancel matchmaking
-			searchingModal
-				.querySelector("#cancelMatchmaking")
-				?.addEventListener("click", async () => {
-					polling = false;
+			// Function to clean up modal and stop polling
+			const cleanupMatchmaking = async () => {
+				polling = false;
+				
+				try {
 					await fetch(`${API_BASE_URL}/matchmaking/leave`, {
 						method: "POST",
 						headers: {
 							Authorization: `Bearer ${getCookie("jwt")}`,
 						},
 					});
+				} catch (e) {
+					console.log("Failed to leave matchmaking:", e);
+				}
+				
+				if (searchingModal.parentNode) {
 					document.body.removeChild(searchingModal);
-				});
+				}
+			};
 
-			// Poll for match found
-			while (polling) {
-				await new Promise((r) => setTimeout(r, 2000));
-				const matchRes = await fetch(
-					`${API_BASE_URL}/users/matchmaking/status`,
-					{
-						headers: {
-							Authorization: `Bearer ${getCookie("jwt")}`,
-						},
-					}
-				);
-				if (matchRes.ok) {
-					const data = await matchRes.json();
-					const status = data.matchmakingStatus;
-					// Only proceed if matched AND has a valid opponent username
-					if (status && status.matched && status.opponentUsername && status.gameId) {
-						polling = false;
-						document.body.removeChild(searchingModal);
-						// Store opponent info and game ID for multiplayer
-						sessionStorage.setItem("pvpOpponent", status.opponentUsername);
-						sessionStorage.setItem("gameId", status.gameId);
-						window.dispatchEvent(new Event("loadPlayPage"));
+			// Cancel matchmaking button
+			searchingModal
+				.querySelector("#cancelMatchmaking")
+				?.addEventListener("click", cleanupMatchmaking);
+
+			try {
+				// Join matchmaking
+				const res = await fetch(`${API_BASE_URL}/matchmaking/join`, {
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${getCookie("jwt")}`,
+					},
+				});
+				
+				if (!res.ok) {
+					alert("Failed to join matchmaking.");
+					await cleanupMatchmaking();
+					return;
+				}
+
+				// Poll for match found
+				while (polling) {
+					await new Promise((r) => setTimeout(r, 2000));
+					
+					if (!polling) break;
+					
+					const matchRes = await fetch(
+						`${API_BASE_URL}/users/matchmaking/status`,
+						{
+							headers: {
+								Authorization: `Bearer ${getCookie("jwt")}`,
+							},
+						}
+					);
+					if (matchRes.ok) {
+						const data = await matchRes.json();
+						const status = data.matchmakingStatus;
+						// Only proceed if matched AND has a valid opponent username
+						if (status && status.matched && status.opponentUsername && status.gameId) {
+							polling = false;
+							if (searchingModal.parentNode) {
+								document.body.removeChild(searchingModal);
+							}
+							// Store opponent info and game ID for multiplayer
+							sessionStorage.setItem("pvpOpponent", status.opponentUsername);
+							sessionStorage.setItem("gameId", status.gameId);
+							window.dispatchEvent(new Event("loadPlayPage"));
+							break;
+						}
 					}
 				}
+			} catch (e) {
+				console.log("Matchmaking error:", e);
+				await cleanupMatchmaking();
 			}
 		});
 	}

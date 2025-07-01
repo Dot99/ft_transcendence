@@ -263,10 +263,10 @@ export function getUserFriends(userId, lang = "en") {
 		}
 		db.all(
 			`SELECT id, username FROM users WHERE id IN (
-                SELECT friend_id FROM friends WHERE user_id = ? AND status = 'accepted'
-                UNION
-                SELECT user_id FROM friends WHERE friend_id = ? AND status = 'accepted'
-            )`,
+				SELECT friend_id FROM friends WHERE user_id = ? AND status = 'accepted'
+				UNION
+				SELECT user_id FROM friends WHERE friend_id = ? AND status = 'accepted'
+			)`,
 			[userId, userId],
 			(err, rows) => {
 				if (err) {
@@ -496,7 +496,7 @@ export function endSession(userId) {
 	return new Promise((resolve, reject) => {
 		db.run(
 			`UPDATE sessions SET end_time = CURRENT_TIMESTAMP
-       WHERE user_id = ? AND end_time IS NULL`,
+	   WHERE user_id = ? AND end_time IS NULL`,
 			[userId],
 			function (err) {
 				if (err) return reject(err);
@@ -510,9 +510,9 @@ export function getTotalHours(userId) {
 	return new Promise((resolve, reject) => {
 		db.get(
 			`SELECT SUM(
-         (JULIANDAY(COALESCE(end_time, CURRENT_TIMESTAMP)) - JULIANDAY(start_time)) * 24
-       ) as hours
-       FROM sessions WHERE user_id = ?`,
+		 (JULIANDAY(COALESCE(end_time, CURRENT_TIMESTAMP)) - JULIANDAY(start_time)) * 24
+	   ) as hours
+	   FROM sessions WHERE user_id = ?`,
 			[userId],
 			(err, row) => {
 				if (err) return reject(err);
@@ -616,107 +616,153 @@ export function joinMatchmaking(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
 		console.log(`[MATCHMAKING] User ${userId} attempting to join matchmaking`);
 		
-		// First, clean up any existing entries for this user (in case they're re-joining)
-		db.run(
-			"DELETE FROM matchmaking WHERE user_id = ?",
-			[userId],
-			(err) => {
-				if (err) {
-					console.error("DB error cleaning up user matchmaking:", err);
-					return reject(err);
-				}
-
-				// Simple approach: just look for any waiting opponent
-				db.get(
-					"SELECT m.*, u.username FROM matchmaking m JOIN users u ON m.user_id = u.id WHERE m.status = 'waiting' AND m.user_id != ? ORDER BY m.created_at ASC LIMIT 1",
-					[userId],
-					(err, waitingOpponent) => {
-						if (err) {
-							console.error("DB error:", err);
-							return reject(err);
-						}
-
-						console.log(`[MATCHMAKING] Search result for user ${userId}:`, waitingOpponent);
-
-						if (waitingOpponent) {
-							console.log(`[MATCHMAKING] Found opponent for user ${userId}: user ${waitingOpponent.user_id} (${waitingOpponent.username})`);
-							// Match found! Update both players
-							const gameId = Date.now().toString();
-							db.run(
-								"UPDATE matchmaking SET status = 'matched', game_id = ? WHERE user_id = ?",
-								[gameId, waitingOpponent.user_id],
-								function (err) {
-									if (err) {
-										console.error("DB error:", err);
-										return reject(err);
-									}
-									// Add current user as matched
-									db.run(
-										"INSERT INTO matchmaking (user_id, status, game_id) VALUES (?, 'matched', ?)",
-										[userId, gameId],
-										function (err) {
-											if (err) {
-												console.error("DB error:", err);
-												return reject(err);
+		// Use a database transaction to prevent race conditions
+		db.serialize(() => {
+			db.run("BEGIN TRANSACTION");
+			// First, clean up any existing entries for this user (in case they're re-joining)
+			db.run(
+				"DELETE FROM matchmaking WHERE user_id = ?",
+				[userId],
+				(err) => {
+					if (err) {
+						console.error("DB error cleaning up user matchmaking:", err);
+						db.run("ROLLBACK");
+						return reject(err);
+					}
+					// Look for any waiting opponent with atomic update
+					db.get(
+						"SELECT m.*, u.username FROM matchmaking m JOIN users u ON m.user_id = u.id WHERE m.status = 'waiting' AND m.user_id != ? ORDER BY m.created_at ASC LIMIT 1",
+						[userId],
+						(err, waitingOpponent) => {
+							if (err) {
+								console.error("DB error:", err);
+								db.run("ROLLBACK");
+								return reject(err);
+							}
+							if (waitingOpponent) {
+								// Match found! Update both players atomically
+								const gameId = `game_${Date.now()}_${userId}_${waitingOpponent.user_id}`;
+								
+								// Update waiting opponent to matched
+								db.run(
+									"UPDATE matchmaking SET status = 'matched', game_id = ? WHERE user_id = ? AND status = 'waiting'",
+									[gameId, waitingOpponent.user_id],
+									function (err) {
+										if (err) {
+											console.error("DB error updating opponent:", err);
+											db.run("ROLLBACK");
+											return reject(err);
+										}
+										
+										if (this.changes === 0) {
+											// Opponent was already matched by someone else, try again
+											db.run("ROLLBACK");
+											return setTimeout(() => joinMatchmaking(userId, lang).then(resolve).catch(reject), 10);
+										}
+										// Add current user as matched
+										db.run(
+											"INSERT INTO matchmaking (user_id, status, game_id) VALUES (?, 'matched', ?)",
+											[userId, gameId],
+											function (err) {
+												if (err) {
+													console.error("DB error inserting user:", err);
+													db.run("ROLLBACK");
+													return reject(err);
+												}
+												
+												db.run("COMMIT", (err) => {
+													if (err) {
+														console.error("DB error committing:", err);
+														return reject(err);
+													}
+													resolve({ 
+														success: true, 
+														matched: true, 
+														gameId: gameId,
+														opponentId: waitingOpponent.user_id,
+														opponentUsername: waitingOpponent.username
+													});
+												});
 											}
-											console.log(`[MATCHMAKING] Successfully matched users ${userId} and ${waitingOpponent.user_id} with game ID ${gameId}`);
-											resolve({ 
-												success: true, 
-												matched: true, 
-												gameId: gameId,
-												opponentId: waitingOpponent.user_id,
-												opponentUsername: waitingOpponent.username
+										);
+									}
+								);
+							} else {
+								// No opponent found, add to waiting queue
+								db.run(
+									"INSERT INTO matchmaking (user_id, status) VALUES (?, 'waiting')",
+									[userId],
+									function (err) {
+										if (err) {
+											console.error("DB error:", err);
+											db.run("ROLLBACK");
+											return reject(err);
+										}
+										if (this.changes === 0) {
+											db.run("ROLLBACK");
+											return resolve({
+												success: false,
+												message: messages[lang].failJoinMM,
 											});
 										}
-									);
-								}
-							);
-						} else {
-							console.log(`[MATCHMAKING] No opponents found for user ${userId}, adding to waiting queue`);
-							// No opponent found, add to waiting queue
-							db.run(
-								"INSERT INTO matchmaking (user_id, status) VALUES (?, 'waiting')",
-								[userId],
-								function (err) {
-									if (err) {
-										console.error("DB error:", err);
-										return reject(err);
-									}
-									if (this.changes === 0) {
-										return resolve({
-											success: false,
-											message: messages[lang].failJoinMM,
+										
+										db.run("COMMIT", (err) => {
+											if (err) {
+												console.error("DB error committing:", err);
+												return reject(err);
+											}
+											
+											console.log(`[MATCHMAKING] User ${userId} added to waiting queue`);
+											resolve({ success: true, waiting: true });
 										});
 									}
-									console.log(`[MATCHMAKING] User ${userId} added to waiting queue`);
-									resolve({ success: true, waiting: true });
-								}
-							);
+								);
+							}
 						}
-					}
-				);
-			}
-		);
+					);
+				}
+			);
+		});
 	});
 }
 
 export function leaveMatchmaking(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		db.run(
-			"DELETE FROM matchmaking WHERE user_id = ?",
+		// First get the user's current matchmaking status to check if they were in a matched game
+		db.get(
+			"SELECT * FROM matchmaking WHERE user_id = ?",
 			[userId],
-			function (err) {
+			(err, userStatus) => {
 				if (err) {
-					console.error("DB error:", err);
+					console.error("DB error getting user status:", err);
 					return reject(err);
 				}
-				if (this.changes === 0) {
-					return resolve({
-						success: false,
-						message: messages[lang].failLeaveMM,
-					});
+				// If user was matched, also clean up their opponent's entry
+				if (userStatus && userStatus.status === 'matched' && userStatus.game_id) {
+					db.run(
+						"DELETE FROM matchmaking WHERE game_id = ?",
+						[userStatus.game_id],
+						function (err) {
+							if (err) {
+								return reject(err);
+							}
+							resolve({ success: true });
+						}
+					);
+				} else {
+					// Just remove the user's entry
+					db.run(
+						"DELETE FROM matchmaking WHERE user_id = ?",
+						[userId],
+						function (err) {
+							if (err) {
+								console.error("DB error:", err);
+								return reject(err);
+							}
+							resolve({ success: true });
+						}
+					);
 				}
-				resolve({ success: true });
 			}
 		);
 	});
