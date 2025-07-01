@@ -248,12 +248,14 @@ export const loadPlayPage = async (): Promise<void> => {
         }
         // Right paddle  collision
         if (
-            ballX + ballWidth >= fieldWidth - 32 &&
-            ballY + ballHeight > rightY &&
-            ballY < rightY + paddleHeight
+            ballX + ballWidth >= fieldWidth - paddleWidth && 
+            ballY + ballHeight >= rightY && ballY <= rightY + paddleHeight
         ) {
             ballVX = -Math.abs(ballVX);
             ballVY += (ballY + ballHeight / 2 - (rightY + paddleHeight / 2)) * 0.15;
+            if (!isPvP) {
+                botAI.recordHit(); // Track successful hit
+            }
         }
 
         // Score
@@ -283,6 +285,13 @@ export const loadPlayPage = async (): Promise<void> => {
                 resetBall();
             }
             return;
+        }
+
+        // When ball goes past right paddle (bot misses):
+        if (ballX >= fieldWidth) {
+            if (!isPvP) {
+                botAI.recordMiss(); // Track miss
+            }
         }
     }
 
