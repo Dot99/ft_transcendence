@@ -18,6 +18,10 @@ const getElement = <T extends HTMLElement>(id: string): T => {
 const fetchUsername = async (): Promise<string> => {
 	try {
 		const userId = getUserIdFromToken();
+		if (!userId) {
+			console.log("No user ID available, cannot fetch username");
+			return "Username";
+		}
 		const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
 			headers: {
 				Authorization: `Bearer ${getCookie("jwt")}`,
@@ -89,6 +93,10 @@ export const loadMenuPage = async (): Promise<void> => {
 	async function applyGameCustomizations() {
 		try {
 			const userId = getUserIdFromToken();
+			if (!userId) {
+				console.log("No user ID available, skipping customization load");
+				return;
+			}
 			const response = await fetch(
 				`${API_BASE_URL}/games/costumization/${userId}`,
 				{

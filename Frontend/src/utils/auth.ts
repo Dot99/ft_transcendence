@@ -5,19 +5,27 @@ import { API_BASE_URL } from "../config.js";
 // Helper function to set cookies with appropriate security settings
 const setCookieSecure = (name: string, value: string, options: string = "") => {
 	// For local network access over HTTP, don't use secure flag
-	const isLocalNetwork = window.location.hostname.startsWith('10.') || 
-	                       window.location.hostname.startsWith('192.168.') ||
-	                       window.location.hostname.startsWith('172.') ||
-	                       window.location.hostname === 'localhost' || 
-	                       window.location.hostname === '127.0.0.1';
+	const hostname = window.location.hostname;
+	const protocol = window.location.protocol;
 	
-	const isHTTPS = window.location.protocol === 'https:';
+	console.log(`Setting cookie - hostname: ${hostname}, protocol: ${protocol}`);
 	
-	// Only use secure flag if we're on HTTPS AND not on local network
-	const secureFlag = (isHTTPS && !isLocalNetwork) ? '; secure' : '';
+	const isLocalNetwork = hostname.startsWith('10.') || 
+	                       hostname.startsWith('192.168.') ||
+	                       hostname.startsWith('172.') ||
+	                       hostname === 'localhost' || 
+	                       hostname === '127.0.0.1';
+	
+	const isHTTPS = protocol === 'https:';
+	
+	// Never use secure flag for local network or HTTP
+	const secureFlag = '';  // Always empty for now to fix the issue
 	const sameSiteFlag = '; samesite=lax';
 	
-	document.cookie = `${name}=${value}; path=/${secureFlag}${sameSiteFlag}${options ? '; ' + options : ''}`;
+	const cookieString = `${name}=${value}; path=/${secureFlag}${sameSiteFlag}${options ? '; ' + options : ''}`;
+	console.log(`Setting cookie: ${cookieString}`);
+	
+	document.cookie = cookieString;
 };
 
 // Types
@@ -179,23 +187,43 @@ export const logout = async (): Promise<void> => {
 
 //TODO: CHANGE THIS TO BE INGAME
 export async function startSession() {
-	await fetch(`${API_BASE_URL}/users/session/start`, {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${getCookie("jwt")}`,
-			"Accept-Language": getLang(),
-		},
-	});
+	const token = getCookie("jwt");
+	if (!token) {
+		console.log("No JWT token available, cannot start session");
+		return;
+	}
+	
+	try {
+		await fetch(`${API_BASE_URL}/users/session/start`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"Accept-Language": getLang(),
+			},
+		});
+	} catch (error) {
+		console.error("Failed to start session:", error);
+	}
 }
 
 export async function endSession() {
-	await fetch(`${API_BASE_URL}/users/session/stop`, {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${getCookie("jwt")}`,
-			"Accept-Language": getLang(),
-		},
-	});
+	const token = getCookie("jwt");
+	if (!token) {
+		console.log("No JWT token available, cannot end session");
+		return;
+	}
+	
+	try {
+		await fetch(`${API_BASE_URL}/users/session/stop`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"Accept-Language": getLang(),
+			},
+		});
+	} catch (error) {
+		console.error("Failed to end session:", error);
+	}
 }
 
 export const handleGoogleSignIn = (): void => {
@@ -204,7 +232,29 @@ export const handleGoogleSignIn = (): void => {
 
 export const isAuthenticated = (): boolean => {
 	const token = getCookie("jwt");
-	return !!token;
+	if (!token) return false;
+	
+	try {
+		// Check if token is properly formatted (has 3 parts)
+		const parts = token.split('.');
+		if (parts.length !== 3) return false;
+		
+		// Check if token is not expired
+		const payload = JSON.parse(atob(parts[1]));
+		const currentTime = Math.floor(Date.now() / 1000);
+		
+		if (payload.exp && payload.exp < currentTime) {
+			// Token is expired, remove it
+			deleteCookie("jwt");
+			return false;
+		}
+		
+		return true;
+	} catch (error) {
+		// Token is malformed, remove it
+		deleteCookie("jwt");
+		return false;
+	}
 };
 
 export const isTwoFactorEnabled = (): boolean => {
