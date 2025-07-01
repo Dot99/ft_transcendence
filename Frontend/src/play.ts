@@ -1,4 +1,7 @@
 import { playTemplate } from "./templates/playTemplate.js";
+import { BotAI, KeyState } from "./botAI.js";
+
+const botAI = new BotAI();
 
 // Utility to get element by id
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -81,6 +84,9 @@ export const loadPlayPage = async (): Promise<void> => {
     let paused = false;
     let opponentDisplayName = "Bot";
 
+    const playMode = sessionStorage.getItem("playMode") || "ai";
+    const isPvP = playMode === "pvp";
+
     function setBannerGlow(winnerSide: "left" | "right" | null) {
         getElement("player-banner").classList.remove("winner-banner");
         getElement("bot-banner").classList.remove("winner-banner");
@@ -139,6 +145,7 @@ export const loadPlayPage = async (): Promise<void> => {
             hideWinnerModal();
             clearBannerGlow();
             winner = null;
+            hasGameStartedOnce = false;
             resetGame();
         }
         if (!gameStarted && !winner && !hasGameStartedOnce) {
@@ -182,29 +189,39 @@ export const loadPlayPage = async (): Promise<void> => {
         ctx.fill();
     }
 
-    function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.closePath();
-        ctx.fill();
-    }
+    let lastBotUpdate = 0;
 
     function update() {
         if (keys.w) leftY -= paddleSpeed;
         if (keys.s) leftY += paddleSpeed;
         leftY = Math.max(0, Math.min(fieldHeight - paddleHeight, leftY));
 
-        if (keys.ArrowUp) rightY -= paddleSpeed;
-        if (keys.ArrowDown) rightY += paddleSpeed;
-        rightY = Math.max(0, Math.min(fieldHeight - paddleHeight, rightY));
+        if (!isPvP) {
+            const now = Date.now();
+            // AI can only update its view once per second (constraint requirement)
+            if (now - lastBotUpdate >= 1000) {
+                botAI.update({
+                    ballX, ballY, ballVX, ballVY, ballWidth, ballHeight,
+                    rightY, paddleHeight, fieldWidth, fieldHeight
+                }, keys);
+                lastBotUpdate = now;
+            } else {
+                // Between AI updates, maintain the last movement decision
+                const currentKeys = botAI.getCurrentKeys();
+                keys.ArrowUp = currentKeys.ArrowUp;
+                keys.ArrowDown = currentKeys.ArrowDown;
+            }
+            
+            // Bot movement continues based on AI decision
+            if (keys.ArrowUp) rightY -= paddleSpeed;
+            if (keys.ArrowDown) rightY += paddleSpeed;
+            rightY = Math.max(0, Math.min(fieldHeight - paddleHeight, rightY));
+        } else {
+            // Human controls
+            if (keys.ArrowUp) rightY -= paddleSpeed;
+            if (keys.ArrowDown) rightY += paddleSpeed;
+            rightY = Math.max(0, Math.min(fieldHeight - paddleHeight, rightY));
+        }
 
         if (!gameStarted) return;
 

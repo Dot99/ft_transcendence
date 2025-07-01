@@ -527,6 +527,7 @@ export const loadMenuPage = async (): Promise<void> => {
 	const btnPvAI = document.getElementById("btnPvAI");
 	if (btnPvAI) {
 		btnPvAI.addEventListener("click", () => {
+			sessionStorage.setItem("playMode", "ai");
 			window.dispatchEvent(new Event("loadPlayPage"));
 		});
 	}
@@ -560,6 +561,7 @@ export const loadMenuPage = async (): Promise<void> => {
 				return;
 			}
 			// Store opponent username in sessionStorage and load play page
+			sessionStorage.setItem("playMode", "pvp");
 			sessionStorage.setItem("pvpOpponent", opponent);
 			pvpModal.classList.add("hidden");
 			window.dispatchEvent(new Event("loadPlayPage"));
