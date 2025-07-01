@@ -9,4 +9,6 @@ COPY . .
 
 RUN npm run build
 
-CMD ["tail", "-f", "/dev/null"]
+EXPOSE 3001
+
+CMD ["npm", "run", "serve"]

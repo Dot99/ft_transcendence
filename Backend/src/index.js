@@ -19,7 +19,7 @@ const fastify = Fastify({
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 await fastify.register(cors, {
-	origin: process.env.FRONTEND_URL,
+	origin: [process.env.FRONTEND_URL, /^http:\/\/10\.11\.9\.\d+:3001$/],
 	methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
 	allowedHeaders: ["Content-Type", "Authorization"],
 	credentials: true,

@@ -5,8 +5,7 @@ import { getLang, setLang, t } from "./locales/localeMiddleware.js";
 import { loadFriendsPage } from "./friends.js";
 import { loadMenuPage } from "./menu.js";
 import { stopOnlineWebSocket } from "./utils/ws.js";
-
-const API_BASE_URL = "http://localhost:3000/api";
+import { API_BASE_URL } from "./config.js";
 
 interface User {
 	username: string;

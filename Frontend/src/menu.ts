@@ -3,8 +3,7 @@ import { loadProfilePage } from "./profile.js";
 import { deleteCookie } from "./utils/auth.js";
 import { loadHomePage } from "./index.js";
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
-
-const API_BASE_URL = "http://localhost:3000/api";
+import { API_BASE_URL } from "./config.js";
 import { loadPlayPage } from "./play.js";
 import { stopOnlineWebSocket } from "./utils/ws.js";
 

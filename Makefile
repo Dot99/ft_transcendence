@@ -1,14 +1,17 @@
 # Variables
 FRONTEND_DIR = Frontend
 BACKEND_DIR = Backend
+LOCAL_IP = 10.11.9.1
 
 # Colors for terminal output
 GREEN = \033[0;32m
 RED = \033[0;31m
+YELLOW = \033[1;33m
+BLUE = \033[0;34m
 NC = \033[0m # No Color
 
 # Default target
-all: deploy
+all: network
 
 # Check status of services
 status:
@@ -51,9 +54,25 @@ install:
 	@echo "$(GREEN)Dependencies installed!$(NC)"
 
 
-# Deploy using docker-compose
+# Deploy using docker-compose (local development)
 deploy:
-	@echo "$(GREEN)Deploying with docker-compose...$(NC)"
+	@echo "$(GREEN)Deploying locally with docker-compose...$(NC)"
+	@echo "$(YELLOW)Note: This will only be accessible on localhost$(NC)"
+	@touch $(BACKEND_DIR)/db/data.db && chmod 777 $(BACKEND_DIR)/db/data.db
+	@docker image prune -f
+	@docker compose down --remove-orphans
+	@docker compose up --build
+
+# Deploy for network access
+network:
+	@echo "$(GREEN)🚀 Starting ft_transcendence for network access...$(NC)"
+	@echo "$(BLUE)📱 Your application will be accessible at:$(NC)"
+	@echo "   $(YELLOW)http://$(LOCAL_IP):3001$(NC) (Frontend)"
+	@echo "   $(YELLOW)http://$(LOCAL_IP):3000$(NC) (Backend API)"
+	@echo ""
+	@echo "$(BLUE)🌐 Other devices on your network can access:$(NC)"
+	@echo "   $(YELLOW)http://$(LOCAL_IP):3001$(NC)"
+	@echo ""
 	@touch $(BACKEND_DIR)/db/data.db && chmod 777 $(BACKEND_DIR)/db/data.db
 	@docker image prune -f
 	@docker compose down --remove-orphans
@@ -64,4 +83,4 @@ stop:
 	@echo "$(GREEN)Stopping all services...$(NC)"
 	@docker compose down
 
-.PHONY: all status clean fclean install watch build deploy stop
+.PHONY: all status clean fclean install watch build deploy network stop

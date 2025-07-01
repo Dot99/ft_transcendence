@@ -1,6 +1,6 @@
 import { getLang, t } from "../locales/localeMiddleware.js";
 import { stopOnlineWebSocket } from "./ws.js";
-const API_BASE_URL = "http://localhost:3000/api";
+import { API_BASE_URL } from "../config.js";
 
 // Types
 interface LoginResponse {

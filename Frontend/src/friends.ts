@@ -2,8 +2,7 @@ import { friendsTemplate } from "./templates/friendsTemplate.js";
 import { getLang } from "./locales/localeMiddleware.js";
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
 import { getOnlineUserIds, subscribeOnlineUsers, subscribeGameInvitations, unsubscribeGameInvitations } from "./utils/ws.js";
-
-const API_BASE_URL = "http://localhost:3000/api";
+import { API_BASE_URL } from "./config.js";
 let onlineUserIds: number[] = [];
 
 interface Friend {

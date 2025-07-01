@@ -3,10 +3,14 @@ services:
     build: 
       context: ./Frontend
       dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
     volumes:
       - ./Frontend:/app
       - /app/node_modules
-    command: sh -c "npm run watch"
+    command: sh -c "npm run serve"
+    environment:
+      - BACKEND_URL=http://10.11.9.1:3000
     depends_on:
       - backend
     networks:

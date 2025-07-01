@@ -1,4 +1,5 @@
 import { getCookie } from "./auth.js";
+import { WS_BASE_URL } from "../config.js";
 
 let ws: WebSocket | null = null;
 let onlineUserIds: number[] = [];
@@ -55,7 +56,7 @@ export function startOnlineWebSocket() {
 	if (!token) return;
 	if (ws && ws.readyState === WebSocket.OPEN) return;
 
-	ws = new WebSocket(`ws://localhost:3000/api/ws?token=${token}`);
+	ws = new WebSocket(`${WS_BASE_URL}/api/ws?token=${token}`);
 
 	ws.onopen = () => {
 		//console.log("WebSocket connected (user online)");

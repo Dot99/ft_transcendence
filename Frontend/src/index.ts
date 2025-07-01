@@ -14,8 +14,7 @@ import { getCookie, deleteCookie } from "./utils/auth.js";
 import { getLang, setLang, t } from "./locales/localeMiddleware.js";
 import { loadMenuPage } from "./menu.js";
 import { startOnlineWebSocket } from "./utils/ws.js";
-
-const API_BASE_URL = "http://localhost:3000/api";
+import { API_BASE_URL } from "./config.js";
 
 // DOM Elements
 const getElement = <T extends HTMLElement>(id: string): T => {
