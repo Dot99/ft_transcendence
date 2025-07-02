@@ -1,5 +1,5 @@
 import { playTemplate } from "./templates/playTemplate.js";
-import { BotAI, KeyState } from "./botAI.js";
+import { BotAI } from "./botAI.js";
 
 const botAI = new BotAI();
 
@@ -198,26 +198,22 @@ export const loadPlayPage = async (): Promise<void> => {
 
         if (!isPvP) {
             const now = Date.now();
-            // AI can only update its view once per second (constraint requirement)
             if (now - lastBotUpdate >= 1000) {
                 botAI.update({
                     ballX, ballY, ballVX, ballVY, ballWidth, ballHeight,
                     rightY, paddleHeight, fieldWidth, fieldHeight
-                }, keys);
+                });
                 lastBotUpdate = now;
-            } else {
-                // Between AI updates, maintain the last movement decision
-                const currentKeys = botAI.getCurrentKeys();
-                keys.ArrowUp = currentKeys.ArrowUp;
-                keys.ArrowDown = currentKeys.ArrowDown;
             }
             
-            // Bot movement continues based on AI decision
+            const currentKeys = botAI.getCurrentKeys();
+            keys.ArrowUp = currentKeys.ArrowUp;
+            keys.ArrowDown = currentKeys.ArrowDown;
+            
             if (keys.ArrowUp) rightY -= paddleSpeed;
             if (keys.ArrowDown) rightY += paddleSpeed;
             rightY = Math.max(0, Math.min(fieldHeight - paddleHeight, rightY));
         } else {
-            // Human controls
             if (keys.ArrowUp) rightY -= paddleSpeed;
             if (keys.ArrowDown) rightY += paddleSpeed;
             rightY = Math.max(0, Math.min(fieldHeight - paddleHeight, rightY));
@@ -228,40 +224,23 @@ export const loadPlayPage = async (): Promise<void> => {
         ballX += ballVX;
         ballY += ballVY;
 
+        // Top/bottom wall bounces
         if (ballY <= 0) {
             ballY = 0;
-            ballVY *= -1;
+            ballVY = Math.abs(ballVY);
         }
         if (ballY + ballHeight >= fieldHeight) {
             ballY = fieldHeight - ballHeight;
-            ballVY *= -1;
+            ballVY = -Math.abs(ballVY);
         }
 
-        // Left paddle collision
-        if (
-            ballX <= 32 &&
-            ballY + ballHeight > leftY &&
-            ballY < leftY + paddleHeight
-        ) {
-            ballVX = Math.abs(ballVX);
-            ballVY += (ballY + ballHeight / 2 - (leftY + paddleHeight / 2)) * 0.15;
-        }
-        // Right paddle  collision
-        if (
-            ballX + ballWidth >= fieldWidth - paddleWidth && 
-            ballY + ballHeight >= rightY && ballY <= rightY + paddleHeight
-        ) {
-            ballVX = -Math.abs(ballVX);
-            ballVY += (ballY + ballHeight / 2 - (rightY + paddleHeight / 2)) * 0.15;
-            if (!isPvP) {
-                botAI.recordHit(); // Track successful hit
-            }
-        }
-
-        // Score
-        if (ballX < 0 && !winner) {
+        // Left side scoring (right player scores)
+        if (ballX + ballWidth < 0 && !winner) {
             rightScore++;
             updateScoreDisplay();
+            if (!isPvP) {
+                botAI.recordMiss();
+            }
 
             if (rightScore >= 3) {
                 winner = "right";
@@ -273,9 +252,12 @@ export const loadPlayPage = async (): Promise<void> => {
             }
             return;
         }
-        if (ballX + ballWidth > fieldWidth && !winner) {
+        
+        // Right side scoring (left player scores)
+        if (ballX > fieldWidth && !winner) {
             leftScore++;
             updateScoreDisplay();
+            
             if (leftScore >= 3) {
                 winner = "left";
                 setBannerGlow("left");
@@ -287,10 +269,132 @@ export const loadPlayPage = async (): Promise<void> => {
             return;
         }
 
-        // When ball goes past right paddle (bot misses):
-        if (ballX >= fieldWidth) {
+        if (ballX >= fieldWidth - 10 && ballVX > 0 && !winner) {
+            leftScore++;
+            updateScoreDisplay();
+            
+            if (leftScore >= 3) {
+                winner = "left";
+                setBannerGlow("left");
+                showWinnerModal("left");
+                gameStarted = false;
+            } else {
+                resetBall();
+            }
+            return;
+        }
+
+        if (ballX + ballWidth <= 10 && ballVX < 0 && !winner) {
+            rightScore++;
+            updateScoreDisplay();
             if (!isPvP) {
-                botAI.recordMiss(); // Track miss
+                botAI.recordMiss();
+            }
+
+            if (rightScore >= 3) {
+                winner = "right";
+                setBannerGlow("right");
+                showWinnerModal("right");
+                gameStarted = false;
+            } else {
+                resetBall();
+            }
+            return;
+        }
+
+        // Left paddle collision
+        if (ballVX < 0 && 
+            ballX <= 16 + paddleWidth && 
+            ballX + ballWidth > 16 && 
+            ballY + ballHeight > leftY && 
+            ballY < leftY + paddleHeight) {
+            
+            ballVX = Math.abs(ballVX);
+            
+            // Calculate where the ball hit on the paddle
+            const paddleCenter = leftY + paddleHeight / 2;
+            const ballCenter = ballY + ballHeight / 2;
+            const hitPosition = (ballCenter - paddleCenter) / (paddleHeight / 2);
+            
+            // Get paddle velocity
+            let paddleVelocity = 0;
+            if (keys.w) paddleVelocity = -paddleSpeed;
+            if (keys.s) paddleVelocity = paddleSpeed;
+            
+            // Check for spike conditions
+            const edgeThreshold = 0.7;
+            const minPaddleSpeed = 4;
+            const isEdgeHit = Math.abs(hitPosition) > edgeThreshold;
+            const isFastPaddle = Math.abs(paddleVelocity) >= minPaddleSpeed;
+            const isSpikeHit = isEdgeHit && isFastPaddle;
+            
+            if (isSpikeHit) {
+                const spikeMultiplier = 3.5;
+                const spikeDirection = hitPosition > 0 ? 1 : -1;
+                
+                ballVY = spikeDirection * spikeMultiplier * Math.abs(paddleVelocity);
+                ballVX *= 1.3;
+                
+                // Spike randomness
+                ballVY += (Math.random() - 0.5) * 2;
+            } else {
+                const angleInfluence = hitPosition * 1.8;
+                const paddleInfluence = paddleVelocity * 0.4;
+                
+                ballVY += angleInfluence + paddleInfluence;
+            }
+            
+            ballVX = Math.max(3, Math.min(9, ballVX));
+            ballVY = Math.max(-10, Math.min(10, ballVY));
+        }
+
+        // Right paddle collision
+        if (ballVX > 0 && 
+            ballX + ballWidth >= fieldWidth - 16 - paddleWidth && 
+            ballX < fieldWidth - 16 && 
+            ballY + ballHeight > rightY && 
+            ballY < rightY + paddleHeight) {
+            
+            ballVX = -Math.abs(ballVX);
+            
+            // Calculate where the ball hit on the paddle
+            const paddleCenter = rightY + paddleHeight / 2;
+            const ballCenter = ballY + ballHeight / 2;
+            const hitPosition = (ballCenter - paddleCenter) / (paddleHeight / 2);
+            
+            // Get paddle velocity
+            let paddleVelocity = 0;
+            if (keys.ArrowUp) paddleVelocity = -paddleSpeed;
+            if (keys.ArrowDown) paddleVelocity = paddleSpeed;
+            
+            // Check for spike conditions
+            const edgeThreshold = 0.7;
+            const minPaddleSpeed = 4;
+            const isEdgeHit = Math.abs(hitPosition) > edgeThreshold;
+            const isFastPaddle = Math.abs(paddleVelocity) >= minPaddleSpeed;
+            const isSpikeHit = isEdgeHit && isFastPaddle;
+            
+            if (isSpikeHit) {
+                const spikeMultiplier = 3.5;
+                const spikeDirection = hitPosition > 0 ? 1 : -1;
+                
+                ballVY = spikeDirection * spikeMultiplier * Math.abs(paddleVelocity);
+                ballVX *= 1.3;
+                
+                // Spike randomness
+                ballVY += (Math.random() - 0.5) * 2;
+            } else {
+                const angleInfluence = hitPosition * 1.8;
+                const paddleInfluence = paddleVelocity * 0.4;
+                
+                ballVY += angleInfluence + paddleInfluence;
+            }
+            
+            ballVX = Math.max(-9, Math.min(-3, ballVX));
+            ballVY = Math.max(-10, Math.min(10, ballVY));
+            
+            if (!isPvP) {
+                botAI.recordHit();
             }
         }
     }
@@ -357,7 +461,7 @@ export const loadPlayPage = async (): Promise<void> => {
         requestAnimationFrame(loop);
     }
 
-    // Keyboard controls and start game on spacebar
+    // Keyboard controls
     window.addEventListener("keydown", (e) => {
         if (e.code === "Space") startGame();
         if (e.key === "w" || e.key === "s" || e.key === "ArrowUp" || e.key === "ArrowDown") {
@@ -380,11 +484,9 @@ export const loadPlayPage = async (): Promise<void> => {
     const opponentUsername = sessionStorage.getItem("pvpOpponent");
     if (opponentUsername) {
         opponentDisplayName = opponentUsername;
-        // Set the right panel username to the input by default
         const botUsernameElem = document.getElementById("bot-username") as HTMLElement | null;
         if (botUsernameElem) botUsernameElem.textContent = opponentUsername;
 
-        // Try to fetch opponent profile from backend
         try {
             const res = await fetch(`/api/users/username/${encodeURIComponent(opponentUsername)}`, {
                 headers: {
