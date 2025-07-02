@@ -1,6 +1,6 @@
 import { menuTemplate } from "./templates/menuTemplate.js";
 import { loadProfilePage } from "./profile.js";
-import { deleteCookie } from "./utils/auth.js";
+import { deleteCookie, isAuthenticated } from "./utils/auth.js";
 import { loadHomePage } from "./index.js";
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
 import { API_BASE_URL } from "./config.js";
@@ -19,25 +19,38 @@ const fetchUsername = async (): Promise<string> => {
 	try {
 		const userId = getUserIdFromToken();
 		if (!userId) {
-			console.log("No user ID available, cannot fetch username");
+			return "Username";
+		}
+		const token = getCookie("jwt");
+		if (!token) {
 			return "Username";
 		}
 		const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
 			headers: {
-				Authorization: `Bearer ${getCookie("jwt")}`,
+				Authorization: `Bearer ${token}`,
 			},
 			credentials: "include",
 		});
-		if (!res.ok) throw new Error("Failed to fetch username");
+		
+		if (!res.ok) {
+			throw new Error("Failed to fetch username");
+		}
+		
 		const data = await res.json();
 		return data.user.username || "Username";
-	} catch {
+	} catch (error) {
 		return "Username";
 	}
 };
 
 // Load Menu Page
-export const loadMenuPage = async (): Promise<void> => {
+export const loadMenuPage = async (): Promise<void> => {	
+	// Check authentication before proceeding
+	if (!isAuthenticated()) {
+		loadHomePage();
+		return;
+	}
+	
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = menuTemplate;
 	applyGameCustomizations();

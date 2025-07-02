@@ -1,5 +1,6 @@
 import { playTemplate } from "./templates/playTemplate.js";
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
+import { WS_BASE_URL } from "./config.js";
 
 // Utility to get element by id
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -218,10 +219,7 @@ export const loadPlayPage = async (): Promise<void> => {
 
 	function connectToGame() {
 		if (!gameId) return;
-		
-		const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-		const wsUrl = `${protocol}//${window.location.host}/api/ws?token=${getCookie("jwt")}&gameId=${gameId}`;
-		
+		const wsUrl = `${WS_BASE_URL}/api/ws?token=${getCookie("jwt")}&gameId=${gameId}`;		
 		ws = new WebSocket(wsUrl);
 		
 		ws.onopen = () => {

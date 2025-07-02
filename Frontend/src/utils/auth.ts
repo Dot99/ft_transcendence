@@ -4,27 +4,9 @@ import { API_BASE_URL } from "../config.js";
 
 // Helper function to set cookies with appropriate security settings
 const setCookieSecure = (name: string, value: string, options: string = "") => {
-	// For local network access over HTTP, don't use secure flag
 	const hostname = window.location.hostname;
 	const protocol = window.location.protocol;
-	
-	console.log(`Setting cookie - hostname: ${hostname}, protocol: ${protocol}`);
-	
-	const isLocalNetwork = hostname.startsWith('10.') || 
-	                       hostname.startsWith('192.168.') ||
-	                       hostname.startsWith('172.') ||
-	                       hostname === 'localhost' || 
-	                       hostname === '127.0.0.1';
-	
-	const isHTTPS = protocol === 'https:';
-	
-	// Never use secure flag for local network or HTTP
-	const secureFlag = '';  // Always empty for now to fix the issue
-	const sameSiteFlag = '; samesite=lax';
-	
-	const cookieString = `${name}=${value}; path=/${secureFlag}${sameSiteFlag}${options ? '; ' + options : ''}`;
-	console.log(`Setting cookie: ${cookieString}`);
-	
+	const cookieString = `${name}=${value}; path=/; samesite=lax`;
 	document.cookie = cookieString;
 };
 
@@ -237,21 +219,22 @@ export const isAuthenticated = (): boolean => {
 	try {
 		// Check if token is properly formatted (has 3 parts)
 		const parts = token.split('.');
-		if (parts.length !== 3) return false;
+		if (parts.length !== 3) {
+			return false;
+		}
 		
 		// Check if token is not expired
 		const payload = JSON.parse(atob(parts[1]));
 		const currentTime = Math.floor(Date.now() / 1000);
 		
 		if (payload.exp && payload.exp < currentTime) {
-			// Token is expired, remove it
 			deleteCookie("jwt");
 			return false;
 		}
 		
+		console.log("isAuthenticated: token valid");
 		return true;
 	} catch (error) {
-		// Token is malformed, remove it
 		deleteCookie("jwt");
 		return false;
 	}
@@ -276,6 +259,17 @@ export function getCookie(name: string): string | undefined {
 
 export function deleteCookie(name: string): void {
 	document.cookie = `${name}=; Max-Age=0; path=/;`;
+	document.cookie = `${name}=; Max-Age=0; path=/; domain=${window.location.hostname};`;
+	document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+	document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname};`;
+}
+
+// Function to clear all authentication cookies on startup
+export function clearAuthCookies(): void {
+	deleteCookie("jwt");
+	deleteCookie("auth");
+	deleteCookie("token");
+	deleteCookie("session");
 }
 
 export { setCookieSecure };
@@ -286,8 +280,9 @@ export function getUserIdFromToken(): number | null {
 	try {
 		const payload = token.split(".")[1];
 		const decoded = JSON.parse(atob(payload));
-		return decoded.id || decoded.sub || null;
-	} catch {
+		const userId = decoded.id || decoded.sub || null;
+		return userId;
+	} catch (error) {
 		return null;
 	}
 }

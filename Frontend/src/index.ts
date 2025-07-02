@@ -8,6 +8,7 @@ import {
 	isTwoFactorEnabled,
 	getUserIdFromToken,
 	startSession,
+	clearAuthCookies,
 } from "./utils/auth.js";
 import { forohforTemplate } from "./templates/FourOhFour.js";
 import { getCookie, deleteCookie, setCookieSecure } from "./utils/auth.js";
@@ -229,15 +230,21 @@ function handlePostAuth() {
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
+	// Clear any potentially problematic cookies first
+	clearAuthCookies();
 	const params = new URLSearchParams(window.location.search);
 	const token = params.get("token");
+
 	if (token) {
+		console.log("Token found in URL, setting cookie and handling auth");
 		setCookieSecure('jwt', token);
 		window.history.replaceState({}, "", window.location.pathname);
 		handlePostAuth();
 		return;
 	}
-	if (!isAuthenticated()) {
+	
+	const isAuth = isAuthenticated();
+	if (!isAuth) {
 		loadHomePage();
 	} else {
 		handlePostAuth();
