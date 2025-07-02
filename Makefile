@@ -65,7 +65,7 @@ deploy:
 	@docker compose up --build
 
 # Deploy for network access
-network:
+network: fclean
 	@echo "$(GREEN)🚀 Starting ft_transcendence for network access...$(NC)"
 	@echo "$(BLUE)📱 Your application will be accessible at:$(NC)"
 	@echo "   $(YELLOW)http://$(LOCAL_IP):3001$(NC) (Frontend)"
