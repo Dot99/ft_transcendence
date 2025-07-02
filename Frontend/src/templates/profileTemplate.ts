@@ -40,10 +40,6 @@ export const profileTemplate = `
             <!-- Middle - User info -->
             <div class="flex flex-col pt-4 w-full min-w-0">
                 <h1 id="name" class="text-[#4CF190] font-['Press_Start_2P'] text-[clamp(1rem,5vw,2rem)] mb-2 whitespace-nowrap w-full text-ellipsis overflow-hidden">Power Guido</h1>
-                <h2 id="username" class="text-[#4CF190] font-['Press_Start_2P'] text-xl opacity-80 mb-6">@powerguido</h2>
-                <div class="flex items-center gap-4 text-sm">
-                    <div id="email" class="font-mono text-white opacity-70">powerguido@gmail.com</div>
-                </div>
             </div>
             <!-- Time Played Section -->
             <div class="flex flex-col items-center justify-center gap-2 h-full pr-0 -mr-20 relative top-2">

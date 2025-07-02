@@ -573,3 +573,257 @@ export function getPendingGameInvitations(userId, lang = "en") {
     );
   });
 }
+
+export function saveGameResult(gameData, lang = "en") {
+  return new Promise((resolve, reject) => {
+    const { player1, player2, player1_score, player2_score, winner } = gameData;
+    
+    // Validate required fields
+    if (!player1 || !player2 || player1_score === undefined || player2_score === undefined) {
+      return resolve({
+        success: false,
+        message: messages[lang].invalidGameData || "Invalid game data"
+      });
+    }
+
+    // Insert the match result into the database
+    db.run(
+      `INSERT INTO match_history (player1, player2, player1_score, player2_score, winner) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [player1, player2, player1_score, player2_score, winner],
+      function(err) {
+        if (err) {
+          console.error("Error saving game result:", err);
+          reject({ success: false, error: err });
+        } else {
+          const matchId = this.lastID;
+          
+          // Update player stats
+          updatePlayerStats(player1, player2, winner, matchId)
+            .then(() => {
+              resolve({
+                success: true,
+                match_id: matchId,
+                message: messages[lang].gameSaved || "Game result saved successfully"
+              });
+            })
+            .catch((statsError) => {
+              console.error("Error updating player stats:", statsError);
+              // Game is saved but stats update failed - still return success
+              resolve({
+                success: true,
+                match_id: matchId,
+                message: messages[lang].gameSaved || "Game result saved successfully",
+                warning: "Stats update failed"
+              });
+            });
+        }
+      }
+    );
+  });
+}
+
+function updatePlayerStats(player1Id, player2Id, winnerId, matchId) {
+  return new Promise((resolve, reject) => {
+    // Update stats for both players
+    const updatePromises = [
+      updateSinglePlayerStats(player1Id, winnerId === player1Id),
+      updateSinglePlayerStats(player2Id, winnerId === player2Id)
+    ];
+    
+    Promise.all(updatePromises)
+      .then(() => resolve())
+      .catch(reject);
+  });
+}
+
+function updateSinglePlayerStats(playerId, isWinner) {
+  return new Promise((resolve, reject) => {
+    // First, ensure the player has a stats record
+    db.run(
+      `INSERT OR IGNORE INTO stats (player_id) VALUES (?)`,
+      [playerId],
+      (err) => {
+        if (err) {
+          return reject(err);
+        }
+        
+        // Get the player's current stats and recent match data for calculations
+        db.get(
+          `SELECT s.*, 
+                  (SELECT AVG(CASE 
+                    WHEN m.player1 = ? THEN m.player1_score 
+                    ELSE m.player2_score 
+                  END) FROM match_history m 
+                  WHERE m.player1 = ? OR m.player2 = ?) as current_avg_score
+           FROM stats s 
+           WHERE s.player_id = ?`,
+          [playerId, playerId, playerId, playerId],
+          (err, currentStats) => {
+            if (err) {
+              return reject(err);
+            }
+            
+            // Calculate win streak
+            calculateWinStreak(playerId)
+              .then((maxWinStreak) => {
+                // Update the stats with all calculated values
+                db.run(
+                  `UPDATE stats 
+                   SET total_matches = total_matches + 1,
+                       matches_won = matches_won + ?,
+                       matches_lost = matches_lost + ?,
+                       average_score = COALESCE(?, 0),
+                       win_streak_max = ?
+                   WHERE player_id = ?`,
+                  [
+                    isWinner ? 1 : 0, 
+                    isWinner ? 0 : 1, 
+                    currentStats?.current_avg_score || 0,
+                    Math.max(maxWinStreak, currentStats?.win_streak_max || 0),
+                    playerId
+                  ],
+                  (updateErr) => {
+                    if (updateErr) {
+                      reject(updateErr);
+                    } else {
+                      console.log(`Updated stats for player ${playerId}: win=${isWinner}, avg_score=${currentStats?.current_avg_score}, max_streak=${maxWinStreak}`);
+                      resolve();
+                    }
+                  }
+                );
+              })
+              .catch(reject);
+          }
+        );
+      }
+    );
+  });
+}
+
+function calculateWinStreak(playerId) {
+  return new Promise((resolve, reject) => {
+    // Get all matches for this player ordered by date (most recent first)
+    db.all(
+      `SELECT winner, match_date 
+       FROM match_history 
+       WHERE player1 = ? OR player2 = ? 
+       ORDER BY match_date DESC`,
+      [playerId, playerId],
+      (err, matches) => {
+        if (err) {
+          return reject(err);
+        }
+        
+        let currentStreak = 0;
+        let maxStreak = 0;
+        let lastResult = null;
+        
+        // Calculate win streaks
+        for (const match of matches) {
+          const isWin = match.winner === playerId;
+          
+          if (isWin) {
+            if (lastResult === null || lastResult === true) {
+              currentStreak++;
+            } else {
+              currentStreak = 1; // Reset streak
+            }
+            maxStreak = Math.max(maxStreak, currentStreak);
+          } else {
+            if (lastResult === true) {
+              currentStreak = 0;
+            }
+          }
+          
+          lastResult = isWin;
+        }
+        
+        resolve(maxStreak);
+      }
+    );
+  });
+}
+
+// Function to recalculate and fix all stats for a user (useful for debugging)
+export function recalculateUserStats(userId, lang = "en") {
+  return new Promise((resolve, reject) => {
+    console.log(`Recalculating stats for user ${userId}`);
+    
+    // Get all matches for this user
+    db.all(
+      `SELECT player1, player2, player1_score, player2_score, winner, match_date
+       FROM match_history 
+       WHERE player1 = ? OR player2 = ?
+       ORDER BY match_date ASC`,
+      [userId, userId],
+      (err, matches) => {
+        if (err) {
+          return reject(err);
+        }
+        
+        console.log(`Found ${matches.length} matches for user ${userId}`);
+        
+        let totalMatches = matches.length;
+        let matchesWon = 0;
+        let matchesLost = 0;
+        let totalScore = 0;
+        let maxWinStreak = 0;
+        let currentWinStreak = 0;
+        
+        // Calculate stats from all matches
+        for (const match of matches) {
+          const isPlayer1 = match.player1 === userId;
+          const userScore = isPlayer1 ? match.player1_score : match.player2_score;
+          const isWinner = match.winner === userId;
+          
+          totalScore += userScore;
+          
+          if (isWinner) {
+            matchesWon++;
+            currentWinStreak++;
+            maxWinStreak = Math.max(maxWinStreak, currentWinStreak);
+          } else {
+            matchesLost++;
+            currentWinStreak = 0;
+          }
+        }
+        
+        const averageScore = totalMatches > 0 ? (totalScore / totalMatches) : 0;
+        
+        console.log(`Calculated stats for user ${userId}:`, {
+          totalMatches,
+          matchesWon,
+          matchesLost,
+          averageScore,
+          maxWinStreak
+        });
+        
+        // Update or insert the stats
+        db.run(
+          `INSERT OR REPLACE INTO stats 
+           (player_id, total_matches, matches_won, matches_lost, average_score, win_streak_max, tournaments_won, leaderboard_position, current_tournament)
+           VALUES (?, ?, ?, ?, ?, ?, 0, NULL, NULL)`,
+          [userId, totalMatches, matchesWon, matchesLost, averageScore, maxWinStreak],
+          function(err) {
+            if (err) {
+              reject(err);
+            } else {
+              console.log(`Stats recalculated successfully for user ${userId}`);
+              resolve({
+                success: true,
+                stats: {
+                  total_matches: totalMatches,
+                  matches_won: matchesWon,
+                  matches_lost: matchesLost,
+                  average_score: averageScore,
+                  win_streak_max: maxWinStreak
+                }
+              });
+            }
+          }
+        );
+      }
+    );
+  });
+}

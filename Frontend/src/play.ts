@@ -1,6 +1,6 @@
 import { playTemplate } from "./templates/playTemplate.js";
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
-import { WS_BASE_URL } from "./config.js";
+import { WS_BASE_URL, API_BASE_URL } from "./config.js";
 
 // Utility to get element by id
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -19,7 +19,7 @@ export const loadPlayPage = async (): Promise<void> => {
 		const jwt = getCookie("jwt");
 		if (jwt) {
 			const userId = getUserIdFromToken();
-			const res = await fetch(`/api/users/${userId}`, {
+			const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
 				headers: {
 					Authorization: `Bearer ${jwt}`,
 				},
@@ -120,26 +120,25 @@ export const loadPlayPage = async (): Promise<void> => {
 	let opponentDisplayName = "Bot";
 	let leftPlayerName = "Player 1";
 	let rightPlayerName = "Player 2";
-	let leftPlayerCustomization = {
+	let currentUserCustomization = {
 		paddle_color: "#4CF190",
 		ball_color: "#4CF190", 
 		board_color: "#07303c",
-		border_color: "#4CF190"
-	};
-	let rightPlayerCustomization = {
-		paddle_color: "#4CF190",
-		ball_color: "#4CF190",
-		board_color: "#07303c", 
 		border_color: "#4CF190"
 	};
 	let isMultiplayer = false;
 	let playerSide: "left" | "right" = "left";
 	let ws: WebSocket | null = null;
 	let gameId: string | null = null;
+	let leftPlayerId: number | null = null;
+	let rightPlayerId: number | null = null;
 
 	// Check PvP
 	const opponentUsername = sessionStorage.getItem("pvpOpponent");
 	const gameIdFromSession = sessionStorage.getItem("gameId");
+	
+	// Load current user's customization first
+	await loadCurrentUserCustomization();
 	
 	if (opponentUsername && gameIdFromSession) {
 		isMultiplayer = true;
@@ -160,7 +159,7 @@ export const loadPlayPage = async (): Promise<void> => {
 
 	async function fetchUserCustomization(userId: number) {
 		try {
-			const res = await fetch(`/api/games/costumization/${userId}`, {
+			const res = await fetch(`${API_BASE_URL}/games/costumization/${userId}`, {
 				headers: {
 					Authorization: `Bearer ${getCookie("jwt")}`,
 				},
@@ -180,9 +179,27 @@ export const loadPlayPage = async (): Promise<void> => {
 		};
 	}
 
+	async function loadCurrentUserCustomization() {
+		try {
+			const userId = getUserIdFromToken();
+			if (userId) {
+				currentUserCustomization = await fetchUserCustomization(userId);
+				// Update the game area styling after loading new customization
+				setTimeout(() => {
+					updateGameAreaStyling();
+				}, 50); // Small delay to ensure DOM is ready
+			}
+		} catch (error) {
+			console.log("Error loading current user customization:", error);
+		}
+	}
+
+	// Function to refresh customization (can be called when user changes settings)
+	window.refreshGameCustomization = loadCurrentUserCustomization;
+
 	async function fetchUserProfile(userId: number) {
 		try {
-			const res = await fetch(`/api/users/${userId}`, {
+			const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
 				headers: {
 					Authorization: `Bearer ${getCookie("jwt")}`,
 				},
@@ -198,23 +215,95 @@ export const loadPlayPage = async (): Promise<void> => {
 	}
 
 	function updateGameAreaStyling() {
-		// Get current player's customization for border and background
-		const currentPlayerCustomization = isMultiplayer 
-			? (playerSide === "left" ? leftPlayerCustomization : rightPlayerCustomization)
-			: leftPlayerCustomization;
+		// Always use current user's customization for the game area styling
+		const safeCustomization = {
+			paddle_color: currentUserCustomization?.paddle_color || "#4CF190",
+			ball_color: currentUserCustomization?.ball_color || "#4CF190",
+			board_color: currentUserCustomization?.board_color || "#07303c",
+			border_color: currentUserCustomization?.border_color || "#4CF190"
+		};
 
-		// Update game area border and background
-		const gameArea = document.querySelector('.relative.w-\\[850px\\].h-\\[500px\\]') as HTMLElement;
-		if (gameArea) {
-			gameArea.style.borderColor = currentPlayerCustomization.border_color;
-			gameArea.style.backgroundColor = currentPlayerCustomization.board_color;
+		// Update the game area container - use the canvas parent which should be the game area
+		const canvas = document.getElementById('pong-canvas');
+		if (canvas && canvas.parentElement) {
+			const gameArea = canvas.parentElement;
+			gameArea.style.borderColor = safeCustomization.border_color;
+			gameArea.style.backgroundColor = safeCustomization.board_color;
 		}
 
-		// Update center line color
-		const centerLineDivs = document.querySelectorAll('.w-1.h-8.bg-\\[\\#4CF190\\]');
-		centerLineDivs.forEach(div => {
-			(div as HTMLElement).style.backgroundColor = currentPlayerCustomization.border_color;
+		// Update center line elements - find them more specifically
+		const centerLines = document.querySelectorAll('div[class*="w-1"][class*="h-8"][class*="bg-"]');
+		centerLines.forEach(line => {
+			(line as HTMLElement).style.backgroundColor = safeCustomization.border_color;
 		});
+		
+		// Update canvas background to match board color
+		if (canvas) {
+			canvas.style.backgroundColor = safeCustomization.board_color;
+		}
+	}
+
+	// Function to save PvP game results to the database
+	async function savePvPGameResult() {
+		console.log("savePvPGameResult called");
+		console.log("isMultiplayer:", isMultiplayer);
+		console.log("leftPlayerId:", leftPlayerId);
+		console.log("rightPlayerId:", rightPlayerId);
+		console.log("winner:", winner);
+		console.log("leftScore:", leftScore);
+		console.log("rightScore:", rightScore);
+		
+		// Only save results for multiplayer games
+		if (!isMultiplayer || !leftPlayerId || !rightPlayerId) {
+			console.log("Skipping save - not multiplayer or missing player IDs");
+			return;
+		}
+
+		try {
+			const jwt = getCookie("jwt");
+			if (!jwt) {
+				console.error("No JWT token available for saving game result");
+				return;
+			}
+
+			// Determine winner ID based on winner side
+			let winnerId = null;
+			if (winner === "left") {
+				winnerId = leftPlayerId;
+			} else if (winner === "right") {
+				winnerId = rightPlayerId;
+			}
+			// If winner is null, it's a tie (though pong typically doesn't have ties)
+
+			const gameData = {
+				player1: leftPlayerId,
+				player2: rightPlayerId,
+				player1_score: leftScore,
+				player2_score: rightScore,
+				winner: winnerId
+			};
+
+			console.log("Saving game result:", gameData);
+
+			const response = await fetch(`${API_BASE_URL}/games/save-result`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${jwt}`,
+				},
+				body: JSON.stringify(gameData),
+			});
+
+			if (response.ok) {
+				const result = await response.json();
+				console.log("Game result saved successfully:", result);
+			} else {
+				const error = await response.text();
+				console.error("Failed to save game result:", error);
+			}
+		} catch (error) {
+			console.error("Error saving game result:", error);
+		}
 	}
 
 	function connectToGame() {
@@ -232,6 +321,16 @@ export const loadPlayPage = async (): Promise<void> => {
 				
 				if (data.type === "gameReady") {
 					playerSide = data.yourSide;
+					// Store player IDs for saving game results
+					leftPlayerId = data.leftPlayerId;
+					rightPlayerId = data.rightPlayerId;
+					
+					// Set multiplayer flag if we have both player IDs
+					if (leftPlayerId && rightPlayerId) {
+						isMultiplayer = true;
+						console.log("Multiplayer game detected - will save results");
+					}
+					
 					// Set player names consistently - left panel = left player, right panel = right player
 					if (data.leftPlayerName && data.rightPlayerName) {
 						leftPlayerName = data.leftPlayerName;
@@ -239,39 +338,14 @@ export const loadPlayPage = async (): Promise<void> => {
 						getElement<HTMLElement>("player-username").textContent = leftPlayerName;
 						getElement<HTMLElement>("bot-username").textContent = rightPlayerName;
 						
-						// Fetch customization and profile data for both players
+						// Fetch profile data for both players (only for avatars)
 						if (data.leftPlayerId && data.rightPlayerId) {		
-							// Always reset customizations to avoid stale data
-							leftPlayerCustomization = {
-								paddle_color: "#4CF190",
-								ball_color: "#4CF190",
-								board_color: "#07303c",
-								border_color: "#4CF190"
-							};
-							rightPlayerCustomization = {
-								paddle_color: "#4CF190",
-								ball_color: "#4CF190",
-								board_color: "#07303c",
-								border_color: "#4CF190"
-							};
-							
-							// Fetch both players' data simultaneously and wait for both to complete
-							const leftPlayerPromise = Promise.all([
-								fetchUserCustomization(data.leftPlayerId),
-								fetchUserProfile(data.leftPlayerId)
-							]);
-							
-							const rightPlayerPromise = Promise.all([
-								fetchUserCustomization(data.rightPlayerId),
-								fetchUserProfile(data.rightPlayerId)
-							]);
+							// Fetch both players' profile data for avatars
+							const leftPlayerPromise = fetchUserProfile(data.leftPlayerId);
+							const rightPlayerPromise = fetchUserProfile(data.rightPlayerId);
 							
 							// Wait for both players' data to load
-							Promise.all([leftPlayerPromise, rightPlayerPromise]).then(([[leftCustom, leftProfile], [rightCustom, rightProfile]]) => {
-								// Update customizations
-								leftPlayerCustomization = leftCustom;
-								rightPlayerCustomization = rightCustom;
-								
+							Promise.all([leftPlayerPromise, rightPlayerPromise]).then(([leftProfile, rightProfile]) => {
 								// Preload and validate both avatar images before assigning
 								const preloadPromises = [];
 								
@@ -389,6 +463,10 @@ export const loadPlayPage = async (): Promise<void> => {
 						setBannerGlow(winner);
 						showWinnerModal(winner);
 						gameStarted = false;
+						// Save game result to database
+						savePvPGameResult().catch(error => {
+							console.error("Error saving game result:", error);
+						});
 					}
 				} else if (data.type === "opponentLeft") {
 					// Opponent left the game - you win!
@@ -397,7 +475,17 @@ export const loadPlayPage = async (): Promise<void> => {
 					if (winner) {
 						setBannerGlow(winner);
 						showWinnerModal(winner);
+						// Save game result to database
+						savePvPGameResult().catch(error => {
+							console.error("Error saving game result:", error);
+						});
 					}
+				} else if (data.type === "gamePaused") {
+					// Opponent paused the game
+					paused = true;
+				} else if (data.type === "gameResumed") {
+					// Opponent resumed the game  
+					paused = false;
 				}
 			} catch (e) {
 				console.error("WebSocket message parse error:", e);
@@ -455,10 +543,24 @@ export const loadPlayPage = async (): Promise<void> => {
 	giveUpBtn.addEventListener("click", () => {
 		giveUpModal.classList.remove("hidden");
 		paused = true;
+		
+		// In multiplayer, notify the opponent that the game is paused
+		if (isMultiplayer && ws) {
+			ws.send(JSON.stringify({
+				type: "pauseGame"
+			}));
+		}
 	});
 	continueGameBtn.addEventListener("click", () => {
 		giveUpModal.classList.add("hidden");
 		paused = false;
+		
+		// In multiplayer, notify the opponent that the game is resumed
+		if (isMultiplayer && ws) {
+			ws.send(JSON.stringify({
+				type: "resumeGame"
+			}));
+		}
 	});
 	giveUpMenuBtn.addEventListener("click", async () => {
 		giveUpModal.classList.add("hidden");
@@ -734,18 +836,13 @@ export const loadPlayPage = async (): Promise<void> => {
 	function draw() {
 		ctx.clearRect(0, 0, fieldWidth, fieldHeight);
 
-		// In multiplayer, each player sees only their own customization
-		// In single player, use current player's customization
-		const currentPlayerCustomization = isMultiplayer 
-			? (playerSide === "left" ? leftPlayerCustomization : rightPlayerCustomization)
-			: leftPlayerCustomization;
-
-		// Ensure we have valid customization data (fallback to defaults if not loaded)
+		// Always use current user's customization for their view
+		// Each player sees the game with their own color preferences
 		const safeCustomization = {
-			paddle_color: currentPlayerCustomization?.paddle_color || "#4CF190",
-			ball_color: currentPlayerCustomization?.ball_color || "#4CF190",
-			board_color: currentPlayerCustomization?.board_color || "#07303c",
-			border_color: currentPlayerCustomization?.border_color || "#4CF190"
+			paddle_color: currentUserCustomization?.paddle_color || "#4CF190",
+			ball_color: currentUserCustomization?.ball_color || "#4CF190",
+			board_color: currentUserCustomization?.board_color || "#07303c",
+			border_color: currentUserCustomization?.border_color || "#4CF190"
 		};
 
 		// Set background color based on current player's preference
@@ -796,6 +893,25 @@ export const loadPlayPage = async (): Promise<void> => {
 			);
 			ctx.restore();
 		}
+
+		// Show PAUSED overlay when game is paused
+		if (paused) {
+			ctx.save();
+			ctx.globalAlpha = 0.8;
+			ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+			ctx.fillRect(0, 0, fieldWidth, fieldHeight);
+			
+			ctx.globalAlpha = 1;
+			ctx.fillStyle = "#fff";
+			ctx.font = "bold 48px Arial";
+			ctx.textAlign = "center";
+			ctx.fillText(
+				"PAUSED",
+				fieldWidth / 2,
+				fieldHeight / 2
+			);
+			ctx.restore();
+		}
 	}
 
 	function loop() {
@@ -808,12 +924,14 @@ export const loadPlayPage = async (): Promise<void> => {
 
 	// Keyboard controls and start game on spacebar
 	window.addEventListener("keydown", (e) => {
+		if (paused) return; // Don't process any keys when game is paused
 		if (e.code === "Space") startGame();
 		if (e.key === "w" || e.key === "s" || e.key === "ArrowUp" || e.key === "ArrowDown") {
 			keys[e.key] = true;
 		}
 	});
 	window.addEventListener("keyup", (e) => {
+		if (paused) return; // Don't process any keys when game is paused
 		if (e.key === "w" || e.key === "s" || e.key === "ArrowUp" || e.key === "ArrowDown") {
 			keys[e.key] = false;
 		}
@@ -824,6 +942,16 @@ export const loadPlayPage = async (): Promise<void> => {
 	rightScore = 0;
 	updateScoreDisplay();
 	resetBall();
+
+	// Apply customization styling with multiple attempts to ensure DOM is ready
+	const applyCustomizationWithRetry = () => {
+		updateGameAreaStyling();
+		// Try again after a short delay in case DOM wasn't ready
+		setTimeout(() => updateGameAreaStyling(), 200);
+		setTimeout(() => updateGameAreaStyling(), 500);
+	};
+	
+	applyCustomizationWithRetry();
 
 	// Check PvP
 	if (opponentUsername) {

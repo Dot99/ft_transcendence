@@ -1,5 +1,5 @@
 import gamesController from "../controllers/gamesController.js";
-import { paramsJsonSchema } from "../schemas/gameSchemas.js";
+import { paramsJsonSchema, gameResultJsonSchema } from "../schemas/gameSchemas.js";
 
 export default async function (fastify, opts) {
   /**
@@ -394,6 +394,56 @@ export default async function (fastify, opts) {
         reply,
         request.params.invitationId,
         request.body.accept,
+        request.lang
+      ),
+  });
+  /**
+   * @name saveGameResult
+   * @description Save the result of a completed PvP game
+   * @route POST /games/save-result
+   * @group Games
+   * @param {Object} body - Game result data
+   * @param {number} body.player1 - Player 1 user ID
+   * @param {number} body.player2 - Player 2 user ID
+   * @param {number} body.player1_score - Player 1 final score
+   * @param {number} body.player2_score - Player 2 final score
+   * @param {number} body.winner - Winner user ID (or null for tie)
+   * @returns {Object} 200 - Success response with match ID
+   * @returns {Error} 400 - Invalid game data
+   * @returns {Error} 401 - Unauthorized
+   * @returns {Error} 500 - Internal server error
+   * @security JWT
+   */
+  fastify.post("/games/save-result", {
+    schema: {
+      body: gameResultJsonSchema,
+    },
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) =>
+      await gamesController.saveGameResult(request, reply, request.lang),
+  });
+  /**
+   * @name recalculateUserStats
+   * @description Recalculate and fix stats for a specific user (debugging/admin)
+   * @route POST /games/recalculate-stats/{userId}
+   * @group Games
+   * @param {number} userId - User ID to recalculate stats for
+   * @returns {Object} 200 - Success response with recalculated stats
+   * @returns {Error} 400 - Invalid user data
+   * @returns {Error} 401 - Unauthorized
+   * @returns {Error} 500 - Internal server error
+   * @security JWT
+   */
+  fastify.post("/games/recalculate-stats/:userId", {
+    schema: {
+      params: paramsJsonSchema,
+    },
+    preHandler: [fastify.authenticate],
+    handler: async (request, reply) =>
+      await gamesController.recalculateUserStats(
+        request, 
+        reply, 
+        request.params.id,
         request.lang
       ),
   });

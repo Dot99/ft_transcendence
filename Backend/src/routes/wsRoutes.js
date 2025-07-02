@@ -198,6 +198,20 @@ export default async function (fastify) {
 								winner: otherPlayer.side // The remaining player wins
 							}));
 						}
+					} else if (data.type === "pauseGame") {
+						// Player paused the game - notify opponent
+						if (otherPlayer) {
+							otherPlayer.connection.send(JSON.stringify({
+								type: "gamePaused"
+							}));
+						}
+					} else if (data.type === "resumeGame") {
+						// Player resumed the game - notify opponent
+						if (otherPlayer) {
+							otherPlayer.connection.send(JSON.stringify({
+								type: "gameResumed"
+							}));
+						}
 					}
 				}
 			} catch (e) {

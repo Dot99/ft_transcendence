@@ -41,6 +41,7 @@ clean:
 fclean: clean
 	@echo "$(GREEN)Performing full clean...$(NC)"
 	@rm -rf $(FRONTEND_DIR)/node_modules
+	@rm -rf $(FRONTEND_DIR)/dist
 	@rm -rf $(BACKEND_DIR)/node_modules
 	@rm -rf $(BACKEND_DIR)/db/data.db
 	@docker system prune -f -a --volumes

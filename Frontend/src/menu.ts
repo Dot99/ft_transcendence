@@ -7,6 +7,13 @@ import { API_BASE_URL } from "./config.js";
 import { loadPlayPage } from "./play.js";
 import { stopOnlineWebSocket } from "./utils/ws.js";
 
+// Extend window type for game customization refresh
+declare global {
+	interface Window {
+		refreshGameCustomization?: () => void;
+	}
+}
+
 // Utility to get element by id
 const getElement = <T extends HTMLElement>(id: string): T => {
 	const element = document.getElementById(id) as T;
@@ -198,6 +205,11 @@ export const loadMenuPage = async (): Promise<void> => {
 				);
 				if (!response.ok) {
 					console.warn("Something went wrong with the update");
+				} else {
+					// Refresh game customization if user is currently in a game
+					if (typeof window.refreshGameCustomization === 'function') {
+						window.refreshGameCustomization();
+					}
 				}
 			} catch (error) {
 				console.error("Fetch error:", error);
@@ -212,19 +224,29 @@ export const loadMenuPage = async (): Promise<void> => {
 			ball.style.backgroundColor = (e.target as HTMLInputElement).value;
 			const color = (e.target as HTMLInputElement).value;
 
-			await fetch(`${API_BASE_URL}/games/costumization/${userId}`, {
-				method: "PUT",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${getCookie("jwt")}`,
-				},
-				body: JSON.stringify({
-					paddle_color: getElement<HTMLInputElement>("colorPaddle").value,
-					ball_color: color,
-					board_color: getElement<HTMLInputElement>("colorBoard").value,
-					border_color: getElement<HTMLInputElement>("colorBoardBorder").value,
-				}),
-			});
+			try {
+				const response = await fetch(`${API_BASE_URL}/games/costumization/${userId}`, {
+					method: "PUT",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${getCookie("jwt")}`,
+					},
+					body: JSON.stringify({
+						paddle_color: getElement<HTMLInputElement>("colorPaddle").value,
+						ball_color: color,
+						board_color: getElement<HTMLInputElement>("colorBoard").value,
+						border_color: getElement<HTMLInputElement>("colorBoardBorder").value,
+					}),
+				});
+				if (response.ok) {
+					// Refresh game customization if user is currently in a game
+					if (typeof window.refreshGameCustomization === 'function') {
+						window.refreshGameCustomization();
+					}
+				}
+			} catch (error) {
+				console.error("Fetch error:", error);
+			}
 		}
 	);
 	getElement<HTMLInputElement>("colorBoard").addEventListener(
@@ -234,19 +256,29 @@ export const loadMenuPage = async (): Promise<void> => {
 			board.style.backgroundColor = (e.target as HTMLInputElement).value;
 			const color = (e.target as HTMLInputElement).value;
 
-			await fetch(`${API_BASE_URL}/games/costumization/${userId}`, {
-				method: "PUT",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${getCookie("jwt")}`,
-				},
-				body: JSON.stringify({
-					paddle_color: getElement<HTMLInputElement>("colorPaddle").value,
-					ball_color: getElement<HTMLInputElement>("colorBall").value,
-					board_color: color,
-					border_color: getElement<HTMLInputElement>("colorBoardBorder").value,
-				}),
-			});
+			try {
+				const response = await fetch(`${API_BASE_URL}/games/costumization/${userId}`, {
+					method: "PUT",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${getCookie("jwt")}`,
+					},
+					body: JSON.stringify({
+						paddle_color: getElement<HTMLInputElement>("colorPaddle").value,
+						ball_color: getElement<HTMLInputElement>("colorBall").value,
+						board_color: color,
+						border_color: getElement<HTMLInputElement>("colorBoardBorder").value,
+					}),
+				});
+				if (response.ok) {
+					// Refresh game customization if user is currently in a game
+					if (typeof window.refreshGameCustomization === 'function') {
+						window.refreshGameCustomization();
+					}
+				}
+			} catch (error) {
+				console.error("Fetch error:", error);
+			}
 		}
 	);
 	getElement<HTMLInputElement>("colorBoardBorder").addEventListener(
@@ -260,19 +292,29 @@ export const loadMenuPage = async (): Promise<void> => {
       ${color} 0 8px,
       transparent 8px 20px
     )`;
-			await fetch(`${API_BASE_URL}/games/costumization/${userId}`, {
-				method: "PUT",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${getCookie("jwt")}`,
-				},
-				body: JSON.stringify({
-					paddle_color: getElement<HTMLInputElement>("colorPaddle").value,
-					ball_color: getElement<HTMLInputElement>("colorBall").value,
-					board_color: getElement<HTMLInputElement>("colorBoard").value,
-					border_color: color,
-				}),
-			});
+			try {
+				const response = await fetch(`${API_BASE_URL}/games/costumization/${userId}`, {
+					method: "PUT",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${getCookie("jwt")}`,
+					},
+					body: JSON.stringify({
+						paddle_color: getElement<HTMLInputElement>("colorPaddle").value,
+						ball_color: getElement<HTMLInputElement>("colorBall").value,
+						board_color: getElement<HTMLInputElement>("colorBoard").value,
+						border_color: color,
+					}),
+				});
+				if (response.ok) {
+					// Refresh game customization if user is currently in a game
+					if (typeof window.refreshGameCustomization === 'function') {
+						window.refreshGameCustomization();
+					}
+				}
+			} catch (error) {
+				console.error("Fetch error:", error);
+			}
 		}
 	);
 

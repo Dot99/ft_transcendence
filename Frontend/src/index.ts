@@ -230,8 +230,6 @@ function handlePostAuth() {
 
 // Initialize
 document.addEventListener("DOMContentLoaded", () => {
-	// Clear any potentially problematic cookies first
-	clearAuthCookies();
 	const params = new URLSearchParams(window.location.search);
 	const token = params.get("token");
 
@@ -243,7 +241,16 @@ document.addEventListener("DOMContentLoaded", () => {
 		return;
 	}
 	
+	// Check if we have a valid authentication
 	const isAuth = isAuthenticated();
+	
+	// If we can't authenticate but have cookies, they might be stale - clear them
+	const hasCookies = document.cookie.includes('jwt=');
+	if (!isAuth && hasCookies) {
+		console.log("Found stale cookies, clearing...");
+		clearAuthCookies();
+	}
+	
 	if (!isAuth) {
 		loadHomePage();
 	} else {

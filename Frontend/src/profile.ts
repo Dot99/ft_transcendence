@@ -63,7 +63,7 @@ const handleLogout = (): void => {
 
 const handleConfirmDelete = async (): Promise<void> => {
 	try {
-		const response = await fetch("/api/user/delete", {
+		const response = await fetch(`${API_BASE_URL}/user/delete`, {
 			method: "DELETE",
 			headers: {
 				"Accept-Language": getLang(),
@@ -228,7 +228,18 @@ const getOpponentId = (match: Match, userId: number): number => {
 	return match.player1 === userId ? match.player2 : match.player1;
 };
 
+// Add a flag to prevent duplicate loading
+let isLoadingDashboard = false;
+
 async function loadDashboardData(): Promise<void> {
+	// Prevent multiple simultaneous calls
+	if (isLoadingDashboard) {
+		console.log("Already loading dashboard, skipping duplicate call");
+		return;
+	}
+	
+	isLoadingDashboard = true;
+	// Initialize stats to default values
 	getElement<HTMLDivElement>("totalMatches").textContent = "0";
 	getElement<HTMLDivElement>("matchesWon").textContent = "0";
 	getElement<HTMLDivElement>("matchesLost").textContent = "0";
@@ -236,131 +247,251 @@ async function loadDashboardData(): Promise<void> {
 	getElement<HTMLDivElement>("winStreak").textContent = "0";
 	getElement<HTMLDivElement>("tournaments").textContent = "0";
 	getElement<HTMLDivElement>("leaderboard").textContent = "0";
+	
 	const userId = getUserIdFromToken();
 	if (!userId) {
+		console.error("No user ID found, redirecting to home");
 		loadHomePage();
 		return;
 	}
-	const userRes = await fetch(`/api/users/${userId}`, {
-		headers: {
-			"Accept-Language": getLang(),
-			Authorization: `Bearer ${getCookie("jwt")}`,
-		},
-	});
-	const userData = await userRes.json();
-	const user: User = userData.user;
-	const twofaRes = await fetch(`${API_BASE_URL}/users/${userId}`, {
-		headers: {
-			"Accept-Language": getLang(),
-			Authorization: `Bearer ${getCookie("jwt")}`,
-		},
-	});
-	const twofaData = await twofaRes.json();
-	const twofaEnabled = twofaData.enabled;
-
-	attachProfileEventListeners(user, twofaEnabled);
-
-	getElement<HTMLHeadingElement>("username").textContent = `@${user.username}`;
-	getElement<HTMLHeadingElement>("name").textContent = user.name;
-	getElement<HTMLDivElement>("email").textContent = user.email;
-	if (user.pfp) {
-		getElement<HTMLImageElement>("pfp").src = user.pfp;
-	} else {
-		getElement<HTMLImageElement>("pfp").src = "/images/default_pfp.png";
-	}
-	const totalHours = await fetch(`${API_BASE_URL}/users/status/totalhours`, {
-		headers: {
-			"Accept-Language": getLang(),
-			Authorization: `Bearer ${getCookie("jwt")}`,
-		},
-	});
-	const totalHoursData = await totalHours.json();
-	const totalHoursPlayed = totalHoursData.totalHoursPlayed || 0;
-	getElement<HTMLSpanElement>("hoursPlayed").textContent =
-		totalHoursPlayed.toFixed(2);
-
-	const statsRes = await fetch(`/api/users/${userId}/stats`, {
-		headers: {
-			"Accept-Language": getLang(),
-			Authorization: `Bearer ${getCookie("jwt")}`,
-		},
-	});
-	const statsData = await statsRes.json();
-	const stats: Stats = statsData.stats;
-
-	if (!stats) {
-		return;
-	}
-
-	getElement<HTMLDivElement>("totalMatches").textContent =
-		stats.total_matches?.toString() ?? "0";
-	getElement<HTMLDivElement>("matchesWon").textContent =
-		stats.matches_won?.toString() ?? "0";
-	getElement<HTMLDivElement>("matchesLost").textContent =
-		stats.matches_lost?.toString() ?? "0";
-	getElement<HTMLDivElement>("avgScore").textContent =
-		stats.average_score?.toString() ?? "0";
-	getElement<HTMLDivElement>("winStreak").textContent =
-		stats.win_streak_max?.toString() ?? "0";
-	getElement<HTMLDivElement>("tournaments").textContent =
-		stats.tournaments_won?.toString() ?? "0";
-	getElement<HTMLDivElement>("leaderboard").textContent =
-		stats.leaderboard_position?.toString() ?? "0";
-
-	await loadRecentMatches(userId);
-	await loadPastTournaments(userId, stats.current_tournament);
-	await loadUpComingMatchesById(stats.current_tournament, userId);
+	
+	// Load user profile data first (critical for name display)
+	await loadUserProfileData(userId);
+	
+	// Load additional data (stats, matches, etc.) separately
+	await loadUserStatsAndMatches(userId);
+	
+	isLoadingDashboard = false;
 }
 
+async function loadUserProfileData(userId: number): Promise<void> {
+	try {
+		console.log("Loading user profile data for ID:", userId);
+		const userRes = await fetch(`${API_BASE_URL}/users/${userId}`, {
+			headers: {
+				"Accept-Language": getLang(),
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+		});
+		
+		if (!userRes.ok) {
+			throw new Error(`Failed to fetch user data: ${userRes.status}`);
+		}
+		
+		const userData = await userRes.json();
+		console.log("User profile data loaded:", userData);
+		const user: User = userData.user;
+		
+		// Check if user data is valid
+		if (!user) {
+			throw new Error("User data not found in response");
+		}
+
+		// Get 2FA status from the same user data (avoid duplicate call)
+		const twofaEnabled = userData.twofa_enabled || false;
+		console.log("2FA enabled:", twofaEnabled);
+
+		attachProfileEventListeners(user, twofaEnabled);
+
+		// Set user information with fallbacks - this should always work
+		const usernameElement = getElement<HTMLHeadingElement>("username");
+		
+		usernameElement.textContent = `@${user.username || 'Unknown'}`;
+		if (user.pfp) {
+			getElement<HTMLImageElement>("pfp").src = user.pfp;
+		} else {
+			getElement<HTMLImageElement>("pfp").src = "/images/default_pfp.png";
+		}
+		
+		console.log("User profile info set successfully:", {
+			username: user.username,
+			name: user.name
+		});
+		
+	} catch (error) {
+		console.error("Error loading user profile data:", error);
+		// Set fallback values so the user sees something instead of error messages
+		const usernameElement = getElement<HTMLHeadingElement>("username");
+		const nameElement = getElement<HTMLHeadingElement>("name");
+		
+		usernameElement.textContent = "@Unknown";
+		nameElement.textContent = "Error loading profile";
+	}
+}
+
+async function loadUserStatsAndMatches(userId: number): Promise<void> {
+	// Load each data type separately so failures don't affect others
+	
+	// Load total hours
+	try {
+		const totalHours = await fetch(`${API_BASE_URL}/users/status/totalhours`, {
+			headers: {
+				"Accept-Language": getLang(),
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+		});
+		const totalHoursData = await totalHours.json();
+		const totalHoursPlayed = totalHoursData.totalHoursPlayed || 0;
+		getElement<HTMLSpanElement>("hoursPlayed").textContent =
+			totalHoursPlayed.toFixed(2);
+	} catch (error) {
+		console.error("Error loading total hours:", error);
+		getElement<HTMLSpanElement>("hoursPlayed").textContent = "0.00";
+	}
+
+	// Load stats
+	let stats: Stats | null = null;
+	try {
+		const statsRes = await fetch(`${API_BASE_URL}/users/${userId}/stats`, {
+			headers: {
+				"Accept-Language": getLang(),
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+		});
+		const statsData = await statsRes.json();
+		stats = statsData.stats;
+
+		if (stats) {
+			getElement<HTMLDivElement>("totalMatches").textContent =
+				stats.total_matches?.toString() ?? "0";
+			getElement<HTMLDivElement>("matchesWon").textContent =
+				stats.matches_won?.toString() ?? "0";
+			getElement<HTMLDivElement>("matchesLost").textContent =
+				stats.matches_lost?.toString() ?? "0";
+			getElement<HTMLDivElement>("avgScore").textContent =
+				stats.average_score?.toString() ?? "0";
+			getElement<HTMLDivElement>("winStreak").textContent =
+				stats.win_streak_max?.toString() ?? "0";
+			getElement<HTMLDivElement>("tournaments").textContent =
+				stats.tournaments_won?.toString() ?? "0";
+			getElement<HTMLDivElement>("leaderboard").textContent =
+				stats.leaderboard_position?.toString() ?? "0";
+		}
+	} catch (error) {
+		console.error("Error loading user stats:", error);
+		// Stats will remain at default "0" values
+	}
+
+	// Load recent matches
+	try {
+		await loadRecentMatches(userId);
+	} catch (error) {
+		console.error("Error loading recent matches:", error);
+	}
+
+	// Load tournaments (handle gracefully if endpoint doesn't exist)
+	try {
+		if (stats && stats.current_tournament) {
+			await loadPastTournaments(userId, stats.current_tournament);
+			await loadUpComingMatchesById(stats.current_tournament, userId);
+		}
+	} catch (error) {
+		console.error("Error loading tournament data (this is expected if tournaments are not implemented):", error);
+		// Tournament data loading is optional - don't throw error
+	}
+}
+
+// Add a flag to prevent duplicate loading
+let isLoadingMatches = false;
+
 async function loadRecentMatches(userId: number): Promise<void> {
-	const res = await fetch(`/api/games/users/${userId}/recent`);
-	const data = await res.json();
-	const container = getElement<HTMLDivElement>("matchTableBody");
-	container.innerHTML = "";
-
-	for (const match of data.games as Match[]) {
-		const [p1, p2] = await Promise.all([
-			fetch(`/api/users/${match.player1}`).then((res) => res.json()),
-			fetch(`/api/users/${match.player2}`).then((res) => res.json()),
-		]);
-
-		if (!p1.user) {
-			p1.user = { username: "Unknown Player" };
+	// Prevent multiple simultaneous calls
+	if (isLoadingMatches) {
+		console.log("Already loading matches, skipping duplicate call");
+		return;
+	}
+	
+	isLoadingMatches = true;
+	
+	try {
+		console.log("Starting to load recent matches for user:", userId);
+		const res = await fetch(`${API_BASE_URL}/games/users/${userId}/recent`, {
+			headers: {
+				"Accept-Language": getLang(),
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+		});
+		
+		if (!res.ok) {
+			throw new Error(`Failed to fetch recent matches: ${res.status}`);
 		}
-		if (!p2.user) {
-			p2.user = { username: "Unknown Player" };
-		}
-		const date = new Date(match.match_date)
-			.toLocaleString("pt-PT", {
-				day: "2-digit",
-				month: "2-digit",
-				year: "numeric",
-				hour: "2-digit",
-				minute: "2-digit",
-			})
-			.replace(",", "");
+		
+		const data = await res.json();
+		const container = getElement<HTMLDivElement>("matchTableBody");
+		
+		// Clear container to prevent duplicates
+		container.innerHTML = "";
+		
+		console.log("Loading recent matches:", data.games?.length || 0, "matches found");
 
-		let winner = "-";
-		if (match.player1_score > match.player2_score) {
-			winner = p1.user.username;
-		} else if (match.player2_score > match.player1_score) {
-			winner = p2.user.username;
+		if (!data.games || data.games.length === 0) {
+			container.innerHTML = '<div class="text-gray-400 text-center p-4">No recent matches found</div>';
+			return;
 		}
 
-		const div = document.createElement("div");
-		div.className =
-			"match-entry flex justify-between items-center p-2 border-b border-green-500";
-		div.innerHTML = `
-			<div>
-				<div class="font-bold text-green-400">${date}</div>
-				<div class="text-sm text-gray-400">${p1.user.username} vs ${p2.user.username}</div>
-			</div>
-			<div class="text-right">
-				<div class="text-sm text-green-400">Score: ${match.player1_score} - ${match.player2_score}</div>
-				<div class="text-sm text-yellow-400">Winner: ${winner}</div>
-			</div>`;
+		for (const match of data.games as Match[]) {
+			const [p1, p2] = await Promise.all([
+				fetch(`${API_BASE_URL}/users/${match.player1}`, {
+					headers: {
+						"Accept-Language": getLang(),
+						Authorization: `Bearer ${getCookie("jwt")}`,
+					},
+				}).then((res) => res.json()),
+				fetch(`${API_BASE_URL}/users/${match.player2}`, {
+					headers: {
+						"Accept-Language": getLang(),
+						Authorization: `Bearer ${getCookie("jwt")}`,
+					},
+				}).then((res) => res.json()),
+			]);
 
-		container.appendChild(div);
+			if (!p1.user) {
+				p1.user = { username: "Unknown Player" };
+			}
+			if (!p2.user) {
+				p2.user = { username: "Unknown Player" };
+			}
+			const date = new Date(match.match_date)
+				.toLocaleString("pt-PT", {
+					day: "2-digit",
+					month: "2-digit",
+					year: "numeric",
+					hour: "2-digit",
+					minute: "2-digit",
+				})
+				.replace(",", "");
+
+			let winner = "-";
+			if (match.player1_score > match.player2_score) {
+				winner = p1.user.username;
+			} else if (match.player2_score > match.player1_score) {
+				winner = p2.user.username;
+			}
+
+			const div = document.createElement("div");
+			div.className =
+				"match-entry flex justify-between items-center p-2 border-b border-green-500";
+			div.innerHTML = `
+				<div>
+					<div class="font-bold text-green-400">${date}</div>
+					<div class="text-sm text-gray-400">${p1.user.username} vs ${p2.user.username}</div>
+				</div>
+				<div class="text-right">
+					<div class="text-sm text-green-400">Score: ${match.player1_score} - ${match.player2_score}</div>
+					<div class="text-sm text-yellow-400">Winner: ${winner}</div>
+				</div>`;
+
+			container.appendChild(div);
+		}
+		
+		console.log("Successfully loaded", data.games.length, "recent matches");
+		
+	} catch (error) {
+		console.error("Error loading recent matches:", error);
+		const container = getElement<HTMLDivElement>("matchTableBody");
+		container.innerHTML = '<div class="text-red-400 text-center p-4">Error loading matches</div>';
+	} finally {
+		isLoadingMatches = false;
 	}
 }
 
@@ -368,41 +499,72 @@ async function loadPastTournaments(
 	userId: number,
 	currentTournamentId: number
 ): Promise<void> {
-	const res = await fetch(`/api/tournaments/users/${userId}/past`);
-	const data = await res.json();
-	const container = getElement<HTMLDivElement>("tournamentTableBody");
-	container.innerHTML = "";
+	try {
+		const res = await fetch(`${API_BASE_URL}/tournaments/users/${userId}/past`, {
+			headers: {
+				"Accept-Language": getLang(),
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+		});
+		
+		if (!res.ok) {
+			if (res.status === 404) {
+				console.log("Tournament endpoint not found - tournaments feature not implemented");
+				const container = getElement<HTMLDivElement>("tournamentTableBody");
+				container.innerHTML = '<div class="text-gray-400 text-center p-4">Tournaments not available</div>';
+				return;
+			}
+			throw new Error(`Failed to fetch tournaments: ${res.status}`);
+		}
+		
+		const data = await res.json();
+		const container = getElement<HTMLDivElement>("tournamentTableBody");
+		container.innerHTML = "";
 
-	for (const t of data.tournaments as Tournament[]) {
-		const positionRes = await fetch(
-			`/api/tournaments/${t.tournament_id}/players/${userId}`
-		);
-		const positionData = await positionRes.json();
-		const date = new Date(t.tournament_date)
-			.toLocaleString("pt-PT", {
-				day: "2-digit",
-				month: "2-digit",
-				year: "numeric",
-				hour: "2-digit",
-				minute: "2-digit",
-			})
-			.replace(",", "");
+		if (!data.tournaments || data.tournaments.length === 0) {
+			container.innerHTML = '<div class="text-gray-400 text-center p-4">No past tournaments found</div>';
+			return;
+		}		for (const t of data.tournaments as Tournament[]) {
+			const positionRes = await fetch(
+				`${API_BASE_URL}/tournaments/${t.tournament_id}/players/${userId}`,
+				{
+					headers: {
+						"Accept-Language": getLang(),
+						Authorization: `Bearer ${getCookie("jwt")}`,
+					},
+				}
+			);
+			const positionData = await positionRes.json();
+			const date = new Date(t.tournament_date)
+				.toLocaleString("pt-PT", {
+					day: "2-digit",
+					month: "2-digit",
+					year: "numeric",
+					hour: "2-digit",
+					minute: "2-digit",
+				})
+				.replace(",", "");
 
-		const player = positionData.players?.find(
-			(p: any) => p.player_id === userId
-		);
-		const div = document.createElement("div");
-		div.className = "p-2 border border-green-500 rounded";
-		div.innerHTML = `
-			<div class="flex justify-between items-center">
-				<span class="text-green-300 font-semibold">${t.tournament_name}</span>
-				<span class="text-sm text-gray-400">${date}</span>
-			</div>
-			<div class="text-sm text-yellow-400">Position: ${
-				player?.current_position ?? "-"
-			}</div>`;
+			const player = positionData.players?.find(
+				(p: any) => p.player_id === userId
+			);
+			const div = document.createElement("div");
+			div.className = "p-2 border border-green-500 rounded";
+			div.innerHTML = `
+				<div class="flex justify-between items-center">
+					<span class="text-green-300 font-semibold">${t.tournament_name}</span>
+					<span class="text-sm text-gray-400">${date}</span>
+				</div>
+				<div class="text-sm text-yellow-400">Position: ${
+					player?.current_position ?? "-"
+				}</div>`;
 
-		container.appendChild(div);
+			container.appendChild(div);
+		}
+	} catch (error) {
+		console.error("Error loading past tournaments:", error);
+		const container = getElement<HTMLDivElement>("tournamentTableBody");
+		container.innerHTML = '<div class="text-red-400 text-center p-4">Error loading tournaments</div>';
 	}
 }
 
@@ -410,19 +572,45 @@ async function loadUpComingMatchesById(
 	tournamentId: number,
 	userId: number
 ): Promise<void> {
-	const [tournamentRes, matchesRes] = await Promise.all([
-		fetch(`/api/tournaments/${tournamentId}`),
-		fetch(`/api/tournaments/${tournamentId}/matches`),
-	]);
-	const tournament = await tournamentRes.json();
-	const data = await matchesRes.json();
+	try {
+		const [tournamentRes, matchesRes] = await Promise.all([
+			fetch(`${API_BASE_URL}/tournaments/${tournamentId}`, {
+				headers: {
+					"Accept-Language": getLang(),
+					Authorization: `Bearer ${getCookie("jwt")}`,
+				},
+			}),
+			fetch(`${API_BASE_URL}/tournaments/${tournamentId}/matches`, {
+				headers: {
+					"Accept-Language": getLang(),
+					Authorization: `Bearer ${getCookie("jwt")}`,
+				},
+			}),
+		]);
+		
+		if (!tournamentRes.ok || !matchesRes.ok) {
+			throw new Error("Failed to fetch tournament or matches data");
+		}
+		
+		const tournament = await tournamentRes.json();
+		const data = await matchesRes.json();
 
-	const container = getElement<HTMLDivElement>("upcomingMatches");
-	container.innerHTML = "";
+		const container = getElement<HTMLDivElement>("upcomingMatches");
+		container.innerHTML = "";
 
-	for (const match of data.matches as Match[]) {
+		if (!data.matches || data.matches.length === 0) {
+			container.innerHTML = '<div class="text-gray-400 text-center p-4">No upcoming matches</div>';
+			return;
+		}
+
+		for (const match of data.matches as Match[]) {
 		const opponentId = getOpponentId(match, userId);
-		const opponentData = await fetch(`/api/users/${opponentId}`).then((res) =>
+		const opponentData = await fetch(`${API_BASE_URL}/users/${opponentId}`, {
+			headers: {
+				"Accept-Language": getLang(),
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+		}).then((res) =>
 			res.json()
 		);
 		if (!opponentData.user) {
@@ -448,6 +636,11 @@ async function loadUpComingMatchesById(
 			<div class="text-sm text-yellow-400">Opponent: ${opponentData.user.username}</div>`;
 
 		container.appendChild(div);
+	}
+	} catch (error) {
+		console.error("Error loading upcoming matches:", error);
+		const container = getElement<HTMLDivElement>("upcomingMatches");
+		container.innerHTML = '<div class="text-red-400 text-center p-4">Error loading upcoming matches</div>';
 	}
 }
 
@@ -639,25 +832,8 @@ async function renderPerformanceChart(): Promise<void> {
 		return;
 	}
 
-	const userRes = await fetch(`/api/users/${userId}`, {
-		headers: {
-			"Accept-Language": getLang(),
-			Authorization: `Bearer ${getCookie("jwt")}`,
-		},
-	});
-	const userData = await userRes.json();
-	const user: User = userData.user;
-
-	getElement<HTMLHeadingElement>("username").textContent = `@${user.username}`;
-	getElement<HTMLHeadingElement>("name").textContent = user.name;
-	getElement<HTMLDivElement>("email").textContent = user.email;
-	getElement<HTMLImageElement>("pfp").src =
-		user.pfp || "/images/default_pfp.png";
-	getElement<HTMLSpanElement>("hoursPlayed").textContent = (
-		user.total_play_time / 3600
-	).toFixed(2);
-
-	const statsRes = await fetch(`/api/users/${userId}/stats`, {
+	// Get stats for chart rendering - don't re-fetch user profile data
+	const statsRes = await fetch(`${API_BASE_URL}/users/${userId}/stats`, {
 		headers: {
 			"Accept-Language": getLang(),
 			Authorization: `Bearer ${getCookie("jwt")}`,
@@ -758,7 +934,12 @@ async function renderPerformanceChart(): Promise<void> {
 			plugins: [doughnutCenterText, ChartDataLabels],
 		});
 
-		const res = await fetch(`/api/tournaments/users/${userId}/past`);
+		const res = await fetch(`${API_BASE_URL}/tournaments/users/${userId}/past`, {
+			headers: {
+				"Accept-Language": getLang(),
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+		});
 		const data = await res.json();
 
 		const tournamentStats = Array.isArray(data.tournaments)

@@ -232,7 +232,6 @@ export const isAuthenticated = (): boolean => {
 			return false;
 		}
 		
-		console.log("isAuthenticated: token valid");
 		return true;
 	} catch (error) {
 		deleteCookie("jwt");

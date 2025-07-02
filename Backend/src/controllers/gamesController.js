@@ -412,6 +412,73 @@ const getPendingGameInvitations = async (request, reply, lang) => {
 	}
 };
 
+/**
+ * @description Save the result of a PvP game
+ * @param {Object} request - The request object
+ * @param {Object} reply - The reply object
+ * @param {string} lang - The language for messages
+ * @returns {Promise<void>}
+ */
+const saveGameResult = async (request, reply, lang) => {
+	try {
+		const gameData = request.body;
+		const result = await gameService.saveGameResult(gameData, lang);
+		
+		if (!result.success) {
+			return reply.code(400).send({ 
+				success: false, 
+				message: result.message 
+			});
+		}
+		
+		reply.send({
+			success: true,
+			match_id: result.match_id,
+			message: result.message,
+			warning: result.warning
+		});
+	} catch (error) {
+		console.error("Error saving game result:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * @description Recalculate stats for a user (debugging/admin function)
+ * @param {Object} request - The request object
+ * @param {Object} reply - The reply object
+ * @param {number} userId - The user ID
+ * @param {string} lang - The language for messages
+ * @returns {Promise<void>}
+ */
+const recalculateUserStats = async (request, reply, userId, lang) => {
+	try {
+		const result = await gameService.recalculateUserStats(userId, lang);
+		
+		if (!result.success) {
+			return reply.code(400).send({ 
+				success: false, 
+				message: result.message 
+			});
+		}
+		
+		reply.send({
+			success: true,
+			stats: result.stats,
+			message: "User stats recalculated successfully"
+		});
+	} catch (error) {
+		console.error("Error recalculating user stats:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
 export default {
 	getAllGames,
 	getGameById,
@@ -430,4 +497,6 @@ export default {
 	createGameInvitation,
 	getPendingGameInvitations,
 	respondToGameInvitation,
+	saveGameResult,
+	recalculateUserStats,
 };
