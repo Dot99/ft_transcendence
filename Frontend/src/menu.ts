@@ -591,6 +591,7 @@ export const loadMenuPage = async (): Promise<void> => {
 	const btnPvAI = document.getElementById("btnPvAI");
 	if (btnPvAI) {
 		btnPvAI.addEventListener("click", () => {
+			sessionStorage.setItem("playMode", "ai");
 			window.dispatchEvent(new Event("loadPlayPage"));
 		});
 	}
@@ -604,18 +605,19 @@ export const loadMenuPage = async (): Promise<void> => {
 			if (document.querySelector('.matchmaking-modal')) {
 				return;
 			}
+			
 			// Show searching modal/spinner
 			const searchingModal = document.createElement("div");
 			searchingModal.className = "matchmaking-modal";
 			searchingModal.innerHTML = `
-            <div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-                <div class="bg-[#001B26] border-4 border-[#4CF190] rounded-xl p-8 flex flex-col items-center shadow-2xl">
-                    <span class="text-2xl font-bold text-[#4CF190] mb-4">Searching for opponent...</span>
-                    <div class="loader"></div>
-                    <button id="cancelMatchmaking" class="mt-6 px-4 py-2 bg-red-500 text-white rounded">Cancel</button>
-                </div>
-            </div>
-        `;
+				<div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+					<div class="bg-[#001B26] border-4 border-[#4CF190] rounded-xl p-8 flex flex-col items-center shadow-2xl">
+						<span class="text-2xl font-bold text-[#4CF190] mb-4">Searching for opponent...</span>
+						<div class="loader"></div>
+						<button id="cancelMatchmaking" class="mt-6 px-4 py-2 bg-red-500 text-white rounded">Cancel</button>
+					</div>
+				</div>
+			`;
 			document.body.appendChild(searchingModal);
 
 			let polling = true;
@@ -685,6 +687,7 @@ export const loadMenuPage = async (): Promise<void> => {
 							// Store opponent info and game ID for multiplayer
 							sessionStorage.setItem("pvpOpponent", status.opponentUsername);
 							sessionStorage.setItem("gameId", status.gameId);
+							sessionStorage.setItem("playMode", "pvp");
 							window.dispatchEvent(new Event("loadPlayPage"));
 							break;
 						}
