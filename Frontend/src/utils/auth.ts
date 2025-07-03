@@ -66,7 +66,15 @@ export const login = async (): Promise<void> => {
 			credentials: "include",
 			mode: "cors",
 		});
-
+		if(response.status === 403){
+			const result = await response.json();
+			if(result.errorCode === "ALREADY_LOGGED_IN") {
+				setInputError(usernameInput, false);
+				errorElement.textContent = t("already_logged_in");
+				errorElement.style.display = "block";
+				return;
+			}
+		}
 		if (!response.ok) {
 			const errorData = await response.json().catch(() => ({}));
 			throw new Error(errorData.message || response.statusText);
