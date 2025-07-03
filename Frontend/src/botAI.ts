@@ -1,5 +1,3 @@
-export type KeyState = { [key: string]: boolean };
-
 export interface BotView {
     ballX: number;
     ballY: number;
@@ -27,7 +25,7 @@ export class BotAI {
     private movementDuration: number = 0;
     private consecutiveHits: number = 0; // Track performance for dynamic difficulty
 
-    update(view: BotView, keys: KeyState) {
+    update(view: BotView) {
         const now = Date.now();
         this.lastUpdateTime = now;
         
