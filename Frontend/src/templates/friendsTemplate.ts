@@ -55,6 +55,11 @@ export const friendsTemplate = `
     Friend request sent!
   </div>
 
+  <!-- Game Invitation Sent Notification -->
+  <div id="friendInvite" class="fixed bottom-32 left-1/2 transform -translate-x-1/2 bg-[#4CF190] text-[#001B26] px-6 py-3 rounded shadow-lg text-lg font-bold hidden z-50 transition-all" style="min-width: 250px; text-align: center;">
+    Game invitation sent!
+  </div>
+
   <!-- Invite Modal -->
   <div id="inviteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
     <div class="bg-[#001B26] p-6 rounded-xl border-2 border-[#4CF190] max-w-md w-full">

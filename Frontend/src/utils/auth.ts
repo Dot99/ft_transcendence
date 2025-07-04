@@ -1,6 +1,14 @@
 import { getLang, t } from "../locales/localeMiddleware.js";
 import { stopOnlineWebSocket } from "./ws.js";
-const API_BASE_URL = "http://localhost:3000/api";
+import { API_BASE_URL } from "../config.js";
+
+// Helper function to set cookies with appropriate security settings
+const setCookieSecure = (name: string, value: string, options: string = "") => {
+	const hostname = window.location.hostname;
+	const protocol = window.location.protocol;
+	const cookieString = `${name}=${value}; path=/; samesite=lax`;
+	document.cookie = cookieString;
+};
 
 // Types
 interface LoginResponse {
@@ -58,7 +66,15 @@ export const login = async (): Promise<void> => {
 			credentials: "include",
 			mode: "cors",
 		});
-
+		if(response.status === 403){
+			const result = await response.json();
+			if(result.errorCode === "ALREADY_LOGGED_IN") {
+				setInputError(usernameInput, false);
+				errorElement.textContent = t("already_logged_in");
+				errorElement.style.display = "block";
+				return;
+			}
+		}
 		if (!response.ok) {
 			const errorData = await response.json().catch(() => ({}));
 			throw new Error(errorData.message || response.statusText);
@@ -68,7 +84,7 @@ export const login = async (): Promise<void> => {
 			setInputError(usernameInput, false);
 			setInputError(passwordInput, false);
 			errorElement.textContent = "";
-			document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
+			setCookieSecure('jwt', data.token);
 			(window as any).handlePostAuth?.();
 		} else {
 			throw new Error("Login failed: " + (data?.message || "Unknown error"));
@@ -118,11 +134,10 @@ export const register = async (): Promise<void> => {
 		}
 		const data: RegisterResponse = await response.json();
 		if (data.success) {
-			document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
+			setCookieSecure('jwt', data.token!);
 			setInputError(usernameInput, false);
 			setInputError(passwordInput, false);
 			errorElement.textContent = "";
-			document.cookie = `jwt=${data.token}; path=/; secure; samesite=lax`;
 			(window as any).handlePostAuth?.();
 		} else {
 			throw new Error(data?.message || "Unknown error");
@@ -162,23 +177,43 @@ export const logout = async (): Promise<void> => {
 
 //TODO: CHANGE THIS TO BE INGAME
 export async function startSession() {
-	await fetch(`${API_BASE_URL}/users/session/start`, {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${getCookie("jwt")}`,
-			"Accept-Language": getLang(),
-		},
-	});
+	const token = getCookie("jwt");
+	if (!token) {
+		console.log("No JWT token available, cannot start session");
+		return;
+	}
+	
+	try {
+		await fetch(`${API_BASE_URL}/users/session/start`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"Accept-Language": getLang(),
+			},
+		});
+	} catch (error) {
+		console.error("Failed to start session:", error);
+	}
 }
 
 export async function endSession() {
-	await fetch(`${API_BASE_URL}/users/session/stop`, {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${getCookie("jwt")}`,
-			"Accept-Language": getLang(),
-		},
-	});
+	const token = getCookie("jwt");
+	if (!token) {
+		console.log("No JWT token available, cannot end session");
+		return;
+	}
+	
+	try {
+		await fetch(`${API_BASE_URL}/users/session/stop`, {
+			method: "POST",
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"Accept-Language": getLang(),
+			},
+		});
+	} catch (error) {
+		console.error("Failed to end session:", error);
+	}
 }
 
 export const handleGoogleSignIn = (): void => {
@@ -187,7 +222,29 @@ export const handleGoogleSignIn = (): void => {
 
 export const isAuthenticated = (): boolean => {
 	const token = getCookie("jwt");
-	return !!token;
+	if (!token) return false;
+	
+	try {
+		// Check if token is properly formatted (has 3 parts)
+		const parts = token.split('.');
+		if (parts.length !== 3) {
+			return false;
+		}
+		
+		// Check if token is not expired
+		const payload = JSON.parse(atob(parts[1]));
+		const currentTime = Math.floor(Date.now() / 1000);
+		
+		if (payload.exp && payload.exp < currentTime) {
+			deleteCookie("jwt");
+			return false;
+		}
+		
+		return true;
+	} catch (error) {
+		deleteCookie("jwt");
+		return false;
+	}
 };
 
 export const isTwoFactorEnabled = (): boolean => {
@@ -209,7 +266,20 @@ export function getCookie(name: string): string | undefined {
 
 export function deleteCookie(name: string): void {
 	document.cookie = `${name}=; Max-Age=0; path=/;`;
+	document.cookie = `${name}=; Max-Age=0; path=/; domain=${window.location.hostname};`;
+	document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`;
+	document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname};`;
 }
+
+// Function to clear all authentication cookies on startup
+export function clearAuthCookies(): void {
+	deleteCookie("jwt");
+	deleteCookie("auth");
+	deleteCookie("token");
+	deleteCookie("session");
+}
+
+export { setCookieSecure };
 
 export function getUserIdFromToken(): number | null {
 	const token = getCookie("jwt");
@@ -217,8 +287,9 @@ export function getUserIdFromToken(): number | null {
 	try {
 		const payload = token.split(".")[1];
 		const decoded = JSON.parse(atob(payload));
-		return decoded.id || decoded.sub || null;
-	} catch {
+		const userId = decoded.id || decoded.sub || null;
+		return userId;
+	} catch (error) {
 		return null;
 	}
 }

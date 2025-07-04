@@ -516,7 +516,7 @@ export default async function (fastify, opts) {
 	 * @description Get matchmaking status
 	 * @route GET /users/matchmaking/status
 	 * @group Presence - Presence operations about users
-	 * @returns {Object} 200 - An object containing matchmaking status
+	 * @returns {Object} 200 - Matchmaking status object
 	 * @returns {Error} 401 - Unauthorized
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
@@ -524,6 +524,6 @@ export default async function (fastify, opts) {
 	fastify.get("/users/matchmaking/status", {
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.getMatchmakingStatus(request, reply),
+			await usersController.getMatchmakingStatus(request, reply, request.lang),
 	});
 }

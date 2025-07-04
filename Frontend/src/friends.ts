@@ -1,14 +1,23 @@
 import { friendsTemplate } from "./templates/friendsTemplate.js";
 import { getLang } from "./locales/localeMiddleware.js";
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
-import { getOnlineUserIds, subscribeOnlineUsers } from "./utils/ws.js";
-
-const API_BASE_URL = "http://localhost:3000/api";
+import { getOnlineUserIds, subscribeOnlineUsers, subscribeGameInvitations, unsubscribeGameInvitations } from "./utils/ws.js";
+import { API_BASE_URL } from "./config.js";
 let onlineUserIds: number[] = [];
 
 interface Friend {
 	id: number;
 	username: string;
+}
+
+interface GameInvitation {
+	id: string;
+	inviter_id: number;
+	invitee_id: number;
+	game_id: string;
+	status: "pending" | "accepted" | "declined";
+	created_at: string;
+	inviter_username: string;
 }
 
 let selectedFriendId: number | null = null;
@@ -41,6 +50,18 @@ export async function loadFriendsPage(): Promise<void> {
 	subscribeOnlineUsers(update);
 	await loadFriends();
 	await loadFriendRequests();
+	await loadGameInvitations();
+	
+	// Subscribe to real-time game invitations
+	const handleInvitation = (invitation: any) => {
+		createInvitationNotification(invitation, 0);
+	};
+	subscribeGameInvitations(handleInvitation);
+	
+	// Clean up on page unload
+	window.addEventListener('beforeunload', () => {
+		unsubscribeGameInvitations(handleInvitation);
+	});
 }
 
 async function loadFriends(): Promise<void> {
@@ -318,15 +339,52 @@ function closeInviteModal(): void {
 	if (inviteModal) inviteModal.style.display = "none";
 }
 
-function inviteToGame(): void {
-	closeInviteModal();
-	const invitedMsg = document.getElementById("friendInvite");
-	if (!invitedMsg) return;
-	invitedMsg.classList.remove("hidden");
-	invitedMsg.classList.add("show");
+async function inviteToGame(): Promise<void> {
+	if (!selectedFriendId) return;
+	
+	try {
+		const response = await fetch(`${API_BASE_URL}/games/invite/${selectedFriendId}`, {
+			method: "POST",
+			headers: {
+				"Accept-Language": getLang(),
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+			credentials: "include",
+		});
+
+		closeInviteModal();
+
+		if (response.ok) {
+			const data = await response.json();
+			showMessage("Game invitation sent!", "success");
+			
+			// Store the invitation data for potential navigation to play page
+			if (data.invitation && data.invitation.game_id) {
+				sessionStorage.setItem("pendingGameId", data.invitation.game_id);
+				sessionStorage.setItem("invitationId", data.invitation.id);
+			}
+		} else {
+			const errorData = await response.json();
+			showMessage(errorData.error || "Failed to send invitation", "error");
+		}
+	} catch (error) {
+		closeInviteModal();
+		console.error("Error sending game invitation:", error);
+		showMessage("Failed to send invitation", "error");
+	}
+}
+
+function showMessage(text: string, type: "success" | "error"): void {
+	const messageId = type === "success" ? "friendInvite" : "friendInputError";
+	const msg = document.getElementById(messageId);
+	if (!msg) return;
+	
+	msg.textContent = text;
+	msg.classList.remove("hidden");
+	msg.classList.add("show");
 	setTimeout(() => {
-		invitedMsg.classList.remove("show");
-		setTimeout(() => invitedMsg.classList.add("hidden"), 400);
+		msg.classList.remove("show");
+		setTimeout(() => msg.classList.add("hidden"), 400);
 	}, 2000);
 }
 
@@ -403,6 +461,99 @@ async function addFriend(): Promise<void> {
 		msg.classList.remove("show");
 		setTimeout(() => msg.classList.add("hidden"), 400);
 	}, 2000);
+}
+
+async function loadGameInvitations(): Promise<void> {
+	try {
+		const response = await fetch(`${API_BASE_URL}/games/invitations/pending`, {
+			headers: {
+				"Accept-Language": getLang(),
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+			credentials: "include",
+		});
+
+		if (!response.ok) return;
+
+		const data = await response.json();
+		const invitations = Array.isArray(data.invitations) ? data.invitations : [];
+		displayGameInvitations(invitations);
+	} catch (error) {
+		console.error("Failed to load game invitations:", error);
+	}
+}
+
+function displayGameInvitations(invitations: GameInvitation[]): void {
+	// Remove any existing invitation notifications
+	document.querySelectorAll('.game-invitation-notification').forEach(el => el.remove());
+
+	invitations.forEach((invitation, index) => {
+		createInvitationNotification(invitation, index);
+	});
+}
+
+function createInvitationNotification(invitation: GameInvitation, index: number): void {
+	const notification = document.createElement('div');
+	notification.className = 'game-invitation-notification fixed top-24 right-8 bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-4 shadow-lg z-50 w-80';
+	notification.style.transform = `translateY(${index * 120}px)`;
+	
+	notification.innerHTML = `
+		<div class="text-[#4CF190] font-bold text-lg mb-2">Game Invitation</div>
+		<div class="text-white mb-4">${invitation.inviter_username} invited you to play!</div>
+		<div class="flex gap-2">
+			<button class="accept-invitation-btn flex-1 bg-[#4CF190] text-[#001B26] py-2 px-4 rounded font-bold hover:bg-[#43d17d] transition" data-invitation-id="${invitation.id}" data-game-id="${invitation.game_id}">
+				Accept
+			</button>
+			<button class="decline-invitation-btn flex-1 bg-red-500 text-white py-2 px-4 rounded font-bold hover:bg-red-600 transition" data-invitation-id="${invitation.id}">
+				Decline
+			</button>
+		</div>
+	`;
+
+	document.body.appendChild(notification);
+
+	// Add event listeners
+	const acceptBtn = notification.querySelector('.accept-invitation-btn') as HTMLButtonElement;
+	const declineBtn = notification.querySelector('.decline-invitation-btn') as HTMLButtonElement;
+
+	acceptBtn?.addEventListener('click', () => respondToInvitation(invitation.id, invitation.game_id, true));
+	declineBtn?.addEventListener('click', () => respondToInvitation(invitation.id, invitation.game_id, false));
+}
+
+async function respondToInvitation(invitationId: string, gameId: string, accept: boolean): Promise<void> {
+	try {
+		const response = await fetch(`${API_BASE_URL}/games/invitation/${invitationId}/respond`, {
+			method: "POST",
+			headers: {
+				"Accept-Language": getLang(),
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+			credentials: "include",
+			body: JSON.stringify({ accept }),
+		});
+
+		if (response.ok) {
+			// Remove the notification
+			document.querySelector(`[data-invitation-id="${invitationId}"]`)?.closest('.game-invitation-notification')?.remove();
+			
+			if (accept) {
+				const data = await response.json();
+				// Navigate to play page with the game ID and opponent name
+				sessionStorage.setItem("gameId", gameId);
+				sessionStorage.setItem("pvpOpponent", data.inviterUsername);
+				window.dispatchEvent(new Event("loadPlayPage"));
+			} else {
+				showMessage("Invitation declined", "success");
+			}
+		} else {
+			const errorData = await response.json();
+			showMessage(errorData.error || "Failed to respond to invitation", "error");
+		}
+	} catch (error) {
+		console.error("Error responding to invitation:", error);
+		showMessage("Failed to respond to invitation", "error");
+	}
 }
 
 async function removeFriend(friendId: string) {

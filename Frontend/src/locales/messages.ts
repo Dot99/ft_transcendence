@@ -5,6 +5,7 @@ export const messages = {
 		welcome: "Welcome to PONG",
 		ultimate_experience: "The ultimate multiplayer ping pong experience",
 		login: "Login",
+		already_logged_in: "You are already logged in.",
 		sign_up: "Sign Up",
 		username: "Username",
 		password: "Password",
@@ -70,6 +71,7 @@ export const messages = {
 		ultimate_experience:
 			"A experiência definitiva de pingue-pongue multijogador",
 		login: "Entrar",
+		already_logged_in: "Já estás logado.",
 		sign_up: "Registar",
 		username: "Nome de usuário",
 		password: "Senha",
@@ -135,6 +137,7 @@ export const messages = {
 		welcome: "欢迎来到 PONG",
 		ultimate_experience: "终极多人乒乓体验",
 		login: "登录",
+		already_logged_in: "您已登录。",
 		sign_up: "注册",
 		username: "用户名",
 		password: "密码",

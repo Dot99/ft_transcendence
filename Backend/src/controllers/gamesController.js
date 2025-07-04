@@ -354,20 +354,172 @@ async function getCustomization(request, reply) {
   }
 }
 
+/**
+ * @description Create a game invitation to a friend
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @param {number} friendId - The friend's user ID
+ * @param {string} lang - The language
+ * @returns {Promise<void>}
+ */
+const createGameInvitation = async (request, reply, friendId, lang) => {
+	try {
+		const inviterId = request.user.id;
+		const result = await gameService.createGameInvitation(inviterId, friendId, lang);
+		
+		if (!result.success) {
+			return reply.code(400).send(result);
+		}
+
+		reply.send(result);
+	} catch (error) {
+		console.error("Internal Server Error:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * @description Respond to a game invitation (accept or decline)
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @param {number} invitationId - The invitation ID
+ * @param {boolean} accept - Whether to accept the invitation
+ * @param {string} lang - The language
+ * @returns {Promise<void>}
+ */
+const respondToGameInvitation = async (request, reply, invitationId, accept, lang) => {
+	try {
+		const userId = request.user.id;
+		const result = await gameService.respondToGameInvitation(invitationId, userId, accept, lang);
+		
+		if (!result.success) {
+			return reply.code(400).send(result);
+		}
+
+		reply.send(result);
+	} catch (error) {
+		console.error("Internal Server Error:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * @description Get pending game invitations for current user
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @param {string} lang - The language
+ * @returns {Promise<void>}
+ */
+const getPendingGameInvitations = async (request, reply, lang) => {
+	try {
+		const userId = request.user.id;
+		const result = await gameService.getPendingGameInvitations(userId, lang);
+		
+		if (!result.success) {
+			return reply.code(400).send(result);
+		}
+
+		reply.send(result);
+	} catch (error) {
+		console.error("Internal Server Error:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * @description Save the result of a PvP game
+ * @param {Object} request - The request object
+ * @param {Object} reply - The reply object
+ * @param {string} lang - The language for messages
+ * @returns {Promise<void>}
+ */
+const saveGameResult = async (request, reply, lang) => {
+	try {
+		const gameData = request.body;
+		const result = await gameService.saveGameResult(gameData, lang);
+		
+		if (!result.success) {
+			return reply.code(400).send({ 
+				success: false, 
+				message: result.message 
+			});
+		}
+		
+		reply.send({
+			success: true,
+			match_id: result.match_id,
+			message: result.message,
+			warning: result.warning
+		});
+	} catch (error) {
+		console.error("Error saving game result:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * @description Recalculate stats for a user (debugging/admin function)
+ * @param {Object} request - The request object
+ * @param {Object} reply - The reply object
+ * @param {number} userId - The user ID
+ * @param {string} lang - The language for messages
+ * @returns {Promise<void>}
+ */
+const recalculateUserStats = async (request, reply, userId, lang) => {
+	try {
+		const result = await gameService.recalculateUserStats(userId, lang);
+		
+		if (!result.success) {
+			return reply.code(400).send({ 
+				success: false, 
+				message: result.message 
+			});
+		}
+		
+		reply.send({
+			success: true,
+			stats: result.stats,
+			message: "User stats recalculated successfully"
+		});
+	} catch (error) {
+		console.error("Error recalculating user stats:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
 export default {
-  getAllGames,
-  getGameById,
-  getGamesByUserId,
-  getRecentGamesByUserId,
-  getPastTournamentsByUserId,
-  getUpcomingTournamentsByUserId,
-  getTournamentById,
-  getUpcomingTournamentMatchesById,
-  getTournamentPlayersById,
-  getAllTournamentPlayers,
-  updateCostumization,
-  getCustomization,
-  getAllTournaments,
-  createTournament,
-  joinTournament,
+	getAllGames,
+	getGameById,
+	getGamesByUserId,
+	getRecentGamesByUserId,
+	getPastTournamentsByUserId,
+	getUpcomingTournamentsByUserId,
+	getTournamentById,
+	getUpcomingTournamentMatchesById,
+	getTournamentPlayersById,
+	updateCostumization,
+	getCustomization,
+	getAllTournaments,
+	createTournament,
+	joinTournament,
+	createGameInvitation,
+	getPendingGameInvitations,
+	respondToGameInvitation,
+	saveGameResult,
+	recalculateUserStats,
 };

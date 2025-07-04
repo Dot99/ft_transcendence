@@ -8,14 +8,14 @@ import {
 	isTwoFactorEnabled,
 	getUserIdFromToken,
 	startSession,
+	clearAuthCookies,
 } from "./utils/auth.js";
 import { forohforTemplate } from "./templates/FourOhFour.js";
-import { getCookie, deleteCookie } from "./utils/auth.js";
+import { getCookie, deleteCookie, setCookieSecure } from "./utils/auth.js";
 import { getLang, setLang, t } from "./locales/localeMiddleware.js";
 import { loadMenuPage } from "./menu.js";
 import { startOnlineWebSocket } from "./utils/ws.js";
-
-const API_BASE_URL = "http://localhost:3000/api";
+import { API_BASE_URL } from "./config.js";
 
 // DOM Elements
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -175,7 +175,7 @@ const openTwoFAModal = (userId: string): void => {
 			});
 			if (res.ok) {
 				const data = await res.json();
-				document.cookie = `jwt=${data.token}; path=/;`;
+				setCookieSecure('jwt', data.token);
 				modal.style.display = "none";
 				startOnlineWebSocket();
 				startSession();
@@ -232,13 +232,26 @@ function handlePostAuth() {
 document.addEventListener("DOMContentLoaded", () => {
 	const params = new URLSearchParams(window.location.search);
 	const token = params.get("token");
+
 	if (token) {
-		document.cookie = `jwt=${token}; path=/;`;
+		console.log("Token found in URL, setting cookie and handling auth");
+		setCookieSecure('jwt', token);
 		window.history.replaceState({}, "", window.location.pathname);
 		handlePostAuth();
 		return;
 	}
-	if (!isAuthenticated()) {
+	
+	// Check if we have a valid authentication
+	const isAuth = isAuthenticated();
+	
+	// If we can't authenticate but have cookies, they might be stale - clear them
+	const hasCookies = document.cookie.includes('jwt=');
+	if (!isAuth && hasCookies) {
+		console.log("Found stale cookies, clearing...");
+		clearAuthCookies();
+	}
+	
+	if (!isAuth) {
 		loadHomePage();
 	} else {
 		handlePostAuth();

@@ -1,14 +1,17 @@
 # Variables
 FRONTEND_DIR = Frontend
 BACKEND_DIR = Backend
+LOCAL_IP = 10.11.9.1
 
 # Colors for terminal output
 GREEN = \033[0;32m
 RED = \033[0;31m
+YELLOW = \033[1;33m
+BLUE = \033[0;34m
 NC = \033[0m # No Color
 
 # Default target
-all: deploy
+all: network
 
 # Check status of services
 status:
@@ -29,15 +32,16 @@ status:
 clean:
 	@echo "$(GREEN)Cleaning build artifacts...$(NC)"
 	# @tsc --build $(FRONTEND_DIR)/tsconfig.json --clean
-	@sudo rm -rf $(FRONTEND_DIR)/dist
-	@sudo rm -rf $(BACKEND_DIR)/Frontend
-	@sudo rm -rf $(BACKEND_DIR)/db/data.db
+	@rm -rf $(FRONTEND_DIR)/dist
+	@rm -rf $(BACKEND_DIR)/Frontend
+	@rm -rf $(BACKEND_DIR)/db/data.db
 	@echo "$(GREEN)Clean complete!$(NC)"
 
 # Full clean including node_modules
 fclean: clean
 	@echo "$(GREEN)Performing full clean...$(NC)"
 	@rm -rf $(FRONTEND_DIR)/node_modules
+	@rm -rf $(FRONTEND_DIR)/dist
 	@rm -rf $(BACKEND_DIR)/node_modules
 	@rm -rf $(BACKEND_DIR)/db/data.db
 	@docker system prune -f -a --volumes
@@ -51,15 +55,33 @@ install:
 	@echo "$(GREEN)Dependencies installed!$(NC)"
 
 
-# Deploy using docker-compose
+# Deploy using docker-compose (local development)
 deploy:
-	@echo "$(GREEN)Deploying with docker-compose...$(NC)"
+	@echo "$(GREEN)Deploying locally with docker-compose...$(NC)"
+	@echo "$(YELLOW)Note: This will only be accessible on localhost$(NC)"
 	@touch $(BACKEND_DIR)/db/data.db && chmod 777 $(BACKEND_DIR)/db/data.db
+	@docker image prune -f
+	@docker compose down --remove-orphans
+	@docker compose up --build
+
+# Deploy for network access
+network: fclean
+	@echo "$(GREEN)🚀 Starting ft_transcendence for network access...$(NC)"
+	@echo "$(BLUE)📱 Your application will be accessible at:$(NC)"
+	@echo "   $(YELLOW)http://$(LOCAL_IP):3001$(NC) (Frontend)"
+	@echo "   $(YELLOW)http://$(LOCAL_IP):3000$(NC) (Backend API)"
+	@echo ""
+	@echo "$(BLUE)🌐 Other devices on your network can access:$(NC)"
+	@echo "   $(YELLOW)http://$(LOCAL_IP):3001$(NC)"
+	@echo ""
+	@touch $(BACKEND_DIR)/db/data.db && chmod 777 $(BACKEND_DIR)/db/data.db
+	@docker image prune -f
+	@docker compose down --remove-orphans
 	@docker compose up --build
 
 # Stop all services
 stop:
 	@echo "$(GREEN)Stopping all services...$(NC)"
-	@docker-compose down
+	@docker compose down
 
-.PHONY: all status clean fclean install watch build deploy stop
+.PHONY: all status clean fclean install watch build deploy network stop
