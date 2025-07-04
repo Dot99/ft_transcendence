@@ -116,7 +116,6 @@ export const loadPlayPage = async (): Promise<void> => {
         hasGameStartedOnce = false;
         resetGame();
         if (leftScore !== 0 || rightScore !== 0) {
-            console.log("Forcing score reset after play again");
             leftScore = 0;
             rightScore = 0;
             updateScoreDisplay();
@@ -410,8 +409,6 @@ export const loadPlayPage = async (): Promise<void> => {
                 winner: winnerId,
             };
 
-            console.log("Saving game result:", gameData);
-
             const response = await fetch(`${API_BASE_URL}/games/save-result`, {
                 method: "POST",
                 headers: {
@@ -423,10 +420,8 @@ export const loadPlayPage = async (): Promise<void> => {
 
             if (response.ok) {
                 const result = await response.json();
-                console.log("Game result saved successfully:", result);
             } else {
                 const error = await response.text();
-                console.error("Failed to save game result:", error);
             }
         } catch (error) {
             console.error("Error saving game result:", error);
@@ -466,9 +461,6 @@ export const loadPlayPage = async (): Promise<void> => {
                     // Set multiplayer flag if we have both player IDs
                     if (leftPlayerId && rightPlayerId) {
                         isMultiplayer = true;
-                        console.log(
-                            "Multiplayer game detected - will save results"
-                        );
                     }
 
                     // Set player names consistently - left panel = left player, right panel = right player

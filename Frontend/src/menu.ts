@@ -3,39 +3,134 @@ import { loadProfilePage } from "./profile.js";
 import { deleteCookie } from "./utils/auth.js";
 import { loadHomePage } from "./index.js";
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
-declare global {
-	interface Window {
-		refreshGameCustomization?: () => void;
-	}
-}
-const API_BASE_URL = "http://localhost:3000/api";
+import { API_BASE_URL } from "./config.js";
 import { loadPlayPage } from "./play.js";
 import { stopOnlineWebSocket } from "./utils/ws.js";
+import { getLang, t } from "./locales/localeMiddleware.js";
 import { loadTournamentPage } from "./tournament.js";
+
+// Extend window type for game customization refresh
+declare global {
+    interface Window {
+        refreshGameCustomization?: () => void;
+    }
+}
 
 // Utility to get element by id
 const getElement = <T extends HTMLElement>(id: string): T => {
-  const element = document.getElementById(id) as T;
-  if (!element) throw new Error(`Element with id ${id} not found`);
-  return element;
+    const element = document.getElementById(id) as T;
+    if (!element) throw new Error(`Element with id ${id} not found`);
+    return element;
 };
+
+function translateMenuStaticTexts() {
+    // Navigation dropdown
+    const gotoProfileBtn = document.getElementById("gotoProfile");
+    if (gotoProfileBtn) gotoProfileBtn.textContent = t("menu_profile");
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) logoutBtn.textContent = t("menu_logout");
+
+    // Main left buttons
+    const btnPvAI = document.getElementById("btnPvAI");
+    if (btnPvAI) btnPvAI.textContent = t("menu_player_vs_ai");
+    const btnPvP = document.getElementById("btnPvP");
+    if (btnPvP) btnPvP.textContent = t("menu_player_vs_player");
+    const btnTournament = document.getElementById("btnTournament");
+    if (btnTournament) btnTournament.textContent = t("menu_tournaments");
+
+    // Customization section
+    const customizationTitle = document.querySelector(
+        "#customizationSection h2"
+    );
+    if (customizationTitle)
+        customizationTitle.textContent = t("menu_customize");
+
+    // Color labels (fixed selectors)
+    const paddleLabel = document.querySelector("label[for='colorPaddle'] span");
+    if (paddleLabel) paddleLabel.textContent = t("menu_paddle");
+    const ballLabel = document.querySelector("label[for='colorBall'] span");
+    if (ballLabel) ballLabel.textContent = t("menu_ball");
+    const boardLabel = document.querySelector("label[for='colorBoard'] span");
+    if (boardLabel) boardLabel.textContent = t("menu_board");
+    const boardBorderLabel = document.querySelector(
+        "label[for='colorBoardBorder'] span"
+    );
+    if (boardBorderLabel) boardBorderLabel.textContent = t("menu_board_border");
+
+    // Tournament Modal
+    const tournamentModalTitle = document.querySelector("#tournamentModal h2");
+    if (tournamentModalTitle)
+        tournamentModalTitle.textContent = t("menu_tournaments");
+    const createTournamentBtn = document.getElementById("createTournament");
+    if (createTournamentBtn)
+        createTournamentBtn.textContent = t("menu_create_tournament");
+    const joinTournamentBtn = document.getElementById("joinTournament");
+    if (joinTournamentBtn)
+        joinTournamentBtn.textContent = t("menu_join_tournament");
+
+    // Create Tournament Modal
+    const createTournamentModalTitle = document.querySelector(
+        "#createTournamentModal h2"
+    );
+    if (createTournamentModalTitle)
+        createTournamentModalTitle.textContent = t(
+            "menu_create_tournament_title"
+        );
+    const tournamentNameLabel = document.querySelector(
+        "#createTournamentForm label span.text-white.font-semibold"
+    );
+    if (tournamentNameLabel)
+        tournamentNameLabel.textContent = t("menu_tournament_name");
+    const numberOfPlayersLabel = document
+        .querySelector("#playerCountBtns")
+        ?.parentElement?.querySelector("span.text-white.font-semibold.mb-1");
+    if (numberOfPlayersLabel)
+        numberOfPlayersLabel.textContent = t("menu_number_of_players");
+    const startDateLabel = document
+        .querySelector("input#tournamentDate")
+        ?.parentElement?.querySelector("span.text-white.font-semibold");
+    if (startDateLabel) startDateLabel.textContent = t("menu_start_date");
+    const createBtn = document.querySelector(
+        "#createTournamentForm button[type='submit']"
+    );
+    if (createBtn) createBtn.textContent = t("menu_create");
+
+    // Join Tournament Modal
+    const joinTournamentModalTitle = document.querySelector(
+        "#joinTournamentModal h2"
+    );
+    if (joinTournamentModalTitle)
+        joinTournamentModalTitle.textContent = t("menu_join_tournament_title");
+}
 
 // Fetch username
 const fetchUsername = async (): Promise<string> => {
-  try {
-    const userId = getUserIdFromToken();
-    const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
-      headers: {
-        Authorization: `Bearer ${getCookie("jwt")}`,
-      },
-      credentials: "include",
-    });
-    if (!res.ok) throw new Error("Failed to fetch username");
-    const data = await res.json();
-    return data.user.username || "Username";
-  } catch {
-    return "Username";
-  }
+    try {
+        const userId = getUserIdFromToken();
+        if (!userId) {
+            return "Username";
+        }
+        const token = getCookie("jwt");
+        if (!token) {
+            return "Username";
+        }
+        const res = await fetch(`${API_BASE_URL}/users/${userId}`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Accept-Language": getLang(),
+            },
+            credentials: "include",
+        });
+
+        if (!res.ok) {
+            throw new Error("Failed to fetch username");
+        }
+
+        const data = await res.json();
+        return data.user.username || "Username";
+    } catch (error) {
+        return "Username";
+    }
 };
 
 // Load Menu Page
@@ -683,7 +778,7 @@ export const loadMenuPage = async (): Promise<void> => {
 
 // Auto-load if routed directly
 document.addEventListener("DOMContentLoaded", () => {
-  window.addEventListener("loadMenuPage", loadMenuPage);
-  window.addEventListener("loadProfilePage", () => loadProfilePage());
-  window.addEventListener("loadPlayPage", () => loadPlayPage());
+    window.addEventListener("loadMenuPage", loadMenuPage);
+    window.addEventListener("loadProfilePage", () => loadProfilePage());
+    window.addEventListener("loadPlayPage", () => loadPlayPage());
 });

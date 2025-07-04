@@ -49,51 +49,7 @@ const getElement = <T extends HTMLElement>(id: string): T => {
     return el as T;
 };
 
-// Event Handlers
-const handleDeleteAccount = (): void => {
-    closeEditProfileModal();
-    showDeleteModal();
-};
-
-const handleLogout = (): void => {
-    deleteCookie("jwt");
-    stopOnlineWebSocket();
-    loadHomePage();
-};
-
-const handleConfirmDelete = async (): Promise<void> => {
-    try {
-        const response = await fetch(`${API_BASE_URL}/user/delete`, {
-            method: "DELETE",
-            headers: {
-                "Accept-Language": getLang(),
-                Authorization: `Bearer ${getCookie("jwt")}`,
-            },
-        });
-        if (response.ok) {
-            deleteCookie("jwt");
-            loadHomePage();
-        } else {
-            throw new Error("Failed to delete account");
-        }
-    } catch (error) {
-        console.error("Error deleting account:", error);
-        alert("Failed to delete account. Please try again.");
-    }
-};
-
-const handleFriendsClick = (): void => {
-    loadFriendsPage();
-};
-
-const handleCancelDelete = (): void => {
-    closeDeleteModal();
-};
-
-export const loadProfilePage = (pushState: boolean = true): void => {
-    const app = getElement<HTMLElement>("app");
-    app.innerHTML = profileTemplate;
-
+function translateMenuStaticTexts() {
     // === TRANSLATION STATIC TEXTS ===
     // Delete Modal
     const deleteModalTitle = document.querySelector("#deleteModal .text-2xl");
@@ -221,8 +177,38 @@ export const loadProfilePage = (pushState: boolean = true): void => {
             ': <span id="currTournamentPosition" class="text-[#EFD671]"></span>';
     }
     // === END TRANSLATE STATIC TEXTS ===
+}
+
+// Event Handlers
+const handleDeleteAccount = (): void => {
+    closeEditProfileModal();
+    showDeleteModal();
+};
+
+const handleLogout = (): void => {
+    deleteCookie("jwt");
+    stopOnlineWebSocket();
+    loadHomePage();
+};
+
+const handleFriendsClick = (): void => {
+    loadFriendsPage();
+};
+
+const handleCancelDelete = (): void => {
+    closeDeleteModal();
+};
+
+export const loadProfilePage = (pushState: boolean = true): void => {
+    const app = getElement<HTMLElement>("app");
+    app.innerHTML = profileTemplate;
+
     const homeBtn = document.getElementById("homeBtn");
-    if (homeBtn) homeBtn.onclick = () => loadMenuPage();
+    if (homeBtn) {
+        const homeText = homeBtn.querySelector("span.text-base");
+        if (homeText) homeText.textContent = t("home");
+        homeBtn.onclick = () => loadMenuPage();
+    }
     getElement<HTMLButtonElement>("deleteAccountBtn").addEventListener(
         "click",
         handleDeleteAccount
@@ -239,16 +225,13 @@ const getOpponentId = (match: Match, userId: number): number => {
     return match.player1 === userId ? match.player2 : match.player1;
 };
 
-// Add a flag to prevent duplicate loading
 let isLoadingDashboard = false;
 
 async function loadDashboardData(): Promise<void> {
-    // Prevent multiple simultaneous calls
     if (isLoadingDashboard) {
-        console.log("Already loading dashboard, skipping duplicate call");
         return;
     }
-
+    translateMenuStaticTexts();
     isLoadingDashboard = true;
     // Initialize stats to default values
     getElement<HTMLDivElement>("totalMatches").textContent = "0";
@@ -277,7 +260,6 @@ async function loadDashboardData(): Promise<void> {
 
 async function loadUserProfileData(userId: number): Promise<void> {
     try {
-        console.log("Loading user profile data for ID:", userId);
         const userRes = await fetch(`${API_BASE_URL}/users/${userId}`, {
             headers: {
                 "Accept-Language": getLang(),
@@ -290,11 +272,7 @@ async function loadUserProfileData(userId: number): Promise<void> {
         }
 
         const userData = await userRes.json();
-        console.log("User profile data loaded:", userData);
         const user = userData.user;
-        console.log("User data:", user);
-        console.log("User pfp", user.pfp);
-
         // Check if user data is valid
         if (!user) {
             throw new Error("User data not found in response");
@@ -413,14 +391,11 @@ let isLoadingMatches = false;
 async function loadRecentMatches(userId: number): Promise<void> {
     // Prevent multiple simultaneous calls
     if (isLoadingMatches) {
-        console.log("Already loading matches, skipping duplicate call");
         return;
     }
 
     isLoadingMatches = true;
-
     try {
-        console.log("Starting to load recent matches for user:", userId);
         const res = await fetch(
             `${API_BASE_URL}/games/users/${userId}/recent`,
             {
@@ -440,12 +415,6 @@ async function loadRecentMatches(userId: number): Promise<void> {
 
         // Clear container to prevent duplicates
         container.innerHTML = "";
-
-        console.log(
-            "Loading recent matches:",
-            data.games?.length || 0,
-            "matches found"
-        );
 
         if (!data.games || data.games.length === 0) {
             container.innerHTML =
@@ -507,8 +476,6 @@ async function loadRecentMatches(userId: number): Promise<void> {
 
             container.appendChild(div);
         }
-
-        console.log("Successfully loaded", data.games.length, "recent matches");
     } catch (error) {
         console.error("Error loading recent matches:", error);
         const container = getElement<HTMLDivElement>("matchTableBody");
