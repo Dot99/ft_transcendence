@@ -11,6 +11,11 @@ export function setLang(lang: keyof typeof messages) {
 }
 
 export function t(key: string): string {
+    console.log("Lang:", getLang());
     const lang = getLang();
-    return (messages[lang] as Record<string, string>)[key] || (messages["en"] as Record<string, string>)[key] || key;
+    return (
+        (messages[lang] as Record<string, string>)[key] ||
+        (messages["en"] as Record<string, string>)[key] ||
+        key
+    );
 }
