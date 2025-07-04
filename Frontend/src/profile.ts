@@ -260,7 +260,6 @@ async function loadDashboardData(): Promise<void> {
 
 async function loadUserProfileData(userId: number): Promise<void> {
     try {
-        console.log("Loading user profile data for ID:", userId);
         const userRes = await fetch(`${API_BASE_URL}/users/${userId}`, {
             headers: {
                 "Accept-Language": getLang(),
@@ -273,11 +272,7 @@ async function loadUserProfileData(userId: number): Promise<void> {
         }
 
         const userData = await userRes.json();
-        console.log("User profile data loaded:", userData);
         const user = userData.user;
-        console.log("User data:", user);
-        console.log("User pfp", user.pfp);
-
         // Check if user data is valid
         if (!user) {
             throw new Error("User data not found in response");
@@ -396,14 +391,11 @@ let isLoadingMatches = false;
 async function loadRecentMatches(userId: number): Promise<void> {
     // Prevent multiple simultaneous calls
     if (isLoadingMatches) {
-        console.log("Already loading matches, skipping duplicate call");
         return;
     }
 
     isLoadingMatches = true;
-
     try {
-        console.log("Starting to load recent matches for user:", userId);
         const res = await fetch(
             `${API_BASE_URL}/games/users/${userId}/recent`,
             {
@@ -423,12 +415,6 @@ async function loadRecentMatches(userId: number): Promise<void> {
 
         // Clear container to prevent duplicates
         container.innerHTML = "";
-
-        console.log(
-            "Loading recent matches:",
-            data.games?.length || 0,
-            "matches found"
-        );
 
         if (!data.games || data.games.length === 0) {
             container.innerHTML =
@@ -490,8 +476,6 @@ async function loadRecentMatches(userId: number): Promise<void> {
 
             container.appendChild(div);
         }
-
-        console.log("Successfully loaded", data.games.length, "recent matches");
     } catch (error) {
         console.error("Error loading recent matches:", error);
         const container = getElement<HTMLDivElement>("matchTableBody");

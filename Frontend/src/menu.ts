@@ -23,7 +23,6 @@ const getElement = <T extends HTMLElement>(id: string): T => {
 };
 
 function translateMenuStaticTexts() {
-    console.log("Translate costumizate menu:", t("menu_customize"));
     // Navigation dropdown
     const gotoProfileBtn = document.getElementById("gotoProfile");
     if (gotoProfileBtn) gotoProfileBtn.textContent = t("menu_profile");
@@ -201,9 +200,6 @@ export const loadMenuPage = async (): Promise<void> => {
         try {
             const userId = getUserIdFromToken();
             if (!userId) {
-                console.log(
-                    "No user ID available, skipping customization load"
-                );
                 return;
             }
             const response = await fetch(
