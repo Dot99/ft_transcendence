@@ -1,37 +1,35 @@
 services:
-  frontend:
-    build: 
-      context: ./Frontend
-      dockerfile: Dockerfile
-    ports:
-      - "3001:3001"
-    volumes:
-      - ./Frontend:/app
-      - /app/node_modules
-    command: sh -c "npm run serve"
-    environment:
-      - BACKEND_URL=http://10.11.9.1:3000
-    depends_on:
-      - backend
-    networks:
-      - ft_transcendence-network
+    frontend:
+        build:
+            context: ./Frontend
+            dockerfile: Dockerfile
+        ports:
+            - "3001:3001"
+        volumes:
+            - /app/node_modules
+        command: sh -c "npm run serve"
+        environment:
+            - BACKEND_URL=http://10.11.9.1:3000
+        depends_on:
+            - backend
+        networks:
+            - ft_transcendence-network
 
-  backend:
-    build: 
-      context: ./Backend
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./Backend:/app
-      - ./Frontend/dist:/app/Frontend/dist
-      - /app/node_modules
-      - ./Backend/db/data.db:/db/data.db
-    env_file: Backend/.env
-    networks:
-      - ft_transcendence-network
+    backend:
+        build:
+            context: ./Backend
+            dockerfile: Dockerfile
+        ports:
+            - "3000:3000"
+        volumes:
+            - ./Backend:/app
+            - ./Frontend/dist:/app/Frontend/dist
+            - /app/node_modules
+            - ./Backend/db/data.db:/db/data.db
+        env_file: Backend/.env
+        networks:
+            - ft_transcendence-network
 
 networks:
-  ft_transcendence-network:
-    driver: bridge
-
+    ft_transcendence-network:
+        driver: bridge
