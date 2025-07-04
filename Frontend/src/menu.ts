@@ -437,65 +437,29 @@ export const loadMenuPage = async (): Promise<void> => {
             .join("")
         : `<li class="text-center text-white py-4">No tournaments available.</li>`;
 
-      document.querySelectorAll(".join-tournament-btn").forEach((btn) => {
-        btn.addEventListener("click", async () => {
-          const tournamentId = btn.getAttribute("data-id");
-          const tournamentName = btn.getAttribute("data-name");
+      document.querySelectorAll(".join-tournament-btn").forEach(async (btn) => {
+        const tournamentId = btn.getAttribute("data-id");
+        const tournamentName = btn.getAttribute("data-name");
 
-          try {
-            const res = await fetch(`${API_BASE_URL}/tournaments/join`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${getCookie("jwt")}`,
-              },
-              credentials: "include",
-              body: JSON.stringify({
-                tournamentId: Number(tournamentId),
-                tournamentName,
-                userId: Number(userId),
-              }),
-            });
-
-            if (!res.ok) throw new Error("Failed to join tournament");
-
-            loadTournamentPage(tournamentId ? tournamentId : "");
-          } catch (err) {
-            console.error(err);
-            alert("Failed to join tournament.");
-          }
-        });
-      });
-
-      document.querySelectorAll(".enter-tournament-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {});
-      });
-      const joinButtons = tournamentList.querySelectorAll(
-        ".join-tournament-btn"
-      );
-      joinButtons.forEach(async (btn) => {
-        const tournamentId = (btn as HTMLElement).dataset.id;
-        const tournamentName = (btn as HTMLElement).dataset.name;
         if (!tournamentId || !userId) return;
 
         try {
-          const res = await fetch(
-            `${API_BASE_URL}/tournaments/${tournamentId}/players`,
-            {
-              headers: {
-                Authorization: `Bearer ${getCookie("jwt")}`,
-              },
-            }
-          );
+          const res = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/players`, {
+            headers: {
+              Authorization: `Bearer ${getCookie("jwt")}`,
+            },
+          });
 
-          if (!res.ok) throw new Error("Failed to fetch participants");
+        //   if (!res.ok) throw new Error("Failed to fetch participants");
+
           const participants = await res.json();
-          const alreadyIn = participants.players.some(
-            (p: any) => p.id === Number(userId)
-          );
-		
-		  console.log("Already in tournament:", alreadyIn);
+
+          // Ensure participants and participants.players are valid
+          const players = participants?.players || [];
+          const alreadyIn = players.some((p: any) => p.id === Number(userId));
+
           if (alreadyIn) {
+            // Change button to "Enter"
             btn.textContent = "Enter";
             btn.classList.remove("join-tournament-btn");
             btn.classList.remove("bg-[#4CF190]");
@@ -505,24 +469,22 @@ export const loadMenuPage = async (): Promise<void> => {
               loadTournamentPage(tournamentId);
             });
           } else {
+            // Add "Join" logic
             btn.addEventListener("click", async () => {
               try {
-                const joinRes = await fetch(
-                  `${API_BASE_URL}/tournaments/join`,
-                  {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${getCookie("jwt")}`,
-                    },
-                    credentials: "include",
-                    body: JSON.stringify({
-                      tournamentName: tournamentName,
-                      tournamentId: Number(tournamentId),
-                      userId: Number(userId),
-                    }),
-                  }
-                );
+                const joinRes = await fetch(`${API_BASE_URL}/tournaments/join`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${getCookie("jwt")}`,
+                  },
+                  credentials: "include",
+                  body: JSON.stringify({
+                    tournamentName: tournamentName,
+                    tournamentId: Number(tournamentId),
+                    userId: Number(userId),
+                  }),
+                });
 
                 if (!joinRes.ok) throw new Error("Failed to join tournament");
 

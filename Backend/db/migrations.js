@@ -106,6 +106,9 @@ export default function runMigrations(db) {
     player_id INTEGER,
     wins INTEGER, 
     losses INTEGER,
+	current_position INTEGER DEFAULT 0,
+
+
     FOREIGN KEY (tournament_id) REFERENCES tournaments(tournament_id),
     FOREIGN KEY (player_id) REFERENCES users(id)
   )`);
@@ -123,6 +126,8 @@ export default function runMigrations(db) {
     player2_score INTEGER,
     match_date TEXT DEFAULT CURRENT_TIMESTAMP,
     match_state TEXT CHECK(match_state IN ('scheduled', 'in_progress', 'completed', 'cancelled')) DEFAULT 'scheduled',
+	round_number INTEGER,
+	scheduled_date DATETIME,
     FOREIGN KEY (tournament_id) REFERENCES tournaments(tournament_id),
     FOREIGN KEY (player1) REFERENCES users(id),
     FOREIGN KEY (player2) REFERENCES users(id)

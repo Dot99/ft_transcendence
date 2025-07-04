@@ -515,6 +515,7 @@ export default {
 	updateCostumization,
 	getCustomization,
 	getAllTournaments,
+	getAllTournamentPlayers,
 	createTournament,
 	joinTournament,
 	createGameInvitation,
