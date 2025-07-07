@@ -719,6 +719,13 @@ function attachProfileEventListeners(user: User, twofaEnabled: boolean) {
                 "Username must be less than 20 characters.";
             return;
         }
+        const hasDigit = /\d/.test(username);
+        const hasLetter = /[a-zA-Z]/.test(username);
+        if (!hasDigit || !hasLetter) {
+            getElement<HTMLDivElement>("editUsernameError").textContent =
+                "Username must contain at least one letter and one number.";
+            return;
+        }
         let twofa_enabled = false;
         const enable2faCheckbox = document.getElementById(
             "enable2faCheckbox"
