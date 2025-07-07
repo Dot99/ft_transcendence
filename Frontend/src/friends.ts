@@ -1,7 +1,13 @@
 import { friendsTemplate } from "./templates/friendsTemplate.js";
 import { getLang } from "./locales/localeMiddleware.js";
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
-import { getOnlineUserIds, subscribeOnlineUsers, subscribeGameInvitations, unsubscribeGameInvitations } from "./utils/ws.js";
+import { t } from "./locales/localeMiddleware.js";
+import {
+	getOnlineUserIds,
+	subscribeOnlineUsers,
+	subscribeGameInvitations,
+	unsubscribeGameInvitations,
+} from "./utils/ws.js";
 import { API_BASE_URL } from "./config.js";
 let onlineUserIds: number[] = [];
 
@@ -27,8 +33,12 @@ export async function loadFriendsPage(): Promise<void> {
 	const app = document.getElementById("app");
 	if (!app) return;
 	app.innerHTML = friendsTemplate;
-	document.getElementById("addFriendBtn")?.addEventListener("click", addFriend);
-	document.getElementById("inviteBtn")?.addEventListener("click", inviteToGame);
+	document
+		.getElementById("addFriendBtn")
+		?.addEventListener("click", addFriend);
+	document
+		.getElementById("inviteBtn")
+		?.addEventListener("click", inviteToGame);
 	document
 		.getElementById("cancelInviteBtn")
 		?.addEventListener("click", closeInviteModal);
@@ -51,15 +61,15 @@ export async function loadFriendsPage(): Promise<void> {
 	await loadFriends();
 	await loadFriendRequests();
 	await loadGameInvitations();
-	
+
 	// Subscribe to real-time game invitations
 	const handleInvitation = (invitation: any) => {
 		createInvitationNotification(invitation, 0);
 	};
 	subscribeGameInvitations(handleInvitation);
-	
+
 	// Clean up on page unload
-	window.addEventListener('beforeunload', () => {
+	window.addEventListener("beforeunload", () => {
 		unsubscribeGameInvitations(handleInvitation);
 	});
 }
@@ -74,7 +84,9 @@ async function loadFriends(): Promise<void> {
 			},
 		});
 		const data = await res.json();
-		const friends: Friend[] = Array.isArray(data.friends) ? data.friends : [];
+		const friends: Friend[] = Array.isArray(data.friends)
+			? data.friends
+			: [];
 		const friendsList = document.getElementById("friendsList");
 		if (!friendsList) return;
 
@@ -94,24 +106,24 @@ async function loadFriends(): Promise<void> {
                 <span class="text-white flex-1 flex items-center gap-2">
                     ${friend.username}
                     ${
-											isOnline
-												? '<span title="Online" class="inline-block w-3 h-3 rounded-full bg-green-400"></span>'
-												: ""
-										}
+						isOnline
+							? '<span title="Online" class="inline-block w-3 h-3 rounded-full bg-green-400"></span>'
+							: ""
+					}
                 </span>
                 <button class="invite-btn text-[#4CF190] border border-[#4CF190] rounded px-3 py-1 hover:bg-[#4CF190] hover:text-[#001B26] transition" data-id="${
-									friend.id
-								}" data-name="${friend.username}">
+					friend.id
+				}" data-name="${friend.username}">
                     Invite
                 </button>
                 <button class="remove-btn text-yellow-400 border border-yellow-400 rounded px-3 py-1 hover:bg-yellow-400 hover:text-[#001B26] transition" data-id="${
-									friend.id
-								}">
+					friend.id
+				}">
                     Remove
                 </button>
                 <button class="block-btn text-red-400 border border-red-400 rounded px-3 py-1 hover:bg-red-400 hover:text-[#001B26] transition" data-id="${
-									friend.id
-								}">
+					friend.id
+				}">
                     Block
                 </button>
             `;
@@ -119,14 +131,20 @@ async function loadFriends(): Promise<void> {
 		});
 		friendsList.querySelectorAll(".invite-btn").forEach((btn) => {
 			btn.addEventListener("click", (e) => {
-				const id = (e.currentTarget as HTMLElement).getAttribute("data-id");
-				const name = (e.currentTarget as HTMLElement).getAttribute("data-name");
+				const id = (e.currentTarget as HTMLElement).getAttribute(
+					"data-id"
+				);
+				const name = (e.currentTarget as HTMLElement).getAttribute(
+					"data-name"
+				);
 				if (id && name) openInviteModal(Number(id), name);
 			});
 		});
 		friendsList.querySelectorAll(".remove-btn").forEach((btn) => {
 			btn.addEventListener("click", async (e) => {
-				const id = (e.currentTarget as HTMLElement).getAttribute("data-id");
+				const id = (e.currentTarget as HTMLElement).getAttribute(
+					"data-id"
+				);
 				if (!id) return;
 				await removeFriend(id);
 				await loadFriends();
@@ -134,7 +152,9 @@ async function loadFriends(): Promise<void> {
 		});
 		friendsList.querySelectorAll(".block-btn").forEach((btn) => {
 			btn.addEventListener("click", async (e) => {
-				const id = (e.currentTarget as HTMLElement).getAttribute("data-id");
+				const id = (e.currentTarget as HTMLElement).getAttribute(
+					"data-id"
+				);
 				if (!id) return;
 				await blockUser(id);
 				await removeFriend(id);
@@ -184,7 +204,9 @@ async function loadBlockedUsers(): Promise<void> {
 		});
 		blockedUsersList.querySelectorAll(".unblock-btn").forEach((btn) => {
 			btn.addEventListener("click", async (e) => {
-				const id = (e.currentTarget as HTMLElement).getAttribute("data-id");
+				const id = (e.currentTarget as HTMLElement).getAttribute(
+					"data-id"
+				);
 				if (!id) return;
 				await unblockUser(id);
 				await loadBlockedUsers();
@@ -231,8 +253,8 @@ async function loadFriendRequests(): Promise<void> {
 
 		if (requests.length === 0) {
 			requestsList.innerHTML = `<div class="text-gray-400 text-sm" id="noFriendRequests">
-				No friend requests. Looks like you're too cool for requests right now 😎
-			</div>`;
+        ${t("no_friend_requests")}
+    </div>`;
 			return;
 		}
 		if (noRequests) noRequests.classList.add("hidden");
@@ -269,7 +291,9 @@ async function loadFriendRequests(): Promise<void> {
 		// Attach event listeners for accept/reject
 		requestsList.querySelectorAll(".accept-btn").forEach((btn) => {
 			btn.addEventListener("click", async (e) => {
-				const id = (e.currentTarget as HTMLElement).getAttribute("data-id");
+				const id = (e.currentTarget as HTMLElement).getAttribute(
+					"data-id"
+				);
 				await respondToFriendRequest(id, true);
 				await loadFriendRequests();
 				await loadFriends();
@@ -277,14 +301,18 @@ async function loadFriendRequests(): Promise<void> {
 		});
 		requestsList.querySelectorAll(".reject-btn").forEach((btn) => {
 			btn.addEventListener("click", async (e) => {
-				const id = (e.currentTarget as HTMLElement).getAttribute("data-id");
+				const id = (e.currentTarget as HTMLElement).getAttribute(
+					"data-id"
+				);
 				await respondToFriendRequest(id, false);
 				await loadFriendRequests();
 			});
 		});
 		requestsList.querySelectorAll(".block-btn").forEach((btn) => {
 			btn.addEventListener("click", async (e) => {
-				const id = (e.currentTarget as HTMLElement).getAttribute("data-id");
+				const id = (e.currentTarget as HTMLElement).getAttribute(
+					"data-id"
+				);
 				if (!id) return;
 				await blockUser(id);
 				await loadBlockedUsers();
@@ -341,31 +369,40 @@ function closeInviteModal(): void {
 
 async function inviteToGame(): Promise<void> {
 	if (!selectedFriendId) return;
-	
+
 	try {
-		const response = await fetch(`${API_BASE_URL}/games/invite/${selectedFriendId}`, {
-			method: "POST",
-			headers: {
-				"Accept-Language": getLang(),
-				Authorization: `Bearer ${getCookie("jwt")}`,
-			},
-			credentials: "include",
-		});
+		const response = await fetch(
+			`${API_BASE_URL}/games/invite/${selectedFriendId}`,
+			{
+				method: "POST",
+				headers: {
+					"Accept-Language": getLang(),
+					Authorization: `Bearer ${getCookie("jwt")}`,
+				},
+				credentials: "include",
+			}
+		);
 
 		closeInviteModal();
 
 		if (response.ok) {
 			const data = await response.json();
 			showMessage("Game invitation sent!", "success");
-			
+
 			// Store the invitation data for potential navigation to play page
 			if (data.invitation && data.invitation.game_id) {
-				sessionStorage.setItem("pendingGameId", data.invitation.game_id);
+				sessionStorage.setItem(
+					"pendingGameId",
+					data.invitation.game_id
+				);
 				sessionStorage.setItem("invitationId", data.invitation.id);
 			}
 		} else {
 			const errorData = await response.json();
-			showMessage(errorData.error || "Failed to send invitation", "error");
+			showMessage(
+				errorData.error || "Failed to send invitation",
+				"error"
+			);
 		}
 	} catch (error) {
 		closeInviteModal();
@@ -378,7 +415,7 @@ function showMessage(text: string, type: "success" | "error"): void {
 	const messageId = type === "success" ? "friendInvite" : "friendInputError";
 	const msg = document.getElementById(messageId);
 	if (!msg) return;
-	
+
 	msg.textContent = text;
 	msg.classList.remove("hidden");
 	msg.classList.add("show");
@@ -465,18 +502,23 @@ async function addFriend(): Promise<void> {
 
 async function loadGameInvitations(): Promise<void> {
 	try {
-		const response = await fetch(`${API_BASE_URL}/games/invitations/pending`, {
-			headers: {
-				"Accept-Language": getLang(),
-				Authorization: `Bearer ${getCookie("jwt")}`,
-			},
-			credentials: "include",
-		});
+		const response = await fetch(
+			`${API_BASE_URL}/games/invitations/pending`,
+			{
+				headers: {
+					"Accept-Language": getLang(),
+					Authorization: `Bearer ${getCookie("jwt")}`,
+				},
+				credentials: "include",
+			}
+		);
 
 		if (!response.ok) return;
 
 		const data = await response.json();
-		const invitations = Array.isArray(data.invitations) ? data.invitations : [];
+		const invitations = Array.isArray(data.invitations)
+			? data.invitations
+			: [];
 		displayGameInvitations(invitations);
 	} catch (error) {
 		console.error("Failed to load game invitations:", error);
@@ -485,18 +527,24 @@ async function loadGameInvitations(): Promise<void> {
 
 function displayGameInvitations(invitations: GameInvitation[]): void {
 	// Remove any existing invitation notifications
-	document.querySelectorAll('.game-invitation-notification').forEach(el => el.remove());
+	document
+		.querySelectorAll(".game-invitation-notification")
+		.forEach((el) => el.remove());
 
 	invitations.forEach((invitation, index) => {
 		createInvitationNotification(invitation, index);
 	});
 }
 
-function createInvitationNotification(invitation: GameInvitation, index: number): void {
-	const notification = document.createElement('div');
-	notification.className = 'game-invitation-notification fixed top-24 right-8 bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-4 shadow-lg z-50 w-80';
+function createInvitationNotification(
+	invitation: GameInvitation,
+	index: number
+): void {
+	const notification = document.createElement("div");
+	notification.className =
+		"game-invitation-notification fixed top-24 right-8 bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-4 shadow-lg z-50 w-80";
 	notification.style.transform = `translateY(${index * 120}px)`;
-	
+
 	notification.innerHTML = `
 		<div class="text-[#4CF190] font-bold text-lg mb-2">Game Invitation</div>
 		<div class="text-white mb-4">${invitation.inviter_username} invited you to play!</div>
@@ -513,30 +561,48 @@ function createInvitationNotification(invitation: GameInvitation, index: number)
 	document.body.appendChild(notification);
 
 	// Add event listeners
-	const acceptBtn = notification.querySelector('.accept-invitation-btn') as HTMLButtonElement;
-	const declineBtn = notification.querySelector('.decline-invitation-btn') as HTMLButtonElement;
+	const acceptBtn = notification.querySelector(
+		".accept-invitation-btn"
+	) as HTMLButtonElement;
+	const declineBtn = notification.querySelector(
+		".decline-invitation-btn"
+	) as HTMLButtonElement;
 
-	acceptBtn?.addEventListener('click', () => respondToInvitation(invitation.id, invitation.game_id, true));
-	declineBtn?.addEventListener('click', () => respondToInvitation(invitation.id, invitation.game_id, false));
+	acceptBtn?.addEventListener("click", () =>
+		respondToInvitation(invitation.id, invitation.game_id, true)
+	);
+	declineBtn?.addEventListener("click", () =>
+		respondToInvitation(invitation.id, invitation.game_id, false)
+	);
 }
 
-async function respondToInvitation(invitationId: string, gameId: string, accept: boolean): Promise<void> {
+async function respondToInvitation(
+	invitationId: string,
+	gameId: string,
+	accept: boolean
+): Promise<void> {
 	try {
-		const response = await fetch(`${API_BASE_URL}/games/invitation/${invitationId}/respond`, {
-			method: "POST",
-			headers: {
-				"Accept-Language": getLang(),
-				"Content-Type": "application/json",
-				Authorization: `Bearer ${getCookie("jwt")}`,
-			},
-			credentials: "include",
-			body: JSON.stringify({ accept }),
-		});
+		const response = await fetch(
+			`${API_BASE_URL}/games/invitation/${invitationId}/respond`,
+			{
+				method: "POST",
+				headers: {
+					"Accept-Language": getLang(),
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${getCookie("jwt")}`,
+				},
+				credentials: "include",
+				body: JSON.stringify({ accept }),
+			}
+		);
 
 		if (response.ok) {
 			// Remove the notification
-			document.querySelector(`[data-invitation-id="${invitationId}"]`)?.closest('.game-invitation-notification')?.remove();
-			
+			document
+				.querySelector(`[data-invitation-id="${invitationId}"]`)
+				?.closest(".game-invitation-notification")
+				?.remove();
+
 			if (accept) {
 				const data = await response.json();
 				// Navigate to play page with the game ID and opponent name
@@ -548,7 +614,10 @@ async function respondToInvitation(invitationId: string, gameId: string, accept:
 			}
 		} else {
 			const errorData = await response.json();
-			showMessage(errorData.error || "Failed to respond to invitation", "error");
+			showMessage(
+				errorData.error || "Failed to respond to invitation",
+				"error"
+			);
 		}
 	} catch (error) {
 		console.error("Error responding to invitation:", error);

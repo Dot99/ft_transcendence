@@ -27,6 +27,34 @@ export const messages = {
 		failLeaveMM: "Failed to leave matchmaking",
 		invalidToken: "Invalid token",
 		TwoFAFailed: "Two-factor authentication failed",
+		//Profile/stats related
+		noCustomization: "No customization found",
+		failUpdateCustomization: "Failed to update customization",
+		failGetCustomization: "Failed to get customization",
+		noRecentMatches: "No recent matches found",
+		failGetRecentMatches: "Failed to get recent matches",
+		noUserProfile: "User profile not found",
+		failUpdateProfile: "Failed to update user profile",
+		profileUpdateSuccess: "Profile updated successfully",
+		// Session related
+		sessionStartFailed: "Failed to start session",
+		sessionEndFailed: "Failed to end session",
+		invalidSessionData: "Invalid session data",
+		// Tournament related
+		tournamentNotFound: "Tournament not found",
+		tournamentJoinFailed: "Failed to join tournament",
+		tournamentCreateFailed: "Failed to create tournament",
+		tournamentUpdateFailed: "Failed to update tournament",
+		// Game invitation related
+		invitationNotFound: "Game invitation not found",
+		invitationExpired: "Game invitation has expired",
+		invitationAlreadyResponded: "Invitation already responded to",
+		failCreateInvitation: "Failed to create game invitation",
+		failRespondInvitation: "Failed to respond to invitation",
+		// Stats related
+		failRecalculateStats: "Failed to recalculate user stats",
+		statsRecalculateSuccess: "User stats recalculated successfully",
+		noStatsToRecalculate: "No stats to recalculate",
 	},
 	pt: {
 		userNotFound: "Usuário não encontrado",
@@ -55,6 +83,35 @@ export const messages = {
 		failLeaveMM: "Erro ao sair do matchmaking",
 		invalidToken: "Token inválido",
 		TwoFAFailed: "Falha na autenticação de dois fatores",
+		//Profile/stats related
+		noCustomization: "Nenhuma personalização encontrada",
+		failUpdateCustomization: "Falha ao atualizar personalização",
+		failGetCustomization: "Falha ao obter personalização",
+		noRecentMatches: "Nenhuma partida recente encontrada",
+		failGetRecentMatches: "Falha ao obter partidas recentes",
+		noUserProfile: "Perfil de usuário não encontrado",
+		failUpdateProfile: "Falha ao atualizar perfil do usuário",
+		profileUpdateSuccess: "Perfil atualizado com sucesso",
+		// Session related
+		sessionStartFailed: "Falha ao iniciar sessão",
+		sessionEndFailed: "Falha ao encerrar sessão",
+		invalidSessionData: "Dados de sessão inválidos",
+		// Tournament related
+		tournamentNotFound: "Torneio não encontrado",
+		tournamentJoinFailed: "Falha ao entrar no torneio",
+		tournamentCreateFailed: "Falha ao criar torneio",
+		tournamentUpdateFailed: "Falha ao atualizar torneio",
+		// Game invitation related
+		invitationNotFound: "Convite para jogo não encontrado",
+		invitationExpired: "O convite para jogo expirou",
+		invitationAlreadyResponded: "Convite já respondido",
+		failCreateInvitation: "Falha ao criar convite para jogo",
+		failRespondInvitation: "Falha ao responder ao convite",
+		// Stats related
+		failRecalculateStats: "Falha ao recalcular estatísticas do usuário",
+		statsRecalculateSuccess:
+			"Estatísticas do usuário recalculadas com sucesso",
+		noStatsToRecalculate: "Nenhuma estatística para recalcular",
 	},
 	zh: {
 		userNotFound: "用户未找到",
@@ -83,5 +140,33 @@ export const messages = {
 		failLeaveMM: "离开匹配失败",
 		invalidToken: "无效的令牌",
 		TwoFAFailed: "双因素认证失败",
+		//Profile/stats related
+		noCustomization: "未找到自定义设置",
+		failUpdateCustomization: "更新自定义设置失败",
+		failGetCustomization: "获取自定义设置失败",
+		noRecentMatches: "未找到最近的比赛",
+		failGetRecentMatches: "获取最近比赛失败",
+		noUserProfile: "未找到用户个人资料",
+		failUpdateProfile: "更新用户个人资料失败",
+		profileUpdateSuccess: "个人资料更新成功",
+		// Session related
+		sessionStartFailed: "启动会话失败",
+		sessionEndFailed: "结束会话失败",
+		invalidSessionData: "无效的会话数据",
+		// Tournament related
+		tournamentNotFound: "未找到锦标赛",
+		tournamentJoinFailed: "加入锦标赛失败",
+		tournamentCreateFailed: "创建锦标赛失败",
+		tournamentUpdateFailed: "更新锦标赛失败",
+		// Game invitation related
+		invitationNotFound: "未找到游戏邀请",
+		invitationExpired: "游戏邀请已过期",
+		invitationAlreadyResponded: "邀请已被响应",
+		failCreateInvitation: "创建游戏邀请失败",
+		failRespondInvitation: "响应邀请失败",
+		// Stats related
+		failRecalculateStats: "重新计算用户统计数据失败",
+		statsRecalculateSuccess: "用户统计数据重新计算成功",
+		noStatsToRecalculate: "没有统计数据需要重新计算",
 	},
 };

@@ -297,7 +297,7 @@ async function loadUserProfileData(userId: number): Promise<void> {
 		console.error("Error loading user profile data:", error);
 		const nameElement = getElement<HTMLHeadingElement>("name");
 		if (nameElement) {
-			nameElement.textContent = "Error loading profile";
+			nameElement.textContent = t("error_loading_profile");
 		}
 		getElement<HTMLImageElement>("pfp").src = "/images/default_pfp.png";
 	}
@@ -366,7 +366,7 @@ async function loadUserStatsAndMatches(userId: number): Promise<void> {
 		console.error("Error loading recent matches:", error);
 	}
 
-	// Load tournaments (handle gracefully if endpoint doesn't exist)
+	// Load tournaments
 	try {
 		if (stats && stats.current_tournament) {
 			await loadPastTournaments(userId, stats.current_tournament);
@@ -377,7 +377,6 @@ async function loadUserStatsAndMatches(userId: number): Promise<void> {
 			"Error loading tournament data (this is expected if tournaments are not implemented):",
 			error
 		);
-		// Tournament data loading is optional - don't throw error
 	}
 }
 
@@ -413,8 +412,9 @@ async function loadRecentMatches(userId: number): Promise<void> {
 		container.innerHTML = "";
 
 		if (!data.games || data.games.length === 0) {
-			container.innerHTML =
-				'<div class="text-gray-400 text-center p-4">No recent matches found</div>';
+			container.innerHTML = `<div class="text-gray-400 text-center p-4">${t(
+				"no_recent_matches"
+			)}</div>`;
 			return;
 		}
 
