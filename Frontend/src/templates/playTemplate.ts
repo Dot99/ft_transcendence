@@ -24,7 +24,7 @@ export const playTemplate = `
   <div class="fixed right-10 top-1/2 -translate-y-1/2 flex flex-col items-center w-48 z-30">
     <span id="bot-username" class="text-[#4CF190] text-2xl mb-3 w-full text-center">Bot</span>
     <div id="bot-banner" class="border-4 border-[#4CF190] p-1 mb-3 w-28 h-28 flex items-center justify-center transition-all">
-        <img src="images/robot.svg" alt="Bot" class="w-24 h-24 rounded" />
+        <img id="bot-avatar" src="images/robot.svg" alt="Bot" class="w-24 h-24 rounded" />
     </div>
     <div class="relative w-36 h-20 flex items-center justify-center mb-2">
         <img src="images/score.svg" class="absolute inset-0 w-full h-full" alt="score" />
@@ -33,10 +33,12 @@ export const playTemplate = `
   </div>
 
   <!-- Pong Game Area -->
-  <div class="relative w-[850px] h-[500px] border-4 border-[#4CF190] bg-[#07303c] flex items-center justify-center overflow-hidden z-10">
+  <div id="pong-container" class="relative w-[850px] h-[500px] border-4 border-[#4CF190] bg-[#07303c] flex items-center justify-center overflow-hidden z-10">
     <div class="absolute left-1/2 top-0 -translate-x-1/2 h-full flex flex-col items-center z-0 pointer-events-none">
       <div class="flex flex-col h-full justify-between py-2">
-        ${Array(13).fill('<div class="w-1 h-8 bg-[#4CF190] mb-4 opacity-50"></div>').join('')}
+        ${Array(13)
+          .fill('<div class="w-1 h-8 bg-[#4CF190] mb-4 opacity-50"></div>')
+          .join("")}
       </div>
     </div>
     <canvas id="pong-canvas" width="850" height="500" class="absolute left-0 top-0 z-10"></canvas>
