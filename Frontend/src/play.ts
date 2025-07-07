@@ -663,8 +663,10 @@ export const loadPlayPage = async (): Promise<void> => {
                 } else if (data.type === "paddleUpdate") {
                     if (data.side === "left") {
                         leftY = data.y;
+                        leftYOld = data.y;
                     } else if (data.side === "right") {
                         rightY = data.y;
+                        rightYOld = data.y;
                     }
                 } else if (data.type === "ballUpdate") {
                     ballX = data.ballX;
@@ -885,27 +887,47 @@ export const loadPlayPage = async (): Promise<void> => {
     }
 
     function update() {
-        // In multiplayer, each player only controls their own paddle
-        if (isMultiplayer && ws) {
-            if (playerSide === "left" && leftY !== leftYOld) {
-                ws.send(
-                    JSON.stringify({
-                        type: "paddleMove",
-                        y: leftY,
-                    })
+        if (isMultiplayer) {
+            // In multiplayer, each player only controls their assigned paddle
+            if (playerSide === "left") {
+                // Left player controls left paddle
+                if (keys.w) leftY -= paddleSpeed;
+                if (keys.s) leftY += paddleSpeed;
+                leftY = Math.max(
+                    0,
+                    Math.min(fieldHeight - paddleHeight, leftY)
                 );
-                leftYOld = leftY; // Update old position immediately after sending
-            } else if (playerSide === "right" && rightY !== rightYOld) {
-                ws.send(
-                    JSON.stringify({
-                        type: "paddleMove",
-                        y: rightY,
-                    })
+
+                if (leftY !== leftYOld) {
+                    ws?.send(
+                        JSON.stringify({
+                            type: "paddleMove",
+                            y: leftY,
+                        })
+                    );
+                    leftYOld = leftY;
+                }
+            } else if (playerSide === "right") {
+                // Right player controls right paddle
+                if (keys.ArrowUp) rightY -= paddleSpeed;
+                if (keys.ArrowDown) rightY += paddleSpeed;
+                rightY = Math.max(
+                    0,
+                    Math.min(fieldHeight - paddleHeight, rightY)
                 );
-                rightYOld = rightY; // Update old position immediately after sending
+
+                if (rightY !== rightYOld) {
+                    ws?.send(
+                        JSON.stringify({
+                            type: "paddleMove",
+                            y: rightY,
+                        })
+                    );
+                    rightYOld = rightY;
+                }
             }
         } else {
-            // Single player mode - AI or PvP local
+            // Single player mode - both players can use their controls
             if (keys.w) leftY -= paddleSpeed;
             if (keys.s) leftY += paddleSpeed;
             leftY = Math.max(0, Math.min(fieldHeight - paddleHeight, leftY));
@@ -913,7 +935,6 @@ export const loadPlayPage = async (): Promise<void> => {
             if (!isPvP) {
                 // AI opponent logic
                 const now = Date.now();
-                // AI can only update its view once per second (constraint requirement)
                 if (now - lastBotUpdate >= 1000) {
                     botAI.update({
                         ballX,
@@ -928,14 +949,9 @@ export const loadPlayPage = async (): Promise<void> => {
                         fieldHeight,
                     });
                     lastBotUpdate = now;
-                } else {
-                    // Between AI updates, maintain the last movement decision
-                    const currentKeys = botAI.getCurrentKeys();
-                    keys.ArrowUp = currentKeys.ArrowUp;
-                    keys.ArrowDown = currentKeys.ArrowDown;
                 }
+
                 const aiKeys = botAI.getCurrentKeys();
-                // Bot movement continues based on AI decision
                 if (aiKeys.ArrowUp) rightY -= paddleSpeed;
                 if (aiKeys.ArrowDown) rightY += paddleSpeed;
                 rightY = Math.max(
@@ -943,7 +959,7 @@ export const loadPlayPage = async (): Promise<void> => {
                     Math.min(fieldHeight - paddleHeight, rightY)
                 );
             } else {
-                // Human controls for right paddle in local PvP
+                // Local PvP - human controls right paddle
                 if (keys.ArrowUp) rightY -= paddleSpeed;
                 if (keys.ArrowDown) rightY += paddleSpeed;
                 rightY = Math.max(
@@ -951,36 +967,15 @@ export const loadPlayPage = async (): Promise<void> => {
                     Math.min(fieldHeight - paddleHeight, rightY)
                 );
             }
-        }
 
-        // Send paddle updates for multiplayer
-        if (isMultiplayer && ws) {
-            if (playerSide === "left" && leftY !== leftYOld) {
-                ws.send(
-                    JSON.stringify({
-                        type: "paddleMove",
-                        y: leftY,
-                    })
-                );
-                leftYOld = leftY; // Update old position immediately after sending
-            } else if (playerSide === "right" && rightY !== rightYOld) {
-                ws.send(
-                    JSON.stringify({
-                        type: "paddleMove",
-                        y: rightY,
-                    })
-                );
-                rightYOld = rightY; // Update old position immediately after sending
-            }
-        } else {
-            // For single player, update old positions normally
+            // Update old positions for single player
             leftYOld = leftY;
             rightYOld = rightY;
         }
 
         if (!gameStarted) return;
 
-        // In multiplayer, only the left player controls the ball physics
+        // Ball physics - only controlled by left player in multiplayer
         if (isMultiplayer && playerSide !== "left") return;
 
         let ballXOld = ballX,
@@ -992,6 +987,7 @@ export const loadPlayPage = async (): Promise<void> => {
         ballX += ballVX;
         ballY += ballVY;
 
+        // Ball collision with top/bottom walls
         if (ballY <= 0) {
             ballY = 0;
             ballVY *= -1;
@@ -1022,11 +1018,11 @@ export const loadPlayPage = async (): Promise<void> => {
             ballVY +=
                 (ballY + ballHeight / 2 - (rightY + paddleHeight / 2)) * 0.15;
             if (!isMultiplayer && !isPvP) {
-                botAI.recordHit(); // Track successful hit for AI
+                botAI.recordHit();
             }
         }
 
-        // Score
+        // Scoring logic
         if (ballX < 0 && !winner) {
             rightScore++;
             updateScoreDisplay();
@@ -1043,7 +1039,6 @@ export const loadPlayPage = async (): Promise<void> => {
                 resetBall();
             }
 
-            // Send score update for multiplayer (only left player)
             if (isMultiplayer && ws && playerSide === "left") {
                 ws.send(
                     JSON.stringify({
@@ -1056,9 +1051,11 @@ export const loadPlayPage = async (): Promise<void> => {
             }
             return;
         }
+
         if (ballX + ballWidth > fieldWidth && !winner) {
             leftScore++;
             updateScoreDisplay();
+
             if (leftScore >= 3) {
                 winner = "left";
                 setBannerGlow("left");
@@ -1071,7 +1068,6 @@ export const loadPlayPage = async (): Promise<void> => {
                 resetBall();
             }
 
-            // Send score update for multiplayer (only left player)
             if (isMultiplayer && ws && playerSide === "left") {
                 ws.send(
                     JSON.stringify({
@@ -1083,15 +1079,13 @@ export const loadPlayPage = async (): Promise<void> => {
                 );
             }
 
-            // When ball goes past right paddle (bot misses):
             if (!isMultiplayer && !isPvP) {
-                botAI.recordMiss(); // Track miss for AI
+                botAI.recordMiss();
             }
-
             return;
         }
 
-        // Send ball updates for multiplayer (only left player controls ball)
+        // Send ball updates for multiplayer
         if (isMultiplayer && ws && playerSide === "left") {
             if (
                 ballX !== ballXOld ||

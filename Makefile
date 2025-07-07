@@ -55,15 +55,9 @@ install:
 	@cd $(BACKEND_DIR) && npm install
 	@echo "$(GREEN)Dependencies installed!$(NC)"
 
+rfrontend:
+	@docker exec -it ft_transcendence-frontend-1 sh -c "npm run build"
 
-# Deploy using docker-compose (local development)
-deploy:
-	@echo "$(GREEN)Deploying locally with docker-compose...$(NC)"
-	@echo "$(YELLOW)Note: This will only be accessible on localhost$(NC)"
-	@touch $(BACKEND_DIR)/db/data.db && chmod 777 $(BACKEND_DIR)/db/data.db
-	@docker image prune -f
-	@docker compose down --remove-orphans
-	@docker compose up --build
 
 # Deploy for network access
 network: fclean
