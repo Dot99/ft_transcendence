@@ -275,7 +275,6 @@ async function loadUserProfileData(userId: number): Promise<void> {
 			throw new Error("User data not found in response");
 		}
 		const twofaEnabled = user.twofa_enabled || false;
-		console.log("TwoFA Enabled on Load:", twofaEnabled);
 		attachProfileEventListeners(user, twofaEnabled);
 
 		const nameElement = document.getElementById("name");
@@ -476,8 +475,7 @@ async function loadRecentMatches(userId: number): Promise<void> {
 	} catch (error) {
 		console.error("Error loading recent matches:", error);
 		const container = getElement<HTMLDivElement>("matchTableBody");
-		container.innerHTML =
-			'<div class="text-red-400 text-center p-4">Error loading matches</div>';
+		container.innerHTML = "";
 	} finally {
 		isLoadingMatches = false;
 	}
@@ -657,18 +655,14 @@ function showEditProfileModal(user: User, twofaEnabled: boolean): void {
 	usernameInput.value = user.username;
 
 	const twofaSection = getElement<HTMLDivElement>("twofaSection");
-	console.log("TwoFA Enabled:", twofaEnabled);
 	twofaSection.innerHTML = `
-		<label class="flex items-center gap-2">
-			<input id="enable2faCheckbox" type="checkbox" class="accent-[#4CF190]" ${
+        <label class="flex items-center gap-2">
+            <input id="enable2faCheckbox" type="checkbox" class="accent-[#4CF190]" ${
 				twofaEnabled ? "checked" : ""
 			} />
-			<span class="text-[#4CF190]">Enable Two-Factor Authentication</span>
-		</label>
-		<div id="twofaWarning" class="mt-2 p-3 bg-yellow-900/30 border border-yellow-500/50 rounded text-yellow-200 text-sm hidden">
-			<strong>⚠️ Important:</strong> Once you close the QR code modal, your 2FA will be activated immediately. You will need to scan the QR code with your authenticator app and input the 6-digit code to login next time. If you don't scan the QR code, you won't be able to access your account!
-		</div>
-	`;
+            <span class="text-[#4CF190]">${t("2fa_auth")}</span>
+        </label>
+    `;
 	const langSelector = document.getElementById(
 		"languageSelector"
 	) as HTMLSelectElement | null;
@@ -679,7 +673,6 @@ function showEditProfileModal(user: User, twofaEnabled: boolean): void {
 			setLang(newLang as "en" | "pt" | "zh");
 			loadProfilePage(false);
 		};
-		// Optionally translate the label
 		const langLabel = document.querySelector(
 			"label[for='languageSelector']"
 		);
@@ -760,6 +753,23 @@ function attachProfileEventListeners(user: User, twofaEnabled: boolean) {
 					const qrModal = getElement<HTMLDivElement>("twofaQrModal");
 					const qrImg = getElement<HTMLImageElement>("twofaQrImg");
 					qrImg.src = twofaData.code;
+					const qrContainer = qrImg.parentElement;
+					if (qrContainer) {
+						// Remove any existing warning
+						const existingWarning =
+							qrContainer.querySelector("#twofaWarning");
+						if (existingWarning) {
+							existingWarning.remove();
+						}
+						const warningDiv = document.createElement("div");
+						warningDiv.id = "twofaWarning";
+						warningDiv.className =
+							"mt-4 p-3 bg-yellow-900/30 border border-yellow-500/50 rounded text-yellow-200 text-sm";
+						warningDiv.innerHTML = `<strong>⚠️ ${t(
+							"important"
+						)}:</strong> ${t("2fa_warning_message")}`;
+						qrContainer.appendChild(warningDiv);
+					}
 					getElement<HTMLDivElement>(
 						"editProfileModal"
 					).style.display = "none";
@@ -946,41 +956,47 @@ async function renderPerformanceChart(): Promise<void> {
 		const barCtx = barCanvas.getContext("2d");
 		let doughnutData = [matchesWon, matchesLost];
 		const isEmptyStats = matchesWon === 0 && matchesLost === 0;
-
-		if (matchesWon === 0 && matchesLost === 0) {
-			doughnutData = [1, 1];
-		}
-
-		// Doughnut Chart
-		new Chart(doughnutCtx, {
-			type: "doughnut",
-			data: {
-				labels: [t("wins"), t("losses")],
-				datasets: [
-					{
-						label: t("total"),
-						data: doughnutData,
-						backgroundColor: ["#4CF190", "#E57373"],
-						borderColor: "#001B26",
-						borderWidth: 2,
-					},
-				],
-			},
-			options: {
-				responsive: true,
-				plugins: {
-					tooltip: { enabled: true },
-					legend: {
-						position: "bottom",
-						labels: { color: "#ffffff" },
-					},
-					datalabels: {
-						display: false,
+		if (isEmptyStats) {
+			doughnutCanvas.style.display = "none";
+			const container = doughnutCanvas.parentElement;
+			if (container) {
+				container.innerHTML =
+					'<div class="flex items-center justify-center h-full text-gray-400">No match data available</div>';
+			}
+		} else {
+			doughnutCanvas.style.display = "block";
+			const doughnutData = [matchesWon, matchesLost];
+			// Doughnut Chart
+			new Chart(doughnutCtx, {
+				type: "doughnut",
+				data: {
+					labels: [t("wins"), t("losses")],
+					datasets: [
+						{
+							label: t("total"),
+							data: doughnutData,
+							backgroundColor: ["#4CF190", "#E57373"],
+							borderColor: "#001B26",
+							borderWidth: 2,
+						},
+					],
+				},
+				options: {
+					responsive: true,
+					plugins: {
+						tooltip: { enabled: true },
+						legend: {
+							position: "bottom",
+							labels: { color: "#ffffff" },
+						},
+						datalabels: {
+							display: false,
+						},
 					},
 				},
-			},
-			plugins: [doughnutCenterText, ChartDataLabels],
-		});
+				plugins: [doughnutCenterText, ChartDataLabels],
+			});
+		}
 
 		const res = await fetch(
 			`${API_BASE_URL}/tournaments/users/${userId}/past`,
