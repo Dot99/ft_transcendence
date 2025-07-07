@@ -20,10 +20,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 await fastify.register(cors, {
 	origin: [
-		process.env.FRONTEND_URL, 
+		"http://c1r9s1.42porto.com:3001",
+		process.env.FRONTEND_URL,
 		/^http:\/\/10\.11\.9\.\d+:3001$/,
 		/^http:\/\/10\.11\.9\.\d+$/,
-		true // Allow all origins for local development
+		true, // Allow all origins for local development
 	],
 	methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],
 	allowedHeaders: ["Content-Type", "Authorization"],
@@ -75,8 +76,8 @@ await fastify.register(fastifyStatic, {
 
 fastify.setNotFoundHandler((request, reply) => {
 	// Only serve index.html for non-API routes
-	if (request.url.startsWith('/api/')) {
-		reply.status(404).send({ error: 'API endpoint not found' });
+	if (request.url.startsWith("/api/")) {
+		reply.status(404).send({ error: "API endpoint not found" });
 	} else {
 		reply.sendFile("index.html");
 	}
