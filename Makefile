@@ -1,7 +1,7 @@
 # Variables
 FRONTEND_DIR = Frontend
 BACKEND_DIR = Backend
-LOCAL_IP = 10.11.9.1
+LOCAL_IP = $(shell hostname)
 
 # Colors for terminal output
 GREEN = \033[0;32m
