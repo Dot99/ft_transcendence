@@ -55,9 +55,12 @@ type Match = {
   round_number: string;
 };
 
+// Variável global para armazenar o número de rodadas
+let totalRounds: number = 0;
+
+// Atualize o renderBracket para calcular o número de rodadas
 async function renderBracket(tournamentId: string) {
   const chartContainer = getElement<HTMLDivElement>("bracketContainer");
-  console.log("chartContainer:", chartContainer);
   if (!chartContainer) return;
 
   // Fetch tournament details to get max_players
@@ -72,6 +75,9 @@ async function renderBracket(tournamentId: string) {
 
   const tournament = await tournamentRes.json();
   const maxPlayers = tournament.tournament.max_players;
+
+  // Calcular o número total de rodadas
+  totalRounds = Math.log2(maxPlayers);
 
   // Render initial bracket layout
   chartContainer.innerHTML = createBracketLayout(maxPlayers);
@@ -90,91 +96,73 @@ async function renderBracket(tournamentId: string) {
   const matches = games.matches as Match[];
 
   if (!matches || matches.length === 0) {
-    console.warn("No matches found for tournament:", tournamentId);
+    console.warn("No upcoming matches found for tournament:", tournamentId);
+
+    // Fetch completed matches from tournament_matches
+    const completedMatchesRes = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/tournament_matches`, {
+      headers: { Authorization: `Bearer ${getCookie("jwt")}` },
+    });
+
+    if (!completedMatchesRes.ok) {
+      console.error("Error fetching completed matches:", await completedMatchesRes.text());
+      return;
+    }
+
+    const completedGames = await completedMatchesRes.json();
+    const completedMatches = completedGames.matches as Match[];
+
+    if (!completedMatches || completedMatches.length === 0) {
+      console.warn("No completed matches found for tournament:", tournamentId);
+      return;
+    }
+
+    // Display completed match results
+    chartContainer.innerHTML = `
+      <div class="completed-matches" style="text-align: center; color: #4CF190;">
+        <h3>Completed Matches</h3>
+        ${completedMatches
+          .map(
+            (match) => `
+          <div class="match-result" style="margin: 10px; padding: 10px; border: 1px solid #4CF190; border-radius: 8px;">
+            <p><strong>${match.player1}</strong> vs <strong>${match.player2}</strong></p>
+            <p>Winner: ${match.scheduled_date}</p>
+          </div>
+        `
+          )
+          .join("")}
+      </div>
+    `;
     return;
   }
 
   const chartPoints = await generateChartPoints(matches);
   // Update bracket with actual match data
-  createCustomBracket(chartPoints, matches);
+  createCustomBracket(chartPoints, matches, tournamentId);
 }
 
-async function generateChartPoints(matches: Match[]) {
-  const rounds = groupBy(matches, "round_number");
-  const chartPoints: any[] = [];
-  const matchIdsByRound: Record<number, string[]> = {};
-
-  const sortedRounds = Object.keys(rounds)
-    .map(Number)
-    .sort((a, b) => a - b);
-
-  for (const round of sortedRounds) {
-    const roundMatches = rounds[round];
-    matchIdsByRound[round] = [];
-
-    for (let index = 0; index < roundMatches.length; index++) {
-      const match = roundMatches[index];
-      const matchId = `r${round}_m${index}`;
-      matchIdsByRound[round].push(matchId);
-
-      const parentRound = matchIdsByRound[round - 1];
-      const parentId =
-        round > 1 && parentRound
-          ? parentRound[Math.floor(index / 2)]
-          : undefined;
-
-      const [player1Res, player2Res] = await Promise.all([
-        fetch(`${API_BASE_URL}/users/${match.player1}`, {
-          headers: { Authorization: `Bearer ${getCookie("jwt")}` },
-        }),
-        fetch(`${API_BASE_URL}/users/${match.player2}`, {
-          headers: { Authorization: `Bearer ${getCookie("jwt")}` },
-        }),
-      ]);
-      const [player1Data, player2Data] = await Promise.all([
-        player1Res.json(),
-        player2Res.json(),
-      ]);
-
-      chartPoints.push({
-        id: matchId,
-        name: `match_${index}`,
-        label: {
-          text: `${player1Data.user.username}\nvs\n${
-            player2Data.user.username
-          }\n${new Date(match.scheduled_date).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}`,
-        },
-
-        ...(parentId && { parent: parentId }),
-      });
-    }
-  }
-
-  return chartPoints;
-}
-
-function truncate(name: string, maxLength = 12): string {
-  return name.length > maxLength ? name.slice(0, maxLength - 1) + "…" : name;
-}
-
-function createCustomBracket(chartPoints: any[], matches: Match[]) {
-  const chartContainer = document.getElementById("bracketContainer");
-  if (!chartContainer) return;
-
-  // Group matches by round for better organization
-  const rounds = groupBy(matches, "round_number");
-  const sortedRounds = Object.keys(rounds)
-    .map(Number)
-    .sort((a, b) => a - b);
+// Atualize o createCustomBracket para verificar partidas faltantes
+function createCustomBracket(chartPoints: any[], matches: Match[], tournamentId: string) {
+	const chartContainer = document.getElementById("bracketContainer");
+	if (!chartContainer) return;
+  
+	const rounds = groupBy(matches, "round_number");
+	const sortedRounds = Object.keys(rounds)
+	  .map(Number)
+	  .sort((a, b) => a - b);
+	const totalRounds = Math.log2(chartPoints.length * 2);
+	if (!sortedRounds.includes(totalRounds)) {
+	  sortedRounds.push(totalRounds);
+	}
+	const expectedMatches = Math.pow(2, totalRounds);
+	  console.log("Total rounds:", totalRounds, "Expected matches:", expectedMatches);
+	if (matches.length < expectedMatches) {
+	  console.warn("Incomplete matches detected. Fetching missing matches...");
+	  fetchMissingMatches(tournamentId, matches, chartPoints);
+	  return;
+	}
+  console.log("Matches:", matches);
 
   // Ensure the final round is always displayed
-  const totalRounds = Math.log2(chartPoints.length * 2);
-  if (!sortedRounds.includes(totalRounds)) {
-    sortedRounds.push(totalRounds);
-  }
 
   // Create bracket HTML with proper grid layout
   let bracketHTML = `
@@ -250,7 +238,7 @@ function createCustomBracket(chartPoints: any[], matches: Match[]) {
             minute: "2-digit",
           })
         : "";
-
+		  console.log("Match:", match, "Player1:", player1, "Player2:", player2, "Scheduled Time:", scheduledTime);
       bracketHTML += `
         <div class="match-card" data-round="${roundIndex + 1}" data-match="${matchIndex}" style="
           background: linear-gradient(145deg, #083744, #0a3e4c);
@@ -355,6 +343,86 @@ function createCustomBracket(chartPoints: any[], matches: Match[]) {
   bracketHTML += "</div>";
 
   chartContainer.innerHTML = bracketHTML;
+}
+
+// Função para buscar partidas faltantes
+async function fetchMissingMatches(tournamentId: string, matches: Match[], chartPoints: any[]) {
+  const res = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/matches/finished`, {
+    headers: { Authorization: `Bearer ${getCookie("jwt")}` },
+  });
+
+  if (!res.ok) {
+    console.error("Error fetching missing matches:", await res.text());
+    return;
+  }
+
+  const missingMatches = await res.json();
+  console.log("Missing matches fetched:", missingMatches);
+  matches.push(...missingMatches.matches);
+
+  // Atualizar o bracket com as partidas completas
+  createCustomBracket(chartPoints, matches, tournamentId);
+}
+
+async function generateChartPoints(matches: Match[]) {
+  const rounds = groupBy(matches, "round_number");
+  const chartPoints: any[] = [];
+  const matchIdsByRound: Record<number, string[]> = {};
+
+  const sortedRounds = Object.keys(rounds)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+  for (const round of sortedRounds) {
+    const roundMatches = rounds[round];
+    matchIdsByRound[round] = [];
+
+    for (let index = 0; index < roundMatches.length; index++) {
+      const match = roundMatches[index];
+      const matchId = `r${round}_m${index}`;
+      matchIdsByRound[round].push(matchId);
+
+      const parentRound = matchIdsByRound[round - 1];
+      const parentId =
+        round > 1 && parentRound
+          ? parentRound[Math.floor(index / 2)]
+          : undefined;
+
+      const [player1Res, player2Res] = await Promise.all([
+        fetch(`${API_BASE_URL}/users/${match.player1}`, {
+          headers: { Authorization: `Bearer ${getCookie("jwt")}` },
+        }),
+        fetch(`${API_BASE_URL}/users/${match.player2}`, {
+          headers: { Authorization: `Bearer ${getCookie("jwt")}` },
+        }),
+      ]);
+      const [player1Data, player2Data] = await Promise.all([
+        player1Res.json(),
+        player2Res.json(),
+      ]);
+
+      chartPoints.push({
+        id: matchId,
+        name: `match_${index}`,
+        label: {
+          text: `${player1Data.user.username}\nvs\n${
+            player2Data.user.username
+          }\n${new Date(match.scheduled_date).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}`,
+        },
+
+        ...(parentId && { parent: parentId }),
+      });
+    }
+  }
+
+  return chartPoints;
+}
+
+function truncate(name: string, maxLength = 12): string {
+  return name.length > maxLength ? name.slice(0, maxLength - 1) + "…" : name;
 }
 
 function createBracketLayout(maxPlayers: number): string {

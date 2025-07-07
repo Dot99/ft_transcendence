@@ -313,6 +313,29 @@ const getAllTournamentPlayers = async (request, reply) => {
 };
 
 /**
+ * @description getFinishedMatches
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @returns {Promise<void>}
+ */
+const getFinishedMatches = async (request, reply) => {
+  try {
+	const tournamentId = request.params.tournamentid;
+	const result = await gameService.getFinishedMatches(tournamentId);
+	if (!result.success) {
+	  return reply.code(404).send(result);
+	}
+	reply.send({ success: true, matches: result.matches });
+  } catch (error) {
+	console.error("Internal Server Error:", error);
+	reply.code(500).send({
+	  success: false,
+	  error: error.message,
+	});
+  }
+};
+
+/**
  * @description Update Game Costumization
  * @param {Object} request - The request object
  * @param {Object} reply - The response object
@@ -511,6 +534,7 @@ export default {
 	getUpcomingTournamentsByUserId,
 	getTournamentById,
 	getUpcomingTournamentMatchesById,
+	getFinishedMatches,
 	getTournamentPlayersById,
 	updateCostumization,
 	getCustomization,

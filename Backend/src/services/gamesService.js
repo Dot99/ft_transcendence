@@ -80,6 +80,28 @@ export function getRecentGamesByUserId(userId, lang = "en") {
 	});
 }
 
+export function getFinishedMatchesById(tournamentId, lang = "en") {
+	return new Promise((resolve, reject) => {
+		db.all(
+			`SELECT * FROM tournament_matches
+			 WHERE tournament_id = ? AND status = 'completed'`,
+			[tournamentId],
+			(err, rows) => {
+				if (err) {
+					return reject({ success: false, error: err });
+				}
+				if (!rows || rows.length === 0) {
+					return resolve({
+						success: false,
+						message: messages[lang].noMatches,
+					});
+				}
+				resolve({ success: true, matches: rows });
+			}
+		);
+	});
+}
+
 export function getTournaments(lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.all("SELECT * FROM tournaments", (err, rows) => {
@@ -232,7 +254,7 @@ function generateTournamentMatches(tournamentId, maxPlayers) {
                 const insertPromises = roundMatches.map((match) =>
                     new Promise((resolve, reject) => {
                         db.run(
-                            `INSERT INTO tournament_matches (tournament_id, player1, player2, round, scheduled_date)
+                            `INSERT INTO tournament_matches (tournament_id, player1, player2, round_number, scheduled_date)
                              VALUES (?, ?, ?, ?, ?)`,
                             [
                                 match.tournament_id,
@@ -977,6 +999,99 @@ export function recalculateUserStats(userId, lang = "en") {
 								},
 							});
 						}
+					}
+				);
+			}
+		);
+	});
+}
+
+/**
+ * Advance the tournament to the next round by processing winners from the current round.
+ * @param {number} tournamentId - The ID of the tournament.
+ * @param {number} currentRound - The current round number.
+ * @returns {Promise<Object>} - The result of the operation.
+ */
+export function generateNextRound(tournamentId, currentRound) {
+	return new Promise((resolve, reject) => {
+		// Get winners from the current round
+		db.all(
+			`SELECT winner FROM tournament_matches 
+       WHERE tournament_id = ? AND round_number = ?`,
+			[tournamentId, currentRound],
+			(err, winners) => {
+				if (err) {
+					return reject({ success: false, error: err });
+				}
+
+				if (!winners || winners.length < 2) {
+					return resolve({
+						success: false,
+						message: "Not enough winners to advance to the next round.",
+					});
+				}
+
+				db.run(
+					`DELETE FROM upcoming_tournament_matches 
+           WHERE tournament_id = ? AND round_number = ?`,
+					[tournamentId, currentRound],
+					(deleteErr) => {
+						if (deleteErr) {
+							return reject({ success: false, error: deleteErr });
+						}
+
+						// Prepare matches for the next round
+						const nextRound = currentRound + 1;
+						const nextRoundMatches = [];
+						for (let i = 0; i < winners.length; i += 2) {
+							const player1 = winners[i]?.winner;
+							const player2 = winners[i + 1]?.winner;
+
+							if (player1 && player2) {
+								nextRoundMatches.push({
+									tournament_id: tournamentId,
+									player1,
+									player2,
+									round_number: nextRound,
+									scheduled_date: new Date(
+										Date.now() + nextRound * 24 * 60 * 60 * 1000
+									), // Example: schedule for the next day
+								});
+							}
+						}
+
+						// Insert matches for the next round
+						const insertPromises = nextRoundMatches.map((match) =>
+							new Promise((resolve, reject) => {
+								db.run(
+									`INSERT INTO upcoming_tournament_matches 
+                   (tournament_id, player1, player2, round_number, scheduled_date)
+                   VALUES (?, ?, ?, ?, ?)`,
+									[
+										match.tournament_id,
+										match.player1,
+										match.player2,
+										match.round_number,
+										match.scheduled_date,
+									],
+									(err) => {
+										if (err) return reject(err);
+										resolve();
+									}
+								);
+							})
+						);
+
+						Promise.all(insertPromises)
+							.then(() =>
+								resolve({
+									success: true,
+									message: `Advanced to round ${nextRound} successfully.`,
+								})
+							)
+							.catch((insertErr) =>
+								reject({ success: false, error: insertErr })
+							);
 					}
 				);
 			}

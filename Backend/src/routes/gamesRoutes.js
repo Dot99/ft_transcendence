@@ -192,6 +192,31 @@ export default async function (fastify, opts) {
         request.lang
       ),
   });
+
+  /** @name getTournamentFinishedMatchesById
+   * @description Get finished tournament matches by id
+   * @route GET /games/tournaments/{id}/matches/finished
+   * @group Games
+   * @param {string} id - Tournament id
+   * @returns {Array} 200 - An array of finished tournament matches
+   * @returns {Error} 401 - Unauthorized
+   * @returns {Error} 404 - Tournament not found
+   * @returns {Error} 500 - Internal server error
+   * @security JWT 
+   */
+  fastify.get("/tournaments/:id/matches/finished", {
+	schema: {
+		params: paramsJsonSchema,
+	},
+	preHandler: [fastify.authenticate],
+	handler: async (request, reply) =>
+		await gamesController.getFinishedMatches(
+			request,
+			reply,
+			request.params.id,
+			request.lang
+		),
+  });
   /**
    * @name getTournamentPlayersById
    * @description Get tournament players by id
