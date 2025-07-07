@@ -6,6 +6,8 @@ services:
         ports:
             - "3001:3001"
         volumes:
+            #TODO: REMOVE LINE  IN DELIVERY
+            - ./Frontend:/app
             - /app/node_modules
         command: sh -c "npm run serve"
         environment:
