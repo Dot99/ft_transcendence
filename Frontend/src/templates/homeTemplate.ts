@@ -62,6 +62,7 @@ export const homeTemplate = `
                 </div>
                 <div id="twoFAErrorMsg" class="text-red-500 text-sm hidden"></div>
                 <button id="twoFASubmitBtn" class="w-full h-12 bg-green-800 enabled:hover:bg-green-700 text-white py-2 rounded" disabled>VERIFY</button>
+				<button id="twoFACancelBtn" class="flex-1 bg-gray-600 text-white font-semibold py-2 px-4 rounded hover:bg-gray-500"> Cancel </button>
             </div>
         </div>
     </div>
