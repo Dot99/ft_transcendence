@@ -458,7 +458,6 @@ export const loadMenuPage = async (): Promise<void> => {
           const players = participants?.players || [];
           const alreadyIn = players.some((p: any) => p.player_id === Number(userId));
 		
-		  console.log("alreadyIn", alreadyIn, "players", players, "userId", userId);
           if (alreadyIn) {
             // Change button to "Enter"
             btn.textContent = "Enter";
