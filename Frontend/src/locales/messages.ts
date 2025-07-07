@@ -152,6 +152,7 @@ export const messages = {
 		contact_us_text:
 			"For questions about these Terms and Conditions, contact us at",
 		go_back: "Go Back",
+		no_friend_requests: "No friend requests",
 	},
 	pt: {
 		language: "Idioma",
@@ -309,6 +310,7 @@ export const messages = {
 		contact_us_text:
 			"Para questões sobre estes Termos e Condições, entre em contato conosco em",
 		go_back: "Voltar",
+		no_friend_requests: "Nenhum pedido de amizade",
 	},
 	zh: {
 		language: "语言",
@@ -458,5 +460,6 @@ export const messages = {
 		contact_us_title: "7. 联系我们",
 		contact_us_text: "如对这些条款和条件有疑问，请联系我们",
 		go_back: "返回",
+		no_friend_requests: "没有好友请求",
 	},
 };
