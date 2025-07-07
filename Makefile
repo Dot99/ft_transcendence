@@ -55,12 +55,7 @@ install:
 	@cd $(BACKEND_DIR) && npm install
 	@echo "$(GREEN)Dependencies installed!$(NC)"
 
-
-# Deploy using docker-compose (local development)
-deploy:
-	@echo "$(GREEN)🚀 Starting ft_transcendence...$(NC)"
-	@docker compose down
-	@docker compose up
+rfrontend:
 	@docker exec -it ft_transcendence-frontend-1 sh -c "npm run build"
 
 
