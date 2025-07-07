@@ -61,7 +61,7 @@ deploy:
 	@echo "$(GREEN)🚀 Starting ft_transcendence...$(NC)"
 	@docker compose down
 	@docker compose up
-	@docker exec -it ft_transcendence_frontend_1 sh -c "npm run build"
+	@docker exec -it ft_transcendence-frontend-1 sh -c "npm run build"
 
 
 # Deploy for network access
