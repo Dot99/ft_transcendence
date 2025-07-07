@@ -115,6 +115,43 @@ export const messages = {
 		chart_js_not_loaded: "Chart.js not loaded",
 		network_error: "Network error",
 		failed_to_fetch: "Failed to fetch data",
+		//Locales
+		terms_title: "Terms and Conditions",
+		last_updated: "Last updated: June 9, 2025",
+		introduction_title: "1. Introduction",
+		introduction_text:
+			"By accessing or using our services, you agree to these Terms and Conditions. Please read them carefully.",
+		data_protection_title: "2. Data Protection (GDPR)",
+		data_collection_label: "Data Collection:",
+		data_collection_text:
+			"We collect only necessary personal data (e.g., username, email) for providing our services.",
+		purpose_label: "Purpose:",
+		purpose_text:
+			"Your data is used to operate, maintain, and improve our services, and to communicate with you.",
+		rights_label: "Your Rights:",
+		rights_text:
+			"You may access, correct or delete your data. You may also request data portability.",
+		security_label: "Security:",
+		security_text:
+			"We use appropriate technical and organizational measures to protect your data.",
+		contact_label: "Contact:",
+		contact_text: "For privacy questions or requests, email us at",
+		use_of_service_title: "3. Use of Service",
+		use_of_service_text:
+			"You agree to use our services lawfully and not misuse them in any way.",
+		intellectual_property_title: "4. Intellectual Property",
+		intellectual_property_text:
+			"All content is owned by us or our licensors and protected by copyright and intellectual property laws.",
+		limitation_liability_title: "5. Limitation of Liability",
+		limitation_liability_text:
+			"We are not liable for damages arising from use or inability to use our services, except as required by law.",
+		changes_terms_title: "6. Changes to Terms",
+		changes_terms_text:
+			"We may update these Terms and Conditions. Changes will be posted on this page.",
+		contact_us_title: "7. Contact Us",
+		contact_us_text:
+			"For questions about these Terms and Conditions, contact us at",
+		go_back: "Go Back",
 	},
 	pt: {
 		language: "Idioma",
@@ -234,6 +271,44 @@ export const messages = {
 		chart_js_not_loaded: "Chart.js não carregado",
 		network_error: "Erro de rede",
 		failed_to_fetch: "Falha ao buscar dados",
+		//Terms
+		terms_title: "Termos e Condições",
+		last_updated: "Última atualização: 9 de junho de 2025",
+		introduction_title: "1. Introdução",
+		introduction_text:
+			"Ao acessar ou usar nossos serviços, você concorda com estes Termos e Condições. Por favor, leia-os cuidadosamente.",
+		data_protection_title: "2. Proteção de Dados (GDPR)",
+		data_collection_label: "Coleta de Dados:",
+		data_collection_text:
+			"Coletamos apenas dados pessoais necessários (ex: nome de usuário, email) para fornecer nossos serviços.",
+		purpose_label: "Finalidade:",
+		purpose_text:
+			"Seus dados são usados para operar, manter e melhorar nossos serviços, e para comunicar com você.",
+		rights_label: "Seus Direitos:",
+		rights_text:
+			"Você pode acessar, corrigir ou deletar seus dados. Também pode solicitar a portabilidade dos dados.",
+		security_label: "Segurança:",
+		security_text:
+			"Usamos medidas técnicas e organizacionais apropriadas para proteger seus dados.",
+		contact_label: "Contato:",
+		contact_text:
+			"Para questões de privacidade ou solicitações, envie-nos um email para",
+		use_of_service_title: "3. Uso do Serviço",
+		use_of_service_text:
+			"Você concorda em usar nossos serviços de forma legal e não abusar deles de forma alguma.",
+		intellectual_property_title: "4. Propriedade Intelectual",
+		intellectual_property_text:
+			"Todo o conteúdo é de nossa propriedade ou de nossos licenciadores e protegido por leis de direitos autorais e propriedade intelectual.",
+		limitation_liability_title: "5. Limitação de Responsabilidade",
+		limitation_liability_text:
+			"Não somos responsáveis por danos decorrentes do uso ou incapacidade de usar nossos serviços, exceto conforme exigido por lei.",
+		changes_terms_title: "6. Alterações nos Termos",
+		changes_terms_text:
+			"Podemos atualizar estes Termos e Condições. As alterações serão publicadas nesta página.",
+		contact_us_title: "7. Fale Conosco",
+		contact_us_text:
+			"Para questões sobre estes Termos e Condições, entre em contato conosco em",
+		go_back: "Voltar",
 	},
 	zh: {
 		language: "语言",
@@ -350,5 +425,38 @@ export const messages = {
 		chart_js_not_loaded: "Chart.js 未加载",
 		network_error: "网络错误",
 		failed_to_fetch: "获取数据失败",
+		//Terms
+		terms_title: "条款和条件",
+		last_updated: "最后更新：2025年6月9日",
+		introduction_title: "1. 介绍",
+		introduction_text:
+			"通过访问或使用我们的服务，您同意这些条款和条件。请仔细阅读。",
+		data_protection_title: "2. 数据保护 (GDPR)",
+		data_collection_label: "数据收集：",
+		data_collection_text:
+			"我们仅收集提供服务所需的个人数据（如用户名、电子邮件）。",
+		purpose_label: "目的：",
+		purpose_text: "您的数据用于运营、维护和改进我们的服务，以及与您沟通。",
+		rights_label: "您的权利：",
+		rights_text:
+			"您可以访问、更正或删除您的数据。您也可以请求数据可移植性。",
+		security_label: "安全：",
+		security_text: "我们使用适当的技术和组织措施来保护您的数据。",
+		contact_label: "联系：",
+		contact_text: "如有隐私问题或请求，请发送电子邮件至",
+		use_of_service_title: "3. 服务使用",
+		use_of_service_text: "您同意合法使用我们的服务，不以任何方式滥用。",
+		intellectual_property_title: "4. 知识产权",
+		intellectual_property_text:
+			"所有内容均归我们或我们的许可方所有，受版权和知识产权法保护。",
+		limitation_liability_title: "5. 责任限制",
+		limitation_liability_text:
+			"除法律要求外，我们不对因使用或无法使用我们的服务而造成的损害承担责任。",
+		changes_terms_title: "6. 条款变更",
+		changes_terms_text:
+			"我们可能会更新这些条款和条件。更改将在此页面上发布。",
+		contact_us_title: "7. 联系我们",
+		contact_us_text: "如对这些条款和条件有疑问，请联系我们",
+		go_back: "返回",
 	},
 };
