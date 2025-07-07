@@ -20,6 +20,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 await fastify.register(cors, {
 	origin: [
+		"http://c1r9s3.42porto.com:3001",
 		process.env.FRONTEND_URL, 
 		/^http:\/\/10\.11\.9\.\d+:3001$/,
 		/^http:\/\/10\.11\.9\.\d+$/,
