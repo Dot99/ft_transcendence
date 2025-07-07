@@ -118,81 +118,88 @@ export function createTournament(tournamentData, lang = "en") {
 	});
 }
 
-export function joinTournament(
-	tournamentName,
-	tournamentId,
-	userId,
-	lang = "en"
-) {
-	return new Promise((resolve, reject) => {
-		db.get(
-			`SELECT * FROM tournaments WHERE tournament_id = ? AND name = ?`,
-			[tournamentId, tournamentName],
-			(err, row) => {
-				if (err) return reject({ success: false, error: err });
+export function joinTournament(tournamentName, tournamentId, userId, lang = "en") {
+    return new Promise((resolve, reject) => {
+        db.get(
+            `SELECT * FROM tournaments WHERE tournament_id = ? AND name = ?`,
+            [tournamentId, tournamentName],
+            (err, row) => {
+                if (err) return reject({ success: false, error: err });
 
-				if (!row) {
-					return resolve({
-						success: false,
-						message: messages[lang].tournamentNotFound,
-					});
-				} else if (row.max_players <= row.PLAYER_COUNT) {
-					return resolve({
-						success: false,
-						message: messages[lang].tournamentFull,
-					});
-				}
+                if (!row) {
+                    return resolve({
+                        success: false,
+                        message: messages[lang].tournamentNotFound,
+                    });
+                } else if (row.max_players <= row.PLAYER_COUNT) {
+                    return resolve({
+                        success: false,
+                        message: messages[lang].tournamentFull,
+                    });
+                }
 
-				db.get(
-					`SELECT * FROM tournament_players WHERE tournament_id = ? AND player_id = ?`,
-					[tournamentId, userId],
-					(err, existingPlayer) => {
-						if (err) return reject({ success: false, error: err });
+                db.get(
+                    `SELECT * FROM tournament_players WHERE tournament_id = ? AND player_id = ?`,
+                    [tournamentId, userId],
+                    (err, existingPlayer) => {
+                        if (err) return reject({ success: false, error: err });
 
-						if (existingPlayer) {
-							return resolve({
-								success: false,
-								message:
-									messages[lang].alreadyJoined ||
-									"You already joined this tournament.",
-							});
-						}
+                        if (existingPlayer) {
+                            return resolve({
+                                success: false,
+                                message: messages[lang].alreadyJoined || "You already joined this tournament.",
+                            });
+                        }
 
-						db.run(
-							`INSERT INTO tournament_players (tournament_id, tournament_name, player_id, current_position, wins, losses)
-               VALUES (?, ?, ?, 0, 0, 0)`,
-							[tournamentId, tournamentName, userId],
-							function (err) {
-								if (err)
-									return reject({
-										success: false,
-										error: err,
-									});
+                        db.run(
+                            `INSERT INTO tournament_players (tournament_id, tournament_name, player_id, current_position, wins, losses)
+                             VALUES (?, ?, ?, 0, 0, 0)`,
+                            [tournamentId, tournamentName, userId],
+                            function (err) {
+                                if (err) return reject({ success: false, error: err });
 
-								db.run(
-									`UPDATE tournaments SET PLAYER_COUNT = PLAYER_COUNT + 1 WHERE tournament_id = ?`,
-									[tournamentId],
-									(err) => {
-										if (err)
-											return reject({
-												success: false,
-												error: err,
-											});
+                                db.run(
+                                    `UPDATE tournaments SET PLAYER_COUNT = PLAYER_COUNT + 1 WHERE tournament_id = ?`,
+                                    [tournamentId],
+                                    (err) => {
+                                        if (err) return reject({ success: false, error: err });
 
-										resolve({
-											success: true,
-											message:
-												messages[lang].tournamentJoined,
-										});
-									}
-								);
-							}
-						);
-					}
-				);
-			}
-		);
-	});
+                                        // Check if tournament is full
+                                        db.get(
+                                            `SELECT PLAYER_COUNT, max_players FROM tournaments WHERE tournament_id = ?`,
+                                            [tournamentId],
+                                            (err, tournament) => {
+                                                if (err) return reject({ success: false, error: err });
+
+                                                if (tournament.PLAYER_COUNT === tournament.max_players) {
+                                                    // Generate matches
+                                                    generateTournamentMatches(tournamentId, tournament.max_players)
+                                                        .then(() => {
+                                                            resolve({
+                                                                success: true,
+                                                                message: messages[lang].tournamentJoined,
+                                                            });
+                                                        })
+                                                        .catch((err) => {
+                                                            reject({ success: false, error: err });
+                                                        });
+                                                } else {
+                                                    resolve({
+                                                        success: true,
+                                                        message: messages[lang].tournamentJoined,
+                                                    });
+                                                }
+                                            }
+                                        );
+                                    }
+                                );
+                            }
+                        );
+                    }
+                );
+            }
+        );
+    });
 }
 
 // Generate matches based on tournament size
@@ -229,7 +236,6 @@ function generateTournamentMatches(tournamentId, maxPlayers) {
                 }
 
                 // Insert matches into both tournament_matches and upcoming_tournament_matches
-				console.log("Generated matches:", matches);
                 const insertPromises = matches.map((match) =>
                     new Promise((resolve, reject) => {
                         db.run(
@@ -371,7 +377,7 @@ export function getTournamentMatchesById(tournamentId) {
 		);
 	});
 }
-export function getUpcomingTournamentMatchesById(tournamentId) {
+export function getUpcomingTournamentMatchesById(tournamentId, lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.all(
 			"SELECT * FROM upcoming_tournament_matches WHERE tournament_id = ?",
