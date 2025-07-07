@@ -211,35 +211,28 @@ function generateTournamentMatches(tournamentId, maxPlayers) {
             (err, players) => {
                 if (err) return reject(err);
 
-                const rounds = Math.log2(maxPlayers); // Calculate number of rounds
-                let matches = [];
-                let roundNumber = 1;
+                // Gerar apenas a primeira rodada
+                const roundNumber = 1;
+                const roundMatches = [];
 
-                while (players.length > 1) {
-                    const roundMatches = [];
-                    for (let i = 0; i < players.length; i += 2) {
-                        const player1 = players[i];
-                        const player2 = players[i + 1];
-                        roundMatches.push({
-                            tournament_id: tournamentId,
-                            player1: player1.player_id,
-                            player2: player2.player_id,
-                            round_number: roundNumber,
-                            scheduled_date: new Date(), // Example: schedule immediately
-                        });
-                    }
-                    matches = matches.concat(roundMatches);
-                    players = roundMatches.map((match) => ({
-                        player_id: match.player1, // Example: winners move to next round
-                    }));
-                    roundNumber++;
+                for (let i = 0; i < players.length; i += 2) {
+                    const player1 = players[i];
+                    const player2 = players[i + 1];
+
+                    // Adicionar partida à lista de partidas da primeira rodada
+                    roundMatches.push({
+                        tournament_id: tournamentId,
+                        player1: player1.player_id,
+                        player2: player2.player_id,
+                        round_number: roundNumber,
+                        scheduled_date: new Date(Date.now() + roundNumber * 24 * 60 * 60 * 1000), // Exemplo: agendar para amanhã
+                    });
                 }
 
-                // Insert matches into both tournament_matches and upcoming_tournament_matches
-                const insertPromises = matches.map((match) =>
+                const insertPromises = roundMatches.map((match) =>
                     new Promise((resolve, reject) => {
                         db.run(
-                            `INSERT INTO tournament_matches (tournament_id, player1, player2, round_number, scheduled_date)
+                            `INSERT INTO tournament_matches (tournament_id, player1, player2, round, scheduled_date)
                              VALUES (?, ?, ?, ?, ?)`,
                             [
                                 match.tournament_id,
@@ -251,7 +244,6 @@ function generateTournamentMatches(tournamentId, maxPlayers) {
                             (err) => {
                                 if (err) return reject(err);
 
-                                // Insert into upcoming_tournament_matches
                                 db.run(
                                     `INSERT INTO upcoming_tournament_matches (tournament_id, player1, player2, round_number, scheduled_date)
                                      VALUES (?, ?, ?, ?, ?)`,
@@ -262,8 +254,8 @@ function generateTournamentMatches(tournamentId, maxPlayers) {
                                         match.round_number,
                                         match.scheduled_date,
                                     ],
-                                    (err) => {
-                                        if (err) return reject(err);
+                                    (upcomingErr) => {
+                                        if (upcomingErr) return reject(upcomingErr);
                                         resolve();
                                     }
                                 );
@@ -991,3 +983,4 @@ export function recalculateUserStats(userId, lang = "en") {
 		);
 	});
 }
+
