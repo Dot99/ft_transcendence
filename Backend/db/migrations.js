@@ -1,6 +1,6 @@
 export default function runMigrations(db) {
-  // Users
-  db.run(`
+	// Users
+	db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE,
@@ -18,8 +18,8 @@ export default function runMigrations(db) {
     )
   `);
 
-  // stats
-  db.run(`
+	// stats
+	db.run(`
     CREATE TABLE IF NOT EXISTS stats (
       player_id INTEGER PRIMARY KEY,
       total_matches INTEGER DEFAULT 0,
@@ -35,8 +35,8 @@ export default function runMigrations(db) {
     )
   `);
 
-  // Match History
-  db.run(`
+	// Match History
+	db.run(`
     CREATE TABLE IF NOT EXISTS match_history (
       match_id INTEGER PRIMARY KEY AUTOINCREMENT,
       player1 INTEGER NOT NULL,
@@ -51,8 +51,8 @@ export default function runMigrations(db) {
     )
   `);
 
-  // Friends
-  db.run(`
+	// Friends
+	db.run(`
     CREATE TABLE IF NOT EXISTS friends (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -63,8 +63,8 @@ export default function runMigrations(db) {
     )
   `);
 
-  // Blocked Users
-  db.run(`
+	// Blocked Users
+	db.run(`
     CREATE TABLE IF NOT EXISTS blocked_users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -74,8 +74,8 @@ export default function runMigrations(db) {
     )
   `);
 
-  // Matchmaking
-  db.run(`
+	// Matchmaking
+	db.run(`
     CREATE TABLE IF NOT EXISTS matchmaking (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -85,8 +85,8 @@ export default function runMigrations(db) {
       FOREIGN KEY (user_id) REFERENCES users(id)
     )
   `);
-  // Tournaments
-  db.run(`
+	// Tournaments
+	db.run(`
   CREATE TABLE IF NOT EXISTS tournaments (
     tournament_id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -94,11 +94,12 @@ export default function runMigrations(db) {
     end_date DATETIME,
     PLAYER_COUNT INTEGER DEFAULT 0,
     max_players INTEGER NOT NULL,
+	current_round INTEGER DEFAULT 1,
     status TEXT CHECK(status IN ('upcoming', 'ongoing', 'completed')) DEFAULT 'upcoming'
   )`);
 
-  // Tournament Players
-  db.run(`
+	// Tournament Players
+	db.run(`
   CREATE TABLE IF NOT EXISTS tournament_players (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tournament_id INTEGER,
@@ -113,8 +114,8 @@ export default function runMigrations(db) {
     FOREIGN KEY (player_id) REFERENCES users(id)
   )`);
 
-  // Tournament Matches
-  db.run(`
+	// Tournament Matches
+	db.run(`
   CREATE TABLE IF NOT EXISTS tournament_matches (
     match_id INTEGER PRIMARY KEY AUTOINCREMENT,
     tournament_id INTEGER,
@@ -133,22 +134,8 @@ export default function runMigrations(db) {
     FOREIGN KEY (player2) REFERENCES users(id)
   )`);
 
-  // Upcoming Tournament Matches
-  db.run(`
-  CREATE TABLE IF NOT EXISTS upcoming_tournament_matches (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tournament_id INTEGER,
-    player1 INTEGER,
-    player2 INTEGER,
-    scheduled_date DATETIME,
-    round_number INTEGER,
-    FOREIGN KEY (tournament_id) REFERENCES tournaments(tournament_id),
-    FOREIGN KEY (player1) REFERENCES users(id),
-    FOREIGN KEY (player2) REFERENCES users(id)
-  )`);
-
-  // Costumization
-  db.run(`  
+	// Costumization
+	db.run(`  
     CREATE TABLE IF NOT EXISTS game_costumization (
     user_id INTEGER PRIMARY KEY,
     paddle_color TEXT NOT NULL DEFAULT '#4CF190',
@@ -158,8 +145,8 @@ export default function runMigrations(db) {
     FOREIGN KEY (user_id) REFERENCES users(id)  
     )`);
 
-  //Sessions
-  db.run(`
+	//Sessions
+	db.run(`
     CREATE TABLE IF NOT EXISTS sessions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,

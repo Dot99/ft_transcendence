@@ -1,560 +1,500 @@
 import { tournamentTemplate } from "./templates/tournamentTemplate.js";
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
+import { API_BASE_URL } from "./config.js";
 declare const JSC: any;
 
-const API_BASE_URL = "http://localhost:3000/api";
-
 function getElement<T extends HTMLElement>(id: string): T {
-  const el = document.getElementById(id);
-  if (!el) throw new Error(`Element with id '${id}' not found`);
-  return el as T;
+	const el = document.getElementById(id);
+	if (!el) throw new Error(`Element with id '${id}' not found`);
+	return el as T;
 }
 
 export const loadTournamentPage = async (
-  tournament_id: string
+	tournament_id: string
 ): Promise<void> => {
-  const app = getElement<HTMLElement>("app");
-  app.innerHTML = tournamentTemplate;
+	const app = getElement<HTMLElement>("app");
+	app.innerHTML = tournamentTemplate;
 
-  const res = await fetch(`${API_BASE_URL}/tournaments/${tournament_id}`, {
-    headers: {
-      Authorization: `Bearer ${getCookie("jwt")}`,
-    },
-  });
-  const tournaments = await res.json();
-  const list = getElement<HTMLDivElement>("bracketContainer");
-  console.log("Tournaments fetched:", tournaments);
-  console.log("test");
-  list.innerHTML = `
-    <div class="border border-[#4CF190] p-4 rounded hover:bg-[#0a3e4c] transition cursor-pointer" onclick="joinTournament(${tournaments.tournament.id})">
+	const res = await fetch(`${API_BASE_URL}/tournaments/${tournament_id}`, {
+		headers: {
+			Authorization: `Bearer ${getCookie("jwt")}`,
+		},
+	});
+	const tournaments = await res.json();
+	const list = getElement<HTMLDivElement>("bracketContainer");
+	list.innerHTML = `
+    <div class="border border-green-400 p-4 rounded hover:bg-teal-900 transition cursor-pointer" onclick="joinTournament(${tournaments.tournament.id})">
       <h3 class="text-xl font-semibold">${tournaments.tournament.name}</h3>
       <p class="text-sm">Players: ${tournaments.tournament.PLAYER_COUNT}/${tournaments.tournament.max_players}</p>
     </div>
   `;
-  if (tournament_id) {
-    renderBracket(tournament_id);
-  }
+	if (tournament_id) {
+		renderBracket(tournament_id);
+	}
 };
 
 // Utility function to group an array of objects by a key
 function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
-  return array.reduce((result, currentItem) => {
-    const groupKey = String(currentItem[key]);
-    if (!result[groupKey]) {
-      result[groupKey] = [];
-    }
-    result[groupKey].push(currentItem);
-    return result;
-  }, {} as Record<string, T[]>);
+	return array.reduce((result, currentItem) => {
+		const groupKey = String(currentItem[key]);
+		if (!result[groupKey]) {
+			result[groupKey] = [];
+		}
+		result[groupKey].push(currentItem);
+		return result;
+	}, {} as Record<string, T[]>);
 }
 
 type Match = {
-  player1: string;
-  player2: string;
-  scheduled_date: string;
-  round_number: string;
+	player1: string;
+	player2: string;
+	scheduled_date: string;
+	match_state: string;
+	winner: string;
+	player1_score?: number;
+	player2_score?: number;
+	round_number: number;
 };
 
 // Variável global para armazenar o número de rodadas
 let totalRounds: number = 0;
+let chartPoints: any[] = [];
+// Add a global flag to track if missing matches have already been fetched
+let missingMatchesFetched = false;
 
 // Atualize o renderBracket para calcular o número de rodadas
 async function renderBracket(tournamentId: string) {
-  const chartContainer = getElement<HTMLDivElement>("bracketContainer");
-  if (!chartContainer) return;
+	const chartContainer = getElement<HTMLDivElement>("bracketContainer");
+	if (!chartContainer) return;
 
-  // Fetch tournament details to get max_players
-  const tournamentRes = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}`, {
-    headers: { Authorization: `Bearer ${getCookie("jwt")}` },
-  });
+	// Fetch tournament details to get max_players
+	const tournamentRes = await fetch(
+		`${API_BASE_URL}/tournaments/${tournamentId}`,
+		{
+			headers: { Authorization: `Bearer ${getCookie("jwt")}` },
+		}
+	);
 
-  if (!tournamentRes.ok) {
-    console.error("Error fetching tournament details:", await tournamentRes.text());
-    return;
-  }
+	if (!tournamentRes.ok) {
+		console.error(
+			"Error fetching tournament details:",
+			await tournamentRes.text()
+		);
+		return;
+	}
 
-  const tournament = await tournamentRes.json();
-  const maxPlayers = tournament.tournament.max_players;
+	const tournament = await tournamentRes.json();
+	const maxPlayers = tournament.tournament.max_players;
 
-  // Calcular o número total de rodadas
-  totalRounds = Math.log2(maxPlayers);
+	// Calcular o número total de rodadas
+	totalRounds = Math.log2(maxPlayers);
 
-  // Render initial bracket layout
-  chartContainer.innerHTML = createBracketLayout(maxPlayers);
+	// Render initial bracket layout
+	chartContainer.innerHTML = createBracketLayout(maxPlayers);
 
-  // Fetch matches
-  const res = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/matches`, {
-    headers: { Authorization: `Bearer ${getCookie("jwt")}` },
-  });
-
-  if (!res.ok) {
-    console.error("Error searching matches:", await res.text());
-    return;
-  }
-
-  const games = await res.json();
-  const matches = games.matches as Match[];
-
-  if (!matches || matches.length === 0) {
-    console.warn("No upcoming matches found for tournament:", tournamentId);
-
-    // Fetch completed matches from tournament_matches
-    const completedMatchesRes = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/tournament_matches`, {
-      headers: { Authorization: `Bearer ${getCookie("jwt")}` },
-    });
-
-    if (!completedMatchesRes.ok) {
-      console.error("Error fetching completed matches:", await completedMatchesRes.text());
-      return;
-    }
-
-    const completedGames = await completedMatchesRes.json();
-    const completedMatches = completedGames.matches as Match[];
-
-    if (!completedMatches || completedMatches.length === 0) {
-      console.warn("No completed matches found for tournament:", tournamentId);
-      return;
-    }
-
-    // Display completed match results
-    chartContainer.innerHTML = `
-      <div class="completed-matches" style="text-align: center; color: #4CF190;">
-        <h3>Completed Matches</h3>
-        ${completedMatches
-          .map(
-            (match) => `
-          <div class="match-result" style="margin: 10px; padding: 10px; border: 1px solid #4CF190; border-radius: 8px;">
-            <p><strong>${match.player1}</strong> vs <strong>${match.player2}</strong></p>
-            <p>Winner: ${match.scheduled_date}</p>
-          </div>
-        `
-          )
-          .join("")}
-      </div>
-    `;
-    return;
-  }
-
-  const chartPoints = await generateChartPoints(matches);
-  // Update bracket with actual match data
-  createCustomBracket(chartPoints, matches, tournamentId);
+	// Fetch matches
+	const res = await fetch(
+		`${API_BASE_URL}/tournaments/${tournamentId}/matches`,
+		{
+			headers: { Authorization: `Bearer ${getCookie("jwt")}` },
+		}
+	);
+	// if (!res.ok) {
+	// 	console.error("Error searching matches:", await res.text());
+	// 	// return;
+	// }
+	let games: any;
+	let matches: Match[] = [];
+	if (res.ok === true) {
+		games = await res.json();
+		matches = games.matches.map((m: { round_number: any }) => ({
+			...m,
+			round_number: Number(m.round_number),
+		}));
+	}
+	chartPoints = await generateChartPoints(matches);
+	// Update bracket with actual match data
+	createCustomBracket(chartPoints, matches, tournamentId);
 }
 
-// Atualize o createCustomBracket para verificar partidas faltantes
-function createCustomBracket(chartPoints: any[], matches: Match[], tournamentId: string) {
+async function createCustomBracket(
+	chartPoints: any[],
+	matches: Match[],
+	tournamentId: string
+) {
 	const chartContainer = document.getElementById("bracketContainer");
 	if (!chartContainer) return;
-  
-	const rounds = groupBy(matches, "round_number");
-	const sortedRounds = Object.keys(rounds)
-	  .map(Number)
-	  .sort((a, b) => a - b);
-	const totalRounds = Math.log2(chartPoints.length * 2);
-	if (!sortedRounds.includes(totalRounds)) {
-	  sortedRounds.push(totalRounds);
-	}
-	const expectedMatches = Math.pow(2, totalRounds);
-	  console.log("Total rounds:", totalRounds, "Expected matches:", expectedMatches);
-	if (matches.length < expectedMatches) {
-	  console.warn("Incomplete matches detected. Fetching missing matches...");
-	  fetchMissingMatches(tournamentId, matches, chartPoints);
-	  return;
-	}
-  console.log("Matches:", matches);
 
-  // Ensure the final round is always displayed
+	const rounds = groupBy(matches, "round_number"); // agora numbers
+	const expectedRounds = [...Array(totalRounds).keys()].map((i) => i + 1);
+	const sortedRounds = Array.from(
+		new Set([...expectedRounds, ...Object.keys(rounds).map(Number)])
+	).sort((a, b) => a - b);
+	sortedRounds.forEach((r) => {
+		if (!rounds[r]) rounds[r] = [];
+	});
 
-  // Create bracket HTML with proper grid layout
-  let bracketHTML = `
-    <div class="bracket-container" style="
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 60px;
-      padding: 20px;
-      overflow-x: auto;
-      overflow-y: auto;
-      min-height: 100vh;
-      max-height: 100vh;
-      background: linear-gradient(135deg, #001B26 0%, #083744 100%);
-      border-radius: 12px;
-      border: 2px solid #4CF190;
-      position: relative;
-    ">
+	for (let i = 1; i <= totalRounds; i++) {
+		if (!sortedRounds.includes(i)) {
+			sortedRounds.push(i);
+		}
+	}
+	sortedRounds.forEach((r) => {
+		if (!rounds[r]) rounds[r] = [];
+	});
+
+	sortedRounds.sort((a, b) => a - b);
+
+	const tournamentRes = await fetch(
+		`${API_BASE_URL}/tournaments/${tournamentId}`,
+		{
+			headers: { Authorization: `Bearer ${getCookie("jwt")}` },
+		}
+	);
+	const tournament = await tournamentRes.json();
+
+	const expectedMatches =
+		expectedMatchesLeft(
+			tournament.tournament.max_players,
+			tournament.tournament.current_round
+		) - 1;
+
+	const scheduledMatches = matches.filter(
+		(match) => match.match_state === "scheduled"
+	);
+	const completedMatches = matches.filter(
+		(match) => match.match_state === "completed"
+	);
+	const totalKnownMatches = scheduledMatches.length + completedMatches.length;
+
+	const totalExpectedMatches = tournament.tournament.max_players - 1;
+
+	if (totalKnownMatches < totalExpectedMatches && !missingMatchesFetched) {
+		console.warn(
+			"Matches incompletos detectados. Buscando missing matches..."
+		);
+		await fetchMissingMatches(tournamentId, matches, chartPoints);
+	}
+
+	chartPoints = await generateChartPoints(matches);
+	missingMatchesFetched = false;
+
+	// Create bracket HTML with proper grid layout
+	let bracketHTML = `
+    <div class="flex items-center justify-center gap-15 p-5 overflow-auto min-h-screen max-h-screen bg-gradient-to-br from-black to-teal-900 rounded-lg border-2 border-green-400 relative">
   `;
 
-  for (let roundIndex = 0; roundIndex < sortedRounds.length; roundIndex++) {
-    const round = sortedRounds[roundIndex];
-    const roundMatches = rounds[round] || []; // Handle empty rounds
-    const roundNumber = Number(round);
+	console.log("Creating custom bracket with chart points:", chartPoints);
+	console.log("Matches:", matches);
+	console.log("sortedRounds:", sortedRounds);
+	for (let roundIndex = 0; roundIndex < sortedRounds.length; roundIndex++) {
+		console.log(
+			`Processing round ${roundIndex + 1}/${sortedRounds.length}`
+		);
+		const round = sortedRounds[roundIndex];
+		const roundNumber = Number(round);
+		let roundMatches = rounds[round] || [];
 
-    const verticalSpacing = Math.max(15, 40 * Math.pow(1.6, roundIndex));
+		// Forçar criação de match "TBD vs TBD" na final se não existir nenhum
+		const isFinalRound = roundNumber === sortedRounds.length;
+		if (isFinalRound && roundMatches.length === 0) {
+			roundMatches = [
+				{
+					player1: "",
+					player2: "",
+					match_state: "scheduled",
+					player1_score: undefined,
+					player2_score: undefined,
+					winner: "",
+					scheduled_date: "",
+					round_number: 1,
+				},
+			];
+		}
 
-    bracketHTML += `
-      <div class="round-column" style=" 
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        position: relative;
-        min-width: 200px;
-        flex-shrink: 0;
-      ">
-        <h3 style="
-          color: #4CF190;
-          font-size: 14px;
-          font-weight: bold;
-          margin-bottom: 15px;
-          text-align: center;
-          text-shadow: 0 0 8px rgba(76, 241, 144, 0.5);
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          padding: 6px 12px;
-          background: rgba(76, 241, 144, 0.1);
-          border-radius: 15px;
-          border: 1px solid rgba(76, 241, 144, 0.3);
-        ">
+		const verticalSpacing = Math.max(15, 40 * Math.pow(1.6, roundIndex));
+
+		// Ensure the final round is displayed even if no matches exist
+		const matchesInRound = Math.max(
+			roundMatches.length,
+			Math.pow(2, totalRounds - roundNumber)
+		);
+
+		bracketHTML += `
+      <div class="flex flex-col items-center relative min-w-50 flex-shrink-0">
+        <h3 class="text-green-400 text-sm font-bold mb-4 text-center shadow-md uppercase tracking-wide py-1 px-3 bg-green-100 rounded-lg border border-green-300">
           ${getRoundName(roundNumber, sortedRounds.length)}
         </h3>
         
-        <div class="matches-container" style="
-          display: flex;
-          flex-direction: column;
-          gap: ${verticalSpacing}px;
-          align-items: center;
-        ">
+        <div class="flex flex-col gap-${verticalSpacing}px items-center">
     `;
 
-    for (let matchIndex = 0; matchIndex < Math.max(roundMatches.length, 1); matchIndex++) {
-      const match = roundMatches[matchIndex] || {}; // Handle empty matches
-      const chartPoint = chartPoints.find(
-        (point) => point.id === `r${round}_m${matchIndex}`
-      );
+		for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
+			const match = roundMatches[matchIndex] || {
+				player1: "",
+				player2: "",
+				match_state: "scheduled",
+			};
 
-      const player1 = chartPoint?.label?.text.split("\n")[0] || match.player1 || "TBD";
-      const player2 = chartPoint?.label?.text.split("\n")[2] || match.player2 || "TBD";
-      const scheduledTime = match?.scheduled_date
-        ? new Date(match.scheduled_date).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : "";
-		  console.log("Match:", match, "Player1:", player1, "Player2:", player2, "Scheduled Time:", scheduledTime);
-      bracketHTML += `
-        <div class="match-card" data-round="${roundIndex + 1}" data-match="${matchIndex}" style="
-          background: linear-gradient(145deg, #083744, #0a3e4c);
-          border: 2px solid #4CF190;
-          border-radius: 15px;
-          padding: 12px;
-          width: 180px;
-          min-height: 80px;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          position: relative;
-          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4), 
-                      0 0 25px rgba(76, 241, 144, 0.15),
-                      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          cursor: pointer;
-          backdrop-filter: blur(10px);
-        ">
-          <div class="player" style="
-            background: rgba(76, 241, 144, 0.1);
-            border-radius: 6px;
-            padding: 8px 10px;
-            margin-bottom: 4px;
-            border-left: 3px solid #4CF190;
-          ">
-            <span style="color: #4CF190; font-weight: bold; font-size: 12px;">
-              ${truncate(player1, 15)}
-            </span>
-          </div>
-          
-          <div style="
-            text-align: center;
-            color: #4CF190;
-            font-size: 10px;
-            font-weight: bold;
-            margin: 3px 0;
-            text-shadow: 0 0 5px rgba(76, 241, 144, 0.6);
-          ">VS</div>
-          
-          <div class="player" style="
-            background: rgba(76, 241, 144, 0.1);
-            border-radius: 6px;
-            padding: 8px 10px;
-            margin-bottom: 6px;
-            border-left: 3px solid #4CF190;
-          ">
-            <span style="color: #4CF190; font-weight: bold; font-size: 12px;">
-              ${truncate(player2, 15)}
-            </span>
-          </div>
+			const chartPoint = chartPoints.find(
+				(point) => point.id === `r${round}_m${matchIndex}`
+			);
+
+			const rawPlayer1 =
+				chartPoint?.label?.text.split("\n")[0] ||
+				match.player1 ||
+				"TBD";
+			const rawPlayer2 =
+				chartPoint?.label?.text.split("\n")[2] ||
+				match.player2 ||
+				"TBD";
+
+			const playersMap = new Map<string, string>();
+			for (const player of tournament.players || []) {
+				playersMap.set(
+					player.id,
+					player.username || player.name || "Unknown"
+				);
+			}
+
+			const player1 = playersMap?.get(rawPlayer1) || rawPlayer1;
+			const player2 = playersMap?.get(rawPlayer2) || rawPlayer2;
+
+			const isCompleted = match.match_state === "completed";
+			const winnerId = match.winner;
+			const player1Score = match.player1_score ?? "";
+			const player2Score = match.player2_score ?? "";
+
+			const isPlayer1Winner = isCompleted && winnerId == match.player1;
+			const isPlayer2Winner = isCompleted && winnerId == match.player2;
+
+			const scheduledTime = match?.scheduled_date
+				? new Date(match.scheduled_date).toLocaleTimeString([], {
+						hour: "2-digit",
+						minute: "2-digit",
+				  })
+				: "";
+
+			// Ensure TBD is displayed for the final match if no players are available
+			const isFinalRound = roundNumber === sortedRounds.length;
+			const displayPlayer1 =
+				isFinalRound && !match.player1 ? "TBD" : player1;
+			const displayPlayer2 =
+				isFinalRound && !match.player2 ? "TBD" : player2;
+
+			bracketHTML += `
+        <div class="bg-gradient-to-br from-teal-900 to-teal-800 border-2 border-green-400 rounded-lg p-3 w-45 min-h-20 flex flex-col justify-center relative shadow-lg transition cursor-pointer backdrop-blur-md">
+          <div class="bg-green-100 rounded-md px-2 py-2 mb-1 border-l-4 ${
+				isPlayer1Winner ? "border-green-500" : "border-green-400"
+			}">
+			<span class="${
+				isPlayer1Winner ? "text-green-500" : "text-green-400"
+			} font-bold text-xs">
+				${truncate(displayPlayer1, 15)}${isCompleted ? ` (${player1Score})` : ""}
+			</span>
+			</div>
+
+			<div class="text-center text-green-400 text-xs font-bold my-1 shadow-md">VS</div>
+
+			<div class="bg-green-100 rounded-md px-2 py-2 mb-1 border-l-4 ${
+				isPlayer2Winner ? "border-green-500" : "border-green-400"
+			}">
+			<span class="${
+				isPlayer2Winner ? "text-green-500" : "text-green-400"
+			} font-bold text-xs">
+				${truncate(displayPlayer2, 15)}${isCompleted ? ` (${player2Score})` : ""}
+			</span>
+			</div>
+
           
           ${
-            scheduledTime
-              ? `
-            <div style="
-              color: #83B7C4;
-              font-size: 10px;
-              text-align: center;
-              margin-top: auto;
-              padding: 4px;
-              border-top: 1px solid rgba(76, 241, 144, 0.2);
-            ">
+				scheduledTime
+					? `
+            <div class="text-teal-300 text-xs text-center mt-auto py-1 border-t border-green-200">
               🕒 ${scheduledTime}
             </div>
           `
-              : ""
-          }
+					: ""
+			}
         </div>
       `;
 
-      // Add connector lines to the next round
-      if (roundIndex < sortedRounds.length - 1) {
-        const nextRoundIndex = roundIndex + 1;
-        const nextMatchIndex = Math.floor(matchIndex / 2);
-        bracketHTML += `
-          <div class="connector-line" style="
-            width: 2px;
-            height: ${verticalSpacing}px;
-            background: #4CF190;
-            position: absolute;
-            left: 50%;
-            bottom: 0;
-            transform: translateX(-50%);
-          "></div>
-          <div class="horizontal-line" style="
-            width: ${nextRoundIndex === sortedRounds.length - 1 ? 100 : 50}px;
-            height: 2px;
-            background: #4CF190;
-            position: absolute;
-            left: 50%;
-            bottom: -${verticalSpacing}px;
-            transform: translateX(${nextRoundIndex === sortedRounds.length - 1 ? '-50%' : '0%'});
-          "></div>
-        `;
-      }
-    }
+			// Add connector lines to the next round
+			if (roundIndex < sortedRounds.length - 1) {
+				const nextRoundIndex = roundIndex + 1;
+				const nextMatchIndex = Math.floor(matchIndex / 2);
 
-    bracketHTML += "</div></div>"; // Close matches-container and round-column
-  }
+				bracketHTML += `
+					<div class="w-0.5 h-${verticalSpacing}px bg-green-400 absolute left-1/2 bottom-0 transform -translate-x-1/2"></div>
+					<div class="w-12 h-0.5 bg-green-400 absolute ${
+						matchIndex % 2 === 0 ? "left-full" : "left-1/2"
+					} bottom-${verticalSpacing}px transform ${
+					matchIndex % 2 === 0 ? "" : "-translate-x-full"
+				}"></div>
+				`;
+			}
+		}
 
-  bracketHTML += "</div>";
+		bracketHTML += "</div></div>"; // Close matches-container and round-column
+	}
 
-  chartContainer.innerHTML = bracketHTML;
+	bracketHTML += "</div>";
+
+	chartContainer.innerHTML = bracketHTML;
 }
 
-// Função para buscar partidas faltantes
-async function fetchMissingMatches(tournamentId: string, matches: Match[], chartPoints: any[]) {
-  const res = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/matches/finished`, {
-    headers: { Authorization: `Bearer ${getCookie("jwt")}` },
-  });
+async function fetchMissingMatches(
+	tournamentId: string,
+	matches: Match[],
+	chartPoints: any[]
+) {
+	// Prevent repeated calls to fetchMissingMatches
+	if (missingMatchesFetched) {
+		console.warn("Missing matches already fetched. Skipping...");
+		return;
+	}
 
-  if (!res.ok) {
-    console.error("Error fetching missing matches:", await res.text());
-    return;
-  }
+	missingMatchesFetched = true;
 
-  const missingMatches = await res.json();
-  console.log("Missing matches fetched:", missingMatches);
-  matches.push(...missingMatches.matches);
+	const res = await fetch(
+		`${API_BASE_URL}/tournaments/${tournamentId}/matches/finished`,
+		{
+			headers: { Authorization: `Bearer ${getCookie("jwt")}` },
+		}
+	);
 
-  // Atualizar o bracket com as partidas completas
-  createCustomBracket(chartPoints, matches, tournamentId);
+	if (!res.ok) {
+		console.error("Error fetching missing matches:", await res.text());
+		return;
+	}
+
+	const missingMatches = await res.json();
+	matches.push(...missingMatches.matches);
+
+	createCustomBracket(chartPoints, matches, tournamentId);
 }
 
 async function generateChartPoints(matches: Match[]) {
-  const rounds = groupBy(matches, "round_number");
-  const chartPoints: any[] = [];
-  const matchIdsByRound: Record<number, string[]> = {};
+	const rounds = groupBy(matches, "round_number");
+	const chartPoints: any[] = [];
+	const matchIdsByRound: Record<number, string[]> = {};
 
-  const sortedRounds = Object.keys(rounds)
-    .map(Number)
-    .sort((a, b) => a - b);
+	const sortedRounds = Object.keys(rounds)
+		.map(Number)
+		.sort((a, b) => a - b);
 
-  for (const round of sortedRounds) {
-    const roundMatches = rounds[round];
-    matchIdsByRound[round] = [];
+	for (const round of sortedRounds) {
+		const roundMatches = rounds[round];
+		matchIdsByRound[round] = [];
 
-    for (let index = 0; index < roundMatches.length; index++) {
-      const match = roundMatches[index];
-      const matchId = `r${round}_m${index}`;
-      matchIdsByRound[round].push(matchId);
+		for (let index = 0; index < roundMatches.length; index++) {
+			const match = roundMatches[index];
+			const matchId = `r${round}_m${index}`;
+			matchIdsByRound[round].push(matchId);
 
-      const parentRound = matchIdsByRound[round - 1];
-      const parentId =
-        round > 1 && parentRound
-          ? parentRound[Math.floor(index / 2)]
-          : undefined;
+			const parentRound = matchIdsByRound[round - 1];
+			const parentId =
+				round > 1 && parentRound
+					? parentRound[Math.floor(index / 2)]
+					: undefined;
 
-      const [player1Res, player2Res] = await Promise.all([
-        fetch(`${API_BASE_URL}/users/${match.player1}`, {
-          headers: { Authorization: `Bearer ${getCookie("jwt")}` },
-        }),
-        fetch(`${API_BASE_URL}/users/${match.player2}`, {
-          headers: { Authorization: `Bearer ${getCookie("jwt")}` },
-        }),
-      ]);
-      const [player1Data, player2Data] = await Promise.all([
-        player1Res.json(),
-        player2Res.json(),
-      ]);
+			const [player1Res, player2Res] = await Promise.all([
+				fetch(`${API_BASE_URL}/users/${match.player1}`, {
+					headers: { Authorization: `Bearer ${getCookie("jwt")}` },
+				}),
+				fetch(`${API_BASE_URL}/users/${match.player2}`, {
+					headers: { Authorization: `Bearer ${getCookie("jwt")}` },
+				}),
+			]);
+			const [player1Data, player2Data] = await Promise.all([
+				player1Res.json(),
+				player2Res.json(),
+			]);
 
-      chartPoints.push({
-        id: matchId,
-        name: `match_${index}`,
-        label: {
-          text: `${player1Data.user.username}\nvs\n${
-            player2Data.user.username
-          }\n${new Date(match.scheduled_date).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}`,
-        },
+			chartPoints.push({
+				id: matchId,
+				name: `match_${index}`,
+				label: {
+					text: `${player1Data.user.username}\nvs\n${
+						player2Data.user.username
+					}\n${new Date(match.scheduled_date).toLocaleTimeString([], {
+						hour: "2-digit",
+						minute: "2-digit",
+					})}`,
+				},
 
-        ...(parentId && { parent: parentId }),
-      });
-    }
-  }
+				...(parentId && { parent: parentId }),
+			});
+		}
+	}
 
-  return chartPoints;
+	return chartPoints;
 }
 
 function truncate(name: string, maxLength = 12): string {
-  return name.length > maxLength ? name.slice(0, maxLength - 1) + "…" : name;
+	return name.length > maxLength ? name.slice(0, maxLength - 1) + "…" : name;
 }
 
 function createBracketLayout(maxPlayers: number): string {
-  const totalRounds = Math.log2(maxPlayers); // Número de rodadas
-  let bracketHTML = `
-    <div class="bracket-container" style="
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      gap: 60px;
-      padding: 20px;
-      overflow-x: auto;
-      overflow-y: auto;
-      min-height: 100vh;
-      max-height: 100vh;
-      background: linear-gradient(135deg, #001B26 0%, #083744 100%);
-      border-radius: 12px;
-      border: 2px solid #4CF190;
-      position: relative;
-    ">
+	const totalRounds = Math.log2(maxPlayers); // Número de rodadas
+	let bracketHTML = `
+    <div class="flex items-start justify-center gap-15 p-5 overflow-auto min-h-screen max-h-screen bg-gradient-to-br from-black to-teal-900 rounded-lg border-2 border-green-400 relative">
   `;
 
-  for (let roundIndex = 0; roundIndex < totalRounds; roundIndex++) {
-    const matchesInRound = maxPlayers / Math.pow(2, roundIndex + 1); // Número de partidas na rodada
-    const verticalSpacing = Math.max(15, 40 * Math.pow(1.6, roundIndex)); // Espaçamento vertical
+	for (let roundIndex = 0; roundIndex < totalRounds; roundIndex++) {
+		const matchesInRound = maxPlayers / Math.pow(2, roundIndex + 1); // Número de partidas na rodada
+		const verticalSpacing = Math.max(15, 40 * Math.pow(1.6, roundIndex)); // Espaçamento vertical
 
-    bracketHTML += `
-      <div class="round-column" style=" 
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        position: relative;
-        min-width: 200px;
-        flex-shrink: 0;
-      ">
-        <h3 style="
-          color: #4CF190;
-          font-size: 14px;
-          font-weight: bold;
-          margin-bottom: 15px;
-          text-align: center;
-          text-shadow: 0 0 8px rgba(76, 241, 144, 0.5);
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          padding: 6px 12px;
-          background: rgba(76, 241, 144, 0.1);
-          border-radius: 15px;
-          border: 1px solid rgba(76, 241, 144, 0.3);
-        ">
+		bracketHTML += `
+      <div class="flex flex-col items-center relative min-w-50 flex-shrink-0">
+        <h3 class="text-green-400 text-sm font-bold mb-4 text-center shadow-md uppercase tracking-wide py-1 px-3 bg-green-100 rounded-lg border border-green-300">
           ${getRoundName(roundIndex + 1, totalRounds)}
         </h3>
         
-        <div class="matches-container" style="
-          display: flex;
-          flex-direction: column;
-          gap: ${verticalSpacing}px;
-          align-items: center;
-        ">
+        <div class="flex flex-col gap-${verticalSpacing}px items-center">
     `;
 
-    for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
-      bracketHTML += `
-        <div class="match-card" data-round="${roundIndex + 1}" data-match="${matchIndex}" style="
-          background: linear-gradient(145deg, #083744, #0a3e4c);
-          border: 2px solid #4CF190;
-          border-radius: 15px;
-          padding: 12px;
-          width: 180px;
-          min-height: 80px;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          position: relative;
-          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4), 
-                      0 0 25px rgba(76, 241, 144, 0.15),
-                      inset 0 1px 0 rgba(255, 255, 255, 0.1);
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          cursor: pointer;
-          backdrop-filter: blur(10px);
-        ">
-          <div class="player" style="
-            background: rgba(76, 241, 144, 0.1);
-            border-radius: 6px;
-            padding: 8px 10px;
-            margin-bottom: 4px;
-            border-left: 3px solid #4CF190;
-          ">
-            <span style="color: #4CF190; font-weight: bold; font-size: 12px;">
+		for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
+			bracketHTML += `
+        <div class="bg-gradient-to-br from-teal-900 to-teal-800 border-2 border-green-400 rounded-lg p-3 w-45 min-h-20 flex flex-col justify-center relative shadow-lg transition cursor-pointer backdrop-blur-md">
+          <div class="bg-green-100 rounded-md px-2 py-2 mb-1 border-l-4 border-green-400">
+            <span class="text-green-400 font-bold text-xs">
               TBD
             </span>
           </div>
           
-          <div style="
-            text-align: center;
-            color: #4CF190;
-            font-size: 10px;
-            font-weight: bold;
-            margin: 3px 0;
-            text-shadow: 0 0 5px rgba(76, 241, 144, 0.6);
-          ">VS</div>
+          <div class="text-center text-green-400 text-xs font-bold my-1 shadow-md">VS</div>
           
-          <div class="player" style="
-            background: rgba(76, 241, 144, 0.1);
-            border-radius: 6px;
-            padding: 8px 10px;
-            margin-bottom: 6px;
-            border-left: 3px solid #4CF190;
-          ">
-            <span style="color: #4CF190; font-weight: bold; font-size: 12px;">
+          <div class="bg-green-100 rounded-md px-2 py-2 mb-1 border-l-4 border-green-400">
+            <span class="text-green-400 font-bold text-xs">
               TBD
             </span>
           </div>
         </div>
       `;
-    }
+		}
 
-    bracketHTML += "</div></div>"; // Close matches-container and round-column
-  }
+		bracketHTML += "</div></div>"; // Close matches-container and round-column
+	}
 
-  bracketHTML += "</div>"; // Close bracket-container
+	bracketHTML += "</div>"; // Close bracket-container
 
-  return bracketHTML;
+	return bracketHTML;
 }
 
 function getRoundName(roundNumber: number, totalRounds: number): string {
-  if (roundNumber === totalRounds) return "🏆 FINAL";
-  if (roundNumber === totalRounds - 1) return "🥉 SEMI-FINAL";
-  if (roundNumber === totalRounds - 2 && totalRounds > 3)
-    return "🏅 QUARTER-FINAL";
-  if (roundNumber === totalRounds - 3 && totalRounds > 4)
-    return "🎯 ROUND OF 16";
-  if (roundNumber === totalRounds - 4 && totalRounds > 5)
-    return "⚡ ROUND OF 32";
-  return `🎮 ROUND ${roundNumber}`;
+	if (roundNumber === totalRounds) return "Final";
+	if (roundNumber === totalRounds - 1) return "Semifinal";
+	if (roundNumber === totalRounds - 2) return "Quartas";
+	return `Ronda ${roundNumber}`;
+}
+
+function expectedMatchesLeft(totalPlayers: number, currentRound: number) {
+	const totalRounds = Math.log2(totalPlayers);
+	const roundsLeft = totalRounds - currentRound + 1;
+	let matches = 0;
+	for (let i = 0; i < roundsLeft; i++) {
+		matches += Math.pow(2, totalRounds - i - 1);
+	}
+	return matches;
 }

@@ -80,11 +80,11 @@ export function getRecentGamesByUserId(userId, lang = "en") {
 	});
 }
 
-export function getFinishedMatchesById(tournamentId, lang = "en") {
+export function getFinishedMatches(tournamentId, lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.all(
 			`SELECT * FROM tournament_matches
-			 WHERE tournament_id = ? AND status = 'completed'`,
+			 WHERE tournament_id = ? AND match_state = 'completed'`,
 			[tournamentId],
 			(err, rows) => {
 				if (err) {
@@ -140,158 +140,180 @@ export function createTournament(tournamentData, lang = "en") {
 	});
 }
 
-export function joinTournament(tournamentName, tournamentId, userId, lang = "en") {
-    return new Promise((resolve, reject) => {
-        db.get(
-            `SELECT * FROM tournaments WHERE tournament_id = ? AND name = ?`,
-            [tournamentId, tournamentName],
-            (err, row) => {
-                if (err) return reject({ success: false, error: err });
+export function joinTournament(
+	tournamentName,
+	tournamentId,
+	userId,
+	lang = "en"
+) {
+	return new Promise((resolve, reject) => {
+		db.get(
+			`SELECT * FROM tournaments WHERE tournament_id = ? AND name = ?`,
+			[tournamentId, tournamentName],
+			(err, row) => {
+				if (err) return reject({ success: false, error: err });
 
-                if (!row) {
-                    return resolve({
-                        success: false,
-                        message: messages[lang].tournamentNotFound,
-                    });
-                } else if (row.max_players <= row.PLAYER_COUNT) {
-                    return resolve({
-                        success: false,
-                        message: messages[lang].tournamentFull,
-                    });
-                }
+				if (!row) {
+					return resolve({
+						success: false,
+						message: messages[lang].tournamentNotFound,
+					});
+				} else if (row.max_players <= row.PLAYER_COUNT) {
+					return resolve({
+						success: false,
+						message: messages[lang].tournamentFull,
+					});
+				}
 
-                db.get(
-                    `SELECT * FROM tournament_players WHERE tournament_id = ? AND player_id = ?`,
-                    [tournamentId, userId],
-                    (err, existingPlayer) => {
-                        if (err) return reject({ success: false, error: err });
+				db.get(
+					`SELECT * FROM tournament_players WHERE tournament_id = ? AND player_id = ?`,
+					[tournamentId, userId],
+					(err, existingPlayer) => {
+						if (err) return reject({ success: false, error: err });
 
-                        if (existingPlayer) {
-                            return resolve({
-                                success: false,
-                                message: messages[lang].alreadyJoined || "You already joined this tournament.",
-                            });
-                        }
+						if (existingPlayer) {
+							return resolve({
+								success: false,
+								message:
+									messages[lang].alreadyJoined ||
+									"You already joined this tournament.",
+							});
+						}
 
-                        db.run(
-                            `INSERT INTO tournament_players (tournament_id, tournament_name, player_id, current_position, wins, losses)
+						db.run(
+							`INSERT INTO tournament_players (tournament_id, tournament_name, player_id, current_position, wins, losses)
                              VALUES (?, ?, ?, 0, 0, 0)`,
-                            [tournamentId, tournamentName, userId],
-                            function (err) {
-                                if (err) return reject({ success: false, error: err });
+							[tournamentId, tournamentName, userId],
+							function (err) {
+								if (err)
+									return reject({
+										success: false,
+										error: err,
+									});
 
-                                db.run(
-                                    `UPDATE tournaments SET PLAYER_COUNT = PLAYER_COUNT + 1 WHERE tournament_id = ?`,
-                                    [tournamentId],
-                                    (err) => {
-                                        if (err) return reject({ success: false, error: err });
+								db.run(
+									`UPDATE tournaments SET PLAYER_COUNT = PLAYER_COUNT + 1 WHERE tournament_id = ?`,
+									[tournamentId],
+									(err) => {
+										if (err)
+											return reject({
+												success: false,
+												error: err,
+											});
 
-                                        // Check if tournament is full
-                                        db.get(
-                                            `SELECT PLAYER_COUNT, max_players FROM tournaments WHERE tournament_id = ?`,
-                                            [tournamentId],
-                                            (err, tournament) => {
-                                                if (err) return reject({ success: false, error: err });
+										// Check if tournament is full
+										db.get(
+											`SELECT PLAYER_COUNT, max_players FROM tournaments WHERE tournament_id = ?`,
+											[tournamentId],
+											(err, tournament) => {
+												if (err)
+													return reject({
+														success: false,
+														error: err,
+													});
 
-                                                if (tournament.PLAYER_COUNT === tournament.max_players) {
-                                                    // Generate matches
-                                                    generateTournamentMatches(tournamentId, tournament.max_players)
-                                                        .then(() => {
-                                                            resolve({
-                                                                success: true,
-                                                                message: messages[lang].tournamentJoined,
-                                                            });
-                                                        })
-                                                        .catch((err) => {
-                                                            reject({ success: false, error: err });
-                                                        });
-                                                } else {
-                                                    resolve({
-                                                        success: true,
-                                                        message: messages[lang].tournamentJoined,
-                                                    });
-                                                }
-                                            }
-                                        );
-                                    }
-                                );
-                            }
-                        );
-                    }
-                );
-            }
-        );
-    });
+												if (
+													tournament.PLAYER_COUNT ===
+													tournament.max_players
+												) {
+													// Generate matches
+													generateTournamentMatches(
+														tournamentId,
+														tournament.max_players
+													)
+														.then(() => {
+															resolve({
+																success: true,
+																message:
+																	messages[
+																		lang
+																	]
+																		.tournamentJoined,
+															});
+														})
+														.catch((err) => {
+															reject({
+																success: false,
+																error: err,
+															});
+														});
+												} else {
+													resolve({
+														success: true,
+														message:
+															messages[lang]
+																.tournamentJoined,
+													});
+												}
+											}
+										);
+									}
+								);
+							}
+						);
+					}
+				);
+			}
+		);
+	});
 }
 
 // Generate matches based on tournament size
 function generateTournamentMatches(tournamentId, maxPlayers) {
-    return new Promise((resolve, reject) => {
-        db.all(
-            `SELECT player_id FROM tournament_players WHERE tournament_id = ? ORDER BY RANDOM()`,
-            [tournamentId],
-            (err, players) => {
-                if (err) return reject(err);
+	return new Promise((resolve, reject) => {
+		db.all(
+			`SELECT player_id FROM tournament_players WHERE tournament_id = ? ORDER BY RANDOM()`,
+			[tournamentId],
+			(err, players) => {
+				if (err) return reject(err);
 
-                // Gerar apenas a primeira rodada
-                const roundNumber = 1;
-                const roundMatches = [];
+				const roundNumber = 1;
+				const roundMatches = [];
 
-                for (let i = 0; i < players.length; i += 2) {
-                    const player1 = players[i];
-                    const player2 = players[i + 1];
+				for (let i = 0; i < players.length; i += 2) {
+					const player1 = players[i];
+					const player2 = players[i + 1];
 
-                    // Adicionar partida à lista de partidas da primeira rodada
-                    roundMatches.push({
-                        tournament_id: tournamentId,
-                        player1: player1.player_id,
-                        player2: player2.player_id,
-                        round_number: roundNumber,
-                        scheduled_date: new Date(Date.now() + roundNumber * 24 * 60 * 60 * 1000), // Exemplo: agendar para amanhã
-                    });
-                }
+					roundMatches.push({
+						tournament_id: tournamentId,
+						player1: player1.player_id,
+						player2: player2.player_id,
+						round_number: roundNumber,
+						scheduled_date: new Date(
+							Date.now() + roundNumber * 24 * 60 * 60 * 1000
+						),
+						match_state: "scheduled",
+					});
+				}
 
-                const insertPromises = roundMatches.map((match) =>
-                    new Promise((resolve, reject) => {
-                        db.run(
-                            `INSERT INTO tournament_matches (tournament_id, player1, player2, round_number, scheduled_date)
-                             VALUES (?, ?, ?, ?, ?)`,
-                            [
-                                match.tournament_id,
-                                match.player1,
-                                match.player2,
-                                match.round_number,
-                                match.scheduled_date,
-                            ],
-                            (err) => {
-                                if (err) return reject(err);
+				const insertPromises = roundMatches.map(
+					(match) =>
+						new Promise((resolve, reject) => {
+							db.run(
+								`INSERT INTO tournament_matches (tournament_id, player1, player2, round_number, scheduled_date, match_state)
+                             VALUES (?, ?, ?, ?, ?, ?)`,
+								[
+									match.tournament_id,
+									match.player1,
+									match.player2,
+									match.round_number,
+									match.scheduled_date,
+									match.match_state,
+								],
+								(err) => {
+									if (err) return reject(err);
+									resolve();
+								}
+							);
+						})
+				);
 
-                                db.run(
-                                    `INSERT INTO upcoming_tournament_matches (tournament_id, player1, player2, round_number, scheduled_date)
-                                     VALUES (?, ?, ?, ?, ?)`,
-                                    [
-                                        match.tournament_id,
-                                        match.player1,
-                                        match.player2,
-                                        match.round_number,
-                                        match.scheduled_date,
-                                    ],
-                                    (upcomingErr) => {
-                                        if (upcomingErr) return reject(upcomingErr);
-                                        resolve();
-                                    }
-                                );
-                            }
-                        );
-                    })
-                );
-
-                Promise.all(insertPromises)
-                    .then(() => resolve())
-                    .catch((err) => reject(err));
-            }
-        );
-    });
+				Promise.all(insertPromises)
+					.then(() => resolve())
+					.catch((err) => reject(err));
+			}
+		);
+	});
 }
 
 export function getPastTournamentsByUserId(userId, lang = "en") {
@@ -394,7 +416,7 @@ export function getTournamentMatchesById(tournamentId) {
 export function getUpcomingTournamentMatchesById(tournamentId, lang = "en") {
 	return new Promise((resolve, reject) => {
 		db.all(
-			"SELECT * FROM upcoming_tournament_matches WHERE tournament_id = ?",
+			"SELECT * FROM tournament_matches WHERE tournament_id = ? AND match_state = 'scheduled'",
 			[tournamentId],
 			(err, rows) => {
 				if (err) {
@@ -437,24 +459,24 @@ export function getTournamentPlayersById(tournamentId, userId) {
 }
 
 export function getAllTournamentPlayers(tournamentId, lang = "en") {
-  return new Promise((resolve, reject) => {
-    db.all(
-      "SELECT * FROM tournament_players WHERE tournament_id = ?",
-      [tournamentId],
-      (err, rows) => {
-        if (err) {
-          reject({ success: false, error: err });
-        }
-        if (!rows || rows.length === 0) {
-          return resolve({
-            success: false,
-            message: messages[lang].noUsers,
-          });
-        }
-        resolve({ success: true, players: rows });
-      }
-    );
-  });
+	return new Promise((resolve, reject) => {
+		db.all(
+			"SELECT * FROM tournament_players WHERE tournament_id = ?",
+			[tournamentId],
+			(err, rows) => {
+				if (err) {
+					reject({ success: false, error: err });
+				}
+				if (!rows || rows.length === 0) {
+					return resolve({
+						success: false,
+						message: messages[lang].noUsers,
+					});
+				}
+				resolve({ success: true, players: rows });
+			}
+		);
+	});
 }
 
 export function updateCustomization(userId, customization, lang = "en") {
@@ -1027,7 +1049,8 @@ export function generateNextRound(tournamentId, currentRound) {
 				if (!winners || winners.length < 2) {
 					return resolve({
 						success: false,
-						message: "Not enough winners to advance to the next round.",
+						message:
+							"Not enough winners to advance to the next round.",
 					});
 				}
 
@@ -1054,32 +1077,34 @@ export function generateNextRound(tournamentId, currentRound) {
 									player2,
 									round_number: nextRound,
 									scheduled_date: new Date(
-										Date.now() + nextRound * 24 * 60 * 60 * 1000
+										Date.now() +
+											nextRound * 24 * 60 * 60 * 1000
 									), // Example: schedule for the next day
 								});
 							}
 						}
 
 						// Insert matches for the next round
-						const insertPromises = nextRoundMatches.map((match) =>
-							new Promise((resolve, reject) => {
-								db.run(
-									`INSERT INTO upcoming_tournament_matches 
+						const insertPromises = nextRoundMatches.map(
+							(match) =>
+								new Promise((resolve, reject) => {
+									db.run(
+										`INSERT INTO upcoming_tournament_matches 
                    (tournament_id, player1, player2, round_number, scheduled_date)
                    VALUES (?, ?, ?, ?, ?)`,
-									[
-										match.tournament_id,
-										match.player1,
-										match.player2,
-										match.round_number,
-										match.scheduled_date,
-									],
-									(err) => {
-										if (err) return reject(err);
-										resolve();
-									}
-								);
-							})
+										[
+											match.tournament_id,
+											match.player1,
+											match.player2,
+											match.round_number,
+											match.scheduled_date,
+										],
+										(err) => {
+											if (err) return reject(err);
+											resolve();
+										}
+									);
+								})
 						);
 
 						Promise.all(insertPromises)
@@ -1098,4 +1123,3 @@ export function generateNextRound(tournamentId, currentRound) {
 		);
 	});
 }
-
