@@ -903,7 +903,7 @@ export const loadPlayPage = async (): Promise<void> => {
 		if (isMultiplayer) {
 			// In multiplayer, each player only controls their assigned paddle
 			if (playerSide === "left") {
-				// Left player controls left paddle
+				// Left player controls left paddle with w/s keys
 				if (keys.w) leftY -= paddleSpeed;
 				if (keys.s) leftY += paddleSpeed;
 				leftY = Math.max(
@@ -921,9 +921,9 @@ export const loadPlayPage = async (): Promise<void> => {
 					leftYOld = leftY;
 				}
 			} else if (playerSide === "right") {
-				// Right player controls right paddle
-				if (keys.ArrowUp) rightY -= paddleSpeed;
-				if (keys.ArrowDown) rightY += paddleSpeed;
+				// Right player controls right paddle with w/s keys (same as left player)
+				if (keys.w) rightY -= paddleSpeed;
+				if (keys.s) rightY += paddleSpeed;
 				rightY = Math.max(
 					0,
 					Math.min(fieldHeight - paddleHeight, rightY)
@@ -1164,8 +1164,6 @@ export const loadPlayPage = async (): Promise<void> => {
 			ctx.textAlign = "left";
 			ctx.fillText("Press SPACE to start", 20, fieldHeight - 30);
 			ctx.fillText("Controls: w s", 20, 50);
-			ctx.textAlign = "right";
-			ctx.fillText("Controls: ↑ ↓", fieldWidth - 20, 50);
 			ctx.restore();
 		}
 
