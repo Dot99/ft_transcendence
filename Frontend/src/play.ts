@@ -181,31 +181,47 @@ export const loadPlayPage = async (): Promise<void> => {
 	let rightPlayerId: number | null = null;
 	let lastBotUpdate = 0;
 
-	// Get play mode from session storage (ai or pvp)
-	const playMode = sessionStorage.getItem("playMode") || "ai";
-	const isPvP = playMode === "pvp";
+	// Game mode handling - only AI, multiplayer, or tournament
+	let gameMode: "ai" | "multiplayer" | "tournament" = "ai";
 
-	if (!isMultiplayer) {
-		rightPlayerName = isPvP ? "Player 2" : "Bot";
-		// Update the display
-		getElement<HTMLElement>("bot-username").textContent = rightPlayerName;
+	// Check if this is a multiplayer game (from matchmaking or friend invite)
+	const gameData = (window as any).gameData;
+	let opponentUsername: string | null = null;
+	let gameIdFromData: string | null = null;
+
+	if (gameData) {
+		if (
+			gameData.type === "matchmaking" ||
+			gameData.type === "friend_invite"
+		) {
+			gameMode = "multiplayer";
+			opponentUsername = gameData.opponentUsername;
+			gameIdFromData = gameData.gameId;
+			// Clear the data after use
+			delete (window as any).gameData;
+		} else if (gameData.type === "tournament") {
+			gameMode = "tournament";
+			opponentUsername = gameData.opponentUsername;
+			gameIdFromData = gameData.gameId;
+			// Clear the data after use
+			delete (window as any).gameData;
+		}
 	}
 
-	// Check PvP
-	const opponentUsername = sessionStorage.getItem("pvpOpponent");
-	const gameIdFromSession = sessionStorage.getItem("gameId");
+	// Set initial display names
+	if (gameMode === "ai") {
+		rightPlayerName = "Bot";
+		getElement<HTMLElement>("bot-username").textContent = rightPlayerName;
+	}
 
 	// Load current user's customization first
 	await loadCurrentUserCustomization();
 
-	if (opponentUsername && gameIdFromSession) {
+	if (opponentUsername && gameIdFromData) {
 		isMultiplayer = true;
-		gameId = gameIdFromSession;
+		gameId = gameIdFromData;
 		opponentDisplayName = opponentUsername;
 
-		// Clean up session storage
-		sessionStorage.removeItem("pvpOpponent");
-		sessionStorage.removeItem("gameId");
 		// Connect to WebSocket for multiplayer game
 		connectToGame();
 	}
@@ -426,12 +442,10 @@ export const loadPlayPage = async (): Promise<void> => {
 		} catch (error) {
 			console.error("Error saving game result:", error);
 		}
+
+		// Update right player name for single player modes
 		if (!isMultiplayer) {
-			if (isPvP) {
-				rightPlayerName = "Player 2";
-			} else {
-				rightPlayerName = "Bot";
-			}
+			rightPlayerName = "Bot";
 			getElement<HTMLElement>("bot-username").textContent =
 				rightPlayerName;
 		}
@@ -807,9 +821,8 @@ export const loadPlayPage = async (): Promise<void> => {
 		winner = null;
 		hasGameStartedOnce = false;
 
-		// Clean up any remaining session storage
-		sessionStorage.removeItem("pvpOpponent");
-		sessionStorage.removeItem("gameId");
+		// Clean up any remaining window data
+		delete (window as any).gameData;
 
 		window.dispatchEvent(new Event("loadMenuPage"));
 	});
@@ -932,7 +945,7 @@ export const loadPlayPage = async (): Promise<void> => {
 			if (keys.s) leftY += paddleSpeed;
 			leftY = Math.max(0, Math.min(fieldHeight - paddleHeight, leftY));
 
-			if (!isPvP) {
+			if (gameMode === "ai") {
 				// AI opponent logic
 				const now = Date.now();
 				if (now - lastBotUpdate >= 1000) {
@@ -958,15 +971,8 @@ export const loadPlayPage = async (): Promise<void> => {
 					0,
 					Math.min(fieldHeight - paddleHeight, rightY)
 				);
-			} else {
-				// Local PvP - human controls right paddle
-				if (keys.ArrowUp) rightY -= paddleSpeed;
-				if (keys.ArrowDown) rightY += paddleSpeed;
-				rightY = Math.max(
-					0,
-					Math.min(fieldHeight - paddleHeight, rightY)
-				);
 			}
+			// Note: No local PvP mode - only AI or multiplayer
 
 			// Update old positions for single player
 			leftYOld = leftY;
@@ -1017,7 +1023,7 @@ export const loadPlayPage = async (): Promise<void> => {
 			ballVX = -Math.abs(ballVX);
 			ballVY +=
 				(ballY + ballHeight / 2 - (rightY + paddleHeight / 2)) * 0.15;
-			if (!isMultiplayer && !isPvP) {
+			if (!isMultiplayer && gameMode === "ai") {
 				botAI.recordHit();
 			}
 		}
@@ -1031,7 +1037,7 @@ export const loadPlayPage = async (): Promise<void> => {
 				winner = "right";
 				setBannerGlow("right");
 				if (!isMultiplayer) {
-					rightPlayerName = isPvP ? "Player 2" : "Bot";
+					rightPlayerName = "Bot";
 				}
 				showWinnerModal("right");
 				gameStarted = false;
@@ -1079,7 +1085,7 @@ export const loadPlayPage = async (): Promise<void> => {
 				);
 			}
 
-			if (!isMultiplayer && !isPvP) {
+			if (!isMultiplayer && gameMode === "ai") {
 				botAI.recordMiss();
 			}
 			return;
@@ -1230,14 +1236,9 @@ export const loadPlayPage = async (): Promise<void> => {
 	// Check PvP
 	if (opponentUsername) {
 		opponentDisplayName = opponentUsername;
-		sessionStorage.removeItem("pvpOpponent");
 	}
 	if (!isMultiplayer) {
-		if (isPvP) {
-			rightPlayerName = "Player 2";
-		} else {
-			rightPlayerName = "Bot";
-		}
+		rightPlayerName = "Bot";
 		getElement<HTMLElement>("bot-username").textContent = rightPlayerName;
 	}
 	loop();

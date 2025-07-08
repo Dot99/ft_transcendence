@@ -719,6 +719,8 @@ export const loadMenuPage = async (): Promise<void> => {
 	const btnPvAI = document.getElementById("btnPvAI");
 	if (btnPvAI) {
 		btnPvAI.addEventListener("click", () => {
+			// Clear any previous game data and set AI mode
+			delete (window as any).gameData;
 			window.dispatchEvent(new Event("loadPlayPage"));
 		});
 	}
@@ -785,11 +787,12 @@ export const loadMenuPage = async (): Promise<void> => {
 					if (status && status.matched) {
 						polling = false;
 						document.body.removeChild(searchingModal);
-						// Store opponent info if needed
-						sessionStorage.setItem(
-							"pvpOpponent",
-							status.opponentUsername
-						);
+						// Store game data in window
+						(window as any).gameData = {
+							type: "matchmaking",
+							opponentUsername: status.opponentUsername,
+							gameId: status.gameId,
+						};
 						window.dispatchEvent(new Event("loadPlayPage"));
 					}
 				}
