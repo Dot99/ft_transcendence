@@ -396,8 +396,13 @@ export const loadPlayPage = async (): Promise<void> => {
 
 	// Function to save PvP game results to the database
 	async function savePvPGameResult() {
-		// Only save results for multiplayer games
-		if (!isMultiplayer || !leftPlayerId || !rightPlayerId) {
+		// Only save results for multiplayer games and only if we're the left player (host)
+		if (
+			!isMultiplayer ||
+			!leftPlayerId ||
+			!rightPlayerId ||
+			playerSide !== "left"
+		) {
 			return;
 		}
 
@@ -796,7 +801,7 @@ export const loadPlayPage = async (): Promise<void> => {
 
 		// Clean up matchmaking status on the backend
 		try {
-			await fetch("/api/matchmaking/leave", {
+			await fetch(`${API_BASE_URL}/users/matchmaking/leave`, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${getCookie("jwt")}`,

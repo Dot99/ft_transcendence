@@ -744,7 +744,7 @@ export const loadMenuPage = async (): Promise<void> => {
 			document.body.appendChild(searchingModal);
 
 			// Join matchmaking
-			const res = await fetch(`${API_BASE_URL}/matchmaking/join`, {
+			const res = await fetch(`${API_BASE_URL}/users/matchmaking/join`, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${getCookie("jwt")}`,
@@ -761,7 +761,7 @@ export const loadMenuPage = async (): Promise<void> => {
 				.querySelector("#cancelMatchmaking")
 				?.addEventListener("click", async () => {
 					polling = false;
-					await fetch(`${API_BASE_URL}/matchmaking/leave`, {
+					await fetch(`${API_BASE_URL}/users/matchmaking/leave`, {
 						method: "POST",
 						headers: {
 							Authorization: `Bearer ${getCookie("jwt")}`,
