@@ -117,7 +117,6 @@ export const menuTemplate = `
                         <div id="playerCountBtns" class="flex gap-4">
                             <button type="button" data-value="4" class="player-count-btn bg-[#4CF190] text-[#001B26] font-bold px-4 py-2 rounded border-2 border-[#001B26] shadow ring-2 ring-[#4CF190]">4</button>
                             <button type="button" data-value="8" class="player-count-btn bg-gray-600 text-white font-bold px-4 py-2 rounded border-2 border-gray-700 shadow">8</button>
-                            <button type="button" data-value="16" class="player-count-btn bg-gray-600 text-white font-bold px-4 py-2 rounded border-2 border-gray-700 shadow">16</button>
                         </div>
                         <input type="hidden" id="tournamentPlayers" name="tournamentPlayers" value="4" />
                     </div>

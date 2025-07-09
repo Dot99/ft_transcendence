@@ -58,7 +58,9 @@ install:
 rfrontend:
 	@docker exec -it ft_transcendence-frontend-1 sh -c "npm run build"
 
-
+re :
+	@docker compose down
+	@docker compose up --build
 # Deploy for network access
 network: fclean
 	@echo "$(GREEN)🚀 Starting ft_transcendence for network access...$(NC)"

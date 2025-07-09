@@ -1,6 +1,8 @@
 import { tournamentTemplate } from "./templates/tournamentTemplate.js";
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
 import { API_BASE_URL } from "./config.js";
+import { loadMenuPage } from "./menu.js";
+import { t } from "./locales/localeMiddleware.js";
 declare const JSC: any;
 
 function getElement<T extends HTMLElement>(id: string): T {
@@ -14,7 +16,12 @@ export const loadTournamentPage = async (
 ): Promise<void> => {
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = tournamentTemplate;
-
+	// const homeBtn = document.getElementById("homeBtn");
+	// if (homeBtn) {
+	// 	const homeText = homeBtn.querySelector("span.text-base");
+	// 	if (homeText) homeText.textContent = t("home");
+	// 	homeBtn.onclick = () => loadMenuPage();
+	// }
 	const res = await fetch(`${API_BASE_URL}/tournaments/${tournament_id}`, {
 		headers: {
 			Authorization: `Bearer ${getCookie("jwt")}`,
@@ -23,11 +30,11 @@ export const loadTournamentPage = async (
 	const tournaments = await res.json();
 	const list = getElement<HTMLDivElement>("bracketContainer");
 	list.innerHTML = `
-    <div class="border border-green-400 p-4 rounded hover:bg-teal-900 transition cursor-pointer" onclick="joinTournament(${tournaments.tournament.id})">
-      <h3 class="text-xl font-semibold">${tournaments.tournament.name}</h3>
-      <p class="text-sm">Players: ${tournaments.tournament.PLAYER_COUNT}/${tournaments.tournament.max_players}</p>
-    </div>
-  `;
+  <div class="border border-green-400 p-4 rounded hover:bg-teal-900 transition cursor-pointer" onclick="joinTournament(${tournaments.tournament.id})">
+    <h3 class="text-xl font-semibold">${tournaments.tournament.name}</h3>
+    <p class="text-sm">Players: ${tournaments.tournament.PLAYER_COUNT}/${tournaments.tournament.max_players}</p>
+  </div>
+`;
 	if (tournament_id) {
 		renderBracket(tournament_id);
 	}
@@ -48,7 +55,6 @@ function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
 type Match = {
 	player1: string;
 	player2: string;
-	scheduled_date: string;
 	match_state: string;
 	winner: string;
 	player1_score?: number;
@@ -159,13 +165,13 @@ async function createCustomBracket(
 			tournament.tournament.current_round
 		) - 1;
 
-	const scheduledMatches = matches.filter(
-		(match) => match.match_state === "scheduled"
+	const upcomingMatches = matches.filter(
+		(match) => match.match_state === "upcoming"
 	);
 	const completedMatches = matches.filter(
 		(match) => match.match_state === "completed"
 	);
-	const totalKnownMatches = scheduledMatches.length + completedMatches.length;
+	const totalKnownMatches = upcomingMatches.length + completedMatches.length;
 
 	const totalExpectedMatches = tournament.tournament.max_players - 1;
 
@@ -181,16 +187,10 @@ async function createCustomBracket(
 
 	// Create bracket HTML with proper grid layout
 	let bracketHTML = `
-    <div class="flex items-center justify-center gap-15 p-5 overflow-auto min-h-screen max-h-screen bg-gradient-to-br from-black to-teal-900 rounded-lg border-2 border-green-400 relative">
+    <div class="flex items-center justify-center gap-8 p-8 overflow-auto min-h-screen max-h-screen bg-gradient-to-br from-gray-800 to-teal-700 rounded-lg border-2 border-green-500 shadow-xl relative">
   `;
 
-	console.log("Creating custom bracket with chart points:", chartPoints);
-	console.log("Matches:", matches);
-	console.log("sortedRounds:", sortedRounds);
 	for (let roundIndex = 0; roundIndex < sortedRounds.length; roundIndex++) {
-		console.log(
-			`Processing round ${roundIndex + 1}/${sortedRounds.length}`
-		);
 		const round = sortedRounds[roundIndex];
 		const roundNumber = Number(round);
 		let roundMatches = rounds[round] || [];
@@ -202,11 +202,10 @@ async function createCustomBracket(
 				{
 					player1: "",
 					player2: "",
-					match_state: "scheduled",
+					match_state: "upcoming",
 					player1_score: undefined,
 					player2_score: undefined,
 					winner: "",
-					scheduled_date: "",
 					round_number: 1,
 				},
 			];
@@ -221,8 +220,8 @@ async function createCustomBracket(
 		);
 
 		bracketHTML += `
-      <div class="flex flex-col items-center relative min-w-50 flex-shrink-0">
-        <h3 class="text-green-400 text-sm font-bold mb-4 text-center shadow-md uppercase tracking-wide py-1 px-3 bg-green-100 rounded-lg border border-green-300">
+      <div class="flex flex-col items-center relative min-w-36 flex-shrink-0">
+        <h3 class="text-green-200 text-lg font-bold mb-4 text-center shadow-md uppercase tracking-wide py-2 px-5 bg-green-600 rounded-lg border border-green-400">
           ${getRoundName(roundNumber, sortedRounds.length)}
         </h3>
         
@@ -233,7 +232,7 @@ async function createCustomBracket(
 			const match = roundMatches[matchIndex] || {
 				player1: "",
 				player2: "",
-				match_state: "scheduled",
+				match_state: "upcoming",
 			};
 
 			const chartPoint = chartPoints.find(
@@ -268,13 +267,6 @@ async function createCustomBracket(
 			const isPlayer1Winner = isCompleted && winnerId == match.player1;
 			const isPlayer2Winner = isCompleted && winnerId == match.player2;
 
-			const scheduledTime = match?.scheduled_date
-				? new Date(match.scheduled_date).toLocaleTimeString([], {
-						hour: "2-digit",
-						minute: "2-digit",
-				  })
-				: "";
-
 			// Ensure TBD is displayed for the final match if no players are available
 			const isFinalRound = roundNumber === sortedRounds.length;
 			const displayPlayer1 =
@@ -283,39 +275,28 @@ async function createCustomBracket(
 				isFinalRound && !match.player2 ? "TBD" : player2;
 
 			bracketHTML += `
-        <div class="bg-gradient-to-br from-teal-900 to-teal-800 border-2 border-green-400 rounded-lg p-3 w-45 min-h-20 flex flex-col justify-center relative shadow-lg transition cursor-pointer backdrop-blur-md">
-          <div class="bg-green-100 rounded-md px-2 py-2 mb-1 border-l-4 ${
+        <div class="bg-gradient-to-br from-teal-700 to-teal-600 border-2 border-green-400 rounded-lg p-5 w-36 min-h-20 flex flex-col justify-center relative shadow-lg transition cursor-pointer backdrop-blur-md hover:scale-105 hover:bg-teal-500">
+          <div class="bg-green-300 rounded-md px-4 py-3 mb-3 border-l-4 ${
 				isPlayer1Winner ? "border-green-500" : "border-green-400"
 			}">
 			<span class="${
 				isPlayer1Winner ? "text-green-500" : "text-green-400"
-			} font-bold text-xs">
+			} font-bold text-sm">
 				${truncate(displayPlayer1, 15)}${isCompleted ? ` (${player1Score})` : ""}
 			</span>
 			</div>
 
-			<div class="text-center text-green-400 text-xs font-bold my-1 shadow-md">VS</div>
+			<div class="text-center text-green-300 text-sm font-bold my-3 shadow-md">VS</div>
 
-			<div class="bg-green-100 rounded-md px-2 py-2 mb-1 border-l-4 ${
+			<div class="bg-green-300 rounded-md px-4 py-3 mb-3 border-l-4 ${
 				isPlayer2Winner ? "border-green-500" : "border-green-400"
 			}">
 			<span class="${
 				isPlayer2Winner ? "text-green-500" : "text-green-400"
-			} font-bold text-xs">
+			} font-bold text-sm">
 				${truncate(displayPlayer2, 15)}${isCompleted ? ` (${player2Score})` : ""}
 			</span>
 			</div>
-
-          
-          ${
-				scheduledTime
-					? `
-            <div class="text-teal-300 text-xs text-center mt-auto py-1 border-t border-green-200">
-              🕒 ${scheduledTime}
-            </div>
-          `
-					: ""
-			}
         </div>
       `;
 
@@ -415,12 +396,7 @@ async function generateChartPoints(matches: Match[]) {
 				id: matchId,
 				name: `match_${index}`,
 				label: {
-					text: `${player1Data.user.username}\nvs\n${
-						player2Data.user.username
-					}\n${new Date(match.scheduled_date).toLocaleTimeString([], {
-						hour: "2-digit",
-						minute: "2-digit",
-					})}`,
+					text: `${player1Data.user.username}\nvs\n${player2Data.user.username}`,
 				},
 
 				...(parentId && { parent: parentId }),
@@ -438,7 +414,7 @@ function truncate(name: string, maxLength = 12): string {
 function createBracketLayout(maxPlayers: number): string {
 	const totalRounds = Math.log2(maxPlayers); // Número de rodadas
 	let bracketHTML = `
-    <div class="flex items-start justify-center gap-15 p-5 overflow-auto min-h-screen max-h-screen bg-gradient-to-br from-black to-teal-900 rounded-lg border-2 border-green-400 relative">
+    <div class="flex items-start justify-center gap-8 p-8 overflow-auto min-h-screen max-h-screen bg-gradient-to-br from-gray-800 to-teal-700 rounded-lg border-2 border-green-500 shadow-xl relative">
   `;
 
 	for (let roundIndex = 0; roundIndex < totalRounds; roundIndex++) {
@@ -446,8 +422,8 @@ function createBracketLayout(maxPlayers: number): string {
 		const verticalSpacing = Math.max(15, 40 * Math.pow(1.6, roundIndex)); // Espaçamento vertical
 
 		bracketHTML += `
-      <div class="flex flex-col items-center relative min-w-50 flex-shrink-0">
-        <h3 class="text-green-400 text-sm font-bold mb-4 text-center shadow-md uppercase tracking-wide py-1 px-3 bg-green-100 rounded-lg border border-green-300">
+      <div class="flex flex-col items-center relative min-w-36 flex-shrink-0">
+        <h3 class="text-green-200 text-lg font-bold mb-4 text-center shadow-md uppercase tracking-wide py-2 px-5 bg-green-600 rounded-lg border border-green-400">
           ${getRoundName(roundIndex + 1, totalRounds)}
         </h3>
         
@@ -456,17 +432,17 @@ function createBracketLayout(maxPlayers: number): string {
 
 		for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
 			bracketHTML += `
-        <div class="bg-gradient-to-br from-teal-900 to-teal-800 border-2 border-green-400 rounded-lg p-3 w-45 min-h-20 flex flex-col justify-center relative shadow-lg transition cursor-pointer backdrop-blur-md">
-          <div class="bg-green-100 rounded-md px-2 py-2 mb-1 border-l-4 border-green-400">
-            <span class="text-green-400 font-bold text-xs">
+        <div class="bg-gradient-to-br from-teal-700 to-teal-600 border-2 border-green-400 rounded-lg p-5 w-36 min-h-20 flex flex-col justify-center relative shadow-lg transition cursor-pointer backdrop-blur-md hover:scale-105 hover:bg-teal-500">
+          <div class="bg-green-300 rounded-md px-4 py-3 mb-3 border-l-4 border-green-400">
+            <span class="text-green-400 font-bold text-sm">
               TBD
             </span>
           </div>
           
-          <div class="text-center text-green-400 text-xs font-bold my-1 shadow-md">VS</div>
+          <div class="text-center text-green-300 text-sm font-bold my-3 shadow-md">VS</div>
           
-          <div class="bg-green-100 rounded-md px-2 py-2 mb-1 border-l-4 border-green-400">
-            <span class="text-green-400 font-bold text-xs">
+          <div class="bg-green-300 rounded-md px-4 py-3 mb-3 border-l-4 border-green-400">
+            <span class="text-green-400 font-bold text-sm">
               TBD
             </span>
           </div>

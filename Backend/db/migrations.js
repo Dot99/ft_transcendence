@@ -119,16 +119,13 @@ export default function runMigrations(db) {
   CREATE TABLE IF NOT EXISTS tournament_matches (
     match_id INTEGER PRIMARY KEY AUTOINCREMENT,
     tournament_id INTEGER,
-    round INTEGER,
     player1 INTEGER,
     player2 INTEGER,
     Winner INTEGER,
     player1_score INTEGER,
     player2_score INTEGER,
-    match_date TEXT DEFAULT CURRENT_TIMESTAMP,
-    match_state TEXT CHECK(match_state IN ('scheduled', 'in_progress', 'completed', 'cancelled')) DEFAULT 'scheduled',
+    match_state TEXT CHECK(match_state IN ('upcoming', 'in_progress', 'completed', 'cancelled')) DEFAULT 'upcoming',
 	round_number INTEGER,
-	scheduled_date DATETIME,
     FOREIGN KEY (tournament_id) REFERENCES tournaments(tournament_id),
     FOREIGN KEY (player1) REFERENCES users(id),
     FOREIGN KEY (player2) REFERENCES users(id)
