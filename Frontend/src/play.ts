@@ -84,7 +84,6 @@ export const loadPlayPage = async (): Promise<void> => {
 	// Winner Modal elements
 	const winnerModal = getElement<HTMLDivElement>("winnerModal");
 	const winnerUsernameSpan = getElement<HTMLElement>("winnerUsername");
-	const playAgainBtn = getElement<HTMLButtonElement>("playAgainBtn");
 	const menuBtn = getElement<HTMLButtonElement>("menuBtn");
 
 	function showWinnerModal(winnerSide: "left" | "right") {
@@ -108,19 +107,6 @@ export const loadPlayPage = async (): Promise<void> => {
 	function hideWinnerModal() {
 		winnerModal.classList.add("hidden");
 	}
-
-	playAgainBtn.addEventListener("click", () => {
-		hideWinnerModal();
-		clearBannerGlow();
-		winner = null;
-		hasGameStartedOnce = false;
-		resetGame();
-		if (leftScore !== 0 || rightScore !== 0) {
-			leftScore = 0;
-			rightScore = 0;
-			updateScoreDisplay();
-		}
-	});
 	menuBtn.addEventListener("click", () => {
 		hideWinnerModal();
 		ballVX = 0;
@@ -741,15 +727,6 @@ export const loadPlayPage = async (): Promise<void> => {
 		};
 	}
 	// Button actions
-	winnerModal
-		.querySelector("#playAgainBtn")
-		?.addEventListener("click", () => {
-			hideWinnerModal();
-			clearBannerGlow();
-			winner = null;
-			hasGameStartedOnce = false;
-			resetGame();
-		});
 	winnerModal.querySelector("#menuBtn")?.addEventListener("click", () => {
 		hideWinnerModal();
 		window.dispatchEvent(new Event("loadMenuPage"));
