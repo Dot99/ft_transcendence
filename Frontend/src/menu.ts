@@ -727,9 +727,24 @@ export const loadMenuPage = async (): Promise<void> => {
 
 	// Player vs Player button logic
 	const btnPvP = document.getElementById("btnPvP");
-
+	let isJoiningMatchmaking = false;
 	if (btnPvP) {
 		btnPvP.addEventListener("click", async () => {
+			if (isJoiningMatchmaking) {
+				console.log("[FE] Already joining matchmaking, ignoring click");
+				return;
+			}
+			isJoiningMatchmaking = true;
+			try {
+				await fetch(`${API_BASE_URL}/users/matchmaking/leave`, {
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${getCookie("jwt")}`,
+					},
+				});
+			} catch (e) {
+				// Ignore errors, user might not be in matchmaking
+			}
 			// Show searching modal/spinner
 			const searchingModal = document.createElement("div");
 			searchingModal.innerHTML = `
@@ -753,13 +768,16 @@ export const loadMenuPage = async (): Promise<void> => {
 			if (!res.ok) {
 				alert("Failed to join matchmaking.");
 				document.body.removeChild(searchingModal);
+				isJoiningMatchmaking = false;
 				return;
 			}
+			console.log("[FE] Join matchmaking response:", res.status);
 			let polling = true;
 			// Cancel matchmaking
 			searchingModal
 				.querySelector("#cancelMatchmaking")
 				?.addEventListener("click", async () => {
+					console.log("[FE] Cancel matchmaking clicked");
 					polling = false;
 					await fetch(`${API_BASE_URL}/users/matchmaking/leave`, {
 						method: "POST",
@@ -768,11 +786,13 @@ export const loadMenuPage = async (): Promise<void> => {
 						},
 					});
 					document.body.removeChild(searchingModal);
+					isJoiningMatchmaking = false;
 				});
 
 			// Poll for match found
 			while (polling) {
 				await new Promise((r) => setTimeout(r, 2000));
+				if (!polling) break; // Exit if cancelled
 				const matchRes = await fetch(
 					`${API_BASE_URL}/users/matchmaking/status`,
 					{
@@ -781,10 +801,21 @@ export const loadMenuPage = async (): Promise<void> => {
 						},
 					}
 				);
+				console.log(
+					"[FE] Matchmaking status response:",
+					matchRes.status
+				);
 				if (matchRes.ok) {
 					const data = await matchRes.json();
+					console.log("[FE] Matchmaking status data:", data);
 					const status = data.matchmakingStatus;
 					if (status && status.matched) {
+						console.log(
+							"[FE] Match found! Opponent:",
+							status.opponentUsername,
+							"gameId:",
+							status.gameId
+						);
 						polling = false;
 						document.body.removeChild(searchingModal);
 						// Store game data in window
@@ -794,9 +825,11 @@ export const loadMenuPage = async (): Promise<void> => {
 							gameId: status.gameId,
 						};
 						window.dispatchEvent(new Event("loadPlayPage"));
+						isJoiningMatchmaking = false;
 					}
 				}
 			}
+			isJoiningMatchmaking = false;
 		});
 	}
 };

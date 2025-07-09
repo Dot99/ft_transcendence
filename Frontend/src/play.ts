@@ -107,7 +107,7 @@ export const loadPlayPage = async (): Promise<void> => {
 	function hideWinnerModal() {
 		winnerModal.classList.add("hidden");
 	}
-	menuBtn.addEventListener("click", () => {
+	menuBtn.addEventListener("click", async () => {
 		hideWinnerModal();
 		ballVX = 0;
 		ballVY = 0;
@@ -117,11 +117,27 @@ export const loadPlayPage = async (): Promise<void> => {
 		hasGameStartedOnce = false;
 		winner = null;
 
-		// Clear any timers or pending callbacks
 		clearTimeout(resetTimeout);
+		try {
+			await fetch(`${API_BASE_URL}/users/matchmaking/leave`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${getCookie("jwt")}`,
+					"Content-Type": "application/json",
+				},
+			});
+		} catch (e) {
+			console.log("Failed to leave matchmaking:", e);
+		}
 		if (ws) {
 			ws.close();
 		}
+		isMultiplayer = false;
+		gameId = null;
+		playerSide = "left";
+
+		// Clean up any remaining window data
+		delete (window as any).gameData;
 		window.dispatchEvent(new Event("loadMenuPage"));
 	});
 
