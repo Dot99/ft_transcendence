@@ -333,40 +333,40 @@ function generateTournamentMatches(tournamentId, maxPlayers) {
 						})
 				);
 
-				Promise.all(insertPromises)
-					.then(() => {
-						// Resolve current round before calling generateNextRound
-						getCurrentRound(tournamentId)
-							.then((result) => {
-								if (result.success) {
-									updateMatchAndRound(
-										1,
-										1,
-										3,
-										1,
-										1,
-										result.current_round
-									);
-									updateMatchAndRound(
-										2,
-										4,
-										3,
-										1,
-										1,
-										result.current_round
-									);
-									generateNextRound(
-										tournamentId,
-										result.current_round,
-										maxPlayers
-									);
-								} else {
-									reject(result.message);
-								}
-							})
-							.catch((err) => reject(err));
-					})
-					.catch((err) => reject(err));
+				// Promise.all(insertPromises)
+				// 	.then(() => {
+				// 		// Resolve current round before calling generateNextRound
+				// 		getCurrentRound(tournamentId)
+				// 			.then((result) => {
+				// 				if (result.success) {
+				// 					updateMatchAndRound(
+				// 						1,
+				// 						1,
+				// 						3,
+				// 						1,
+				// 						1,
+				// 						result.current_round
+				// 					);
+				// 					updateMatchAndRound(
+				// 						2,
+				// 						4,
+				// 						3,
+				// 						1,
+				// 						1,
+				// 						result.current_round
+				// 					);
+				// 					generateNextRound(
+				// 						tournamentId,
+				// 						result.current_round,
+				// 						maxPlayers
+				// 					);
+				// 				} else {
+				// 					reject(result.message);
+				// 				}
+				// 			})
+				// 			.catch((err) => reject(err));
+				// 	})
+				// 	.catch((err) => reject(err));
 			}
 		);
 	});
