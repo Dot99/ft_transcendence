@@ -282,7 +282,7 @@ export const loadPlayPage = async (): Promise<void> => {
 		}
 	}
 
-	// Function to refresh customization (can be called when user changes settings)
+	// Function to refresh customization
 	window.refreshGameCustomization = loadCurrentUserCustomization;
 
 	function startGame() {
