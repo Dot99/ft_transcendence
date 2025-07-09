@@ -1283,3 +1283,202 @@ export function getCurrentRound(tournamentId, lang = "en") {
 		);
 	});
 }
+
+/**
+ * Mark a player as ready for their tournament match
+ * @param {number} tournamentId - Tournament ID
+ * @param {number} matchId - Match ID
+ * @param {number} userId - User ID of the player
+ * @param {string} lang - Language for messages
+ * @returns {Promise<Object>} - Result with success status and gameId if both ready
+ */
+export function markPlayerReady(tournamentId, matchId, userId, lang = "en") {
+	return new Promise((resolve, reject) => {
+		// First check if this match exists and the user is a participant
+		db.get(
+			`SELECT * FROM tournament_matches WHERE match_id = ? AND tournament_id = ? AND (player1 = ? OR player2 = ?)`,
+			[matchId, tournamentId, userId, userId],
+			(err, match) => {
+				if (err) {
+					return reject({ success: false, error: err });
+				}
+				if (!match) {
+					return resolve({
+						success: false,
+						message: "Match not found or you are not a participant",
+					});
+				}
+				if (match.match_state !== "upcoming") {
+					return resolve({
+						success: false,
+						message: "Match is not in upcoming state",
+					});
+				}
+
+				// Check if player readiness table exists, create if not
+				db.run(
+					`CREATE TABLE IF NOT EXISTS tournament_match_readiness (
+						match_id INTEGER,
+						user_id INTEGER,
+						ready_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+						PRIMARY KEY (match_id, user_id),
+						FOREIGN KEY (match_id) REFERENCES tournament_matches(match_id),
+						FOREIGN KEY (user_id) REFERENCES users(id)
+					)`,
+					(err) => {
+						if (err) {
+							console.error(
+								"Error creating readiness table:",
+								err
+							);
+							return reject({ success: false, error: err });
+						}
+
+						// Mark this player as ready
+						db.run(
+							`INSERT OR REPLACE INTO tournament_match_readiness (match_id, user_id) VALUES (?, ?)`,
+							[matchId, userId],
+							function (err) {
+								if (err) {
+									return reject({
+										success: false,
+										error: err,
+									});
+								}
+
+								// Check if both players are now ready
+								db.all(
+									`SELECT COUNT(*) as ready_count FROM tournament_match_readiness WHERE match_id = ?`,
+									[matchId],
+									(err, result) => {
+										if (err) {
+											return reject({
+												success: false,
+												error: err,
+											});
+										}
+
+										const readyCount =
+											result[0].ready_count;
+										if (readyCount >= 2) {
+											// Both players are ready, create game room
+											const gameId = `tournament_${tournamentId}_match_${matchId}_${Date.now()}`;
+
+											// Update match with game_id
+											db.run(
+												`UPDATE tournament_matches SET game_id = ? WHERE match_id = ?`,
+												[gameId, matchId],
+												(err) => {
+													if (err) {
+														return reject({
+															success: false,
+															error: err,
+														});
+													}
+
+													resolve({
+														success: true,
+														message:
+															"Both players are ready! Game starting...",
+														gameId: gameId,
+														bothReady: true,
+													});
+												}
+											);
+										} else {
+											resolve({
+												success: true,
+												message:
+													"Waiting for opponent to be ready...",
+												bothReady: false,
+											});
+										}
+									}
+								);
+							}
+						);
+					}
+				);
+			}
+		);
+	});
+}
+
+/**
+ * Get the status of a tournament match (readiness and game info)
+ * @param {number} tournamentId - Tournament ID
+ * @param {number} matchId - Match ID
+ * @param {number} userId - User ID requesting status
+ * @param {string} lang - Language for messages
+ * @returns {Promise<Object>} - Match status with readiness info
+ */
+export function getMatchStatus(tournamentId, matchId, userId, lang = "en") {
+	return new Promise((resolve, reject) => {
+		// Get match details
+		db.get(
+			`SELECT * FROM tournament_matches WHERE match_id = ? AND tournament_id = ? AND (player1 = ? OR player2 = ?)`,
+			[matchId, tournamentId, userId, userId],
+			(err, match) => {
+				if (err) {
+					return reject({ success: false, error: err });
+				}
+				if (!match) {
+					return resolve({
+						success: false,
+						message: "Match not found or you are not a participant",
+					});
+				}
+
+				// Check readiness count
+				db.all(
+					`SELECT COUNT(*) as ready_count FROM tournament_match_readiness WHERE match_id = ?`,
+					[matchId],
+					(err, result) => {
+						if (err) {
+							return reject({ success: false, error: err });
+						}
+
+						const readyCount = result[0].ready_count;
+						const bothReady = readyCount >= 2;
+
+						if (bothReady && match.game_id) {
+							// Get opponent username
+							const opponentId =
+								match.player1 === userId
+									? match.player2
+									: match.player1;
+							db.get(
+								`SELECT username FROM users WHERE id = ?`,
+								[opponentId],
+								(err, opponent) => {
+									if (err) {
+										return reject({
+											success: false,
+											error: err,
+										});
+									}
+
+									resolve({
+										success: true,
+										bothReady: true,
+										gameId: match.game_id,
+										opponentUsername: opponent
+											? opponent.username
+											: "Unknown Player",
+									});
+								}
+							);
+						} else {
+							resolve({
+								success: true,
+								bothReady: false,
+								gameId: null,
+								opponentUsername: null,
+							});
+						}
+					}
+				);
+			}
+		);
+	});
+}

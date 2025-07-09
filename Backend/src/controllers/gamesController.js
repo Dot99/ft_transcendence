@@ -546,6 +546,73 @@ const recalculateUserStats = async (request, reply, userId, lang) => {
 	}
 };
 
+/**
+ * @description Mark a player as ready for their tournament match
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @returns {Promise<void>}
+ */
+const markPlayerReady = async (request, reply) => {
+	try {
+		const { tournamentId, matchId } = request.params;
+		const userId = request.user.id;
+		const result = await gameService.markPlayerReady(
+			tournamentId,
+			matchId,
+			userId,
+			request.lang
+		);
+		if (!result.success) {
+			return reply.code(400).send(result);
+		}
+		reply.send({
+			success: true,
+			message: result.message,
+			gameId: result.gameId,
+		});
+	} catch (error) {
+		console.error("Internal Server Error:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * @description Get the status of a tournament match
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @returns {Promise<void>}
+ */
+const getMatchStatus = async (request, reply) => {
+	try {
+		const { tournamentId, matchId } = request.params;
+		const userId = request.user.id;
+		const result = await gameService.getMatchStatus(
+			tournamentId,
+			matchId,
+			userId,
+			request.lang
+		);
+		if (!result.success) {
+			return reply.code(404).send(result);
+		}
+		reply.send({
+			success: true,
+			bothReady: result.bothReady,
+			gameId: result.gameId,
+			opponentUsername: result.opponentUsername,
+		});
+	} catch (error) {
+		console.error("Internal Server Error:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
 export default {
 	getAllGames,
 	getGameById,
@@ -568,4 +635,6 @@ export default {
 	respondToGameInvitation,
 	saveGameResult,
 	recalculateUserStats,
+	markPlayerReady,
+	getMatchStatus,
 };

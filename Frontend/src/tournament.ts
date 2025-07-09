@@ -37,6 +37,14 @@ export const loadTournamentPage = async (
 `;
 	if (tournament_id) {
 		renderBracket(tournament_id);
+
+		// Add event listener for Start Games button
+		const startMatchesBtn = document.getElementById("startMatchesBtn");
+		if (startMatchesBtn) {
+			startMatchesBtn.addEventListener("click", () => {
+				handleStartGames(tournament_id);
+			});
+		}
 	}
 };
 
@@ -53,6 +61,7 @@ function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
 }
 
 type Match = {
+	match_id?: number;
 	player1: string;
 	player2: string;
 	match_state: string;
@@ -473,4 +482,189 @@ function expectedMatchesLeft(totalPlayers: number, currentRound: number) {
 		matches += Math.pow(2, totalRounds - i - 1);
 	}
 	return matches;
+}
+
+/**
+ * Handle the Start Games button click - find user's current match and mark them as ready
+ */
+async function handleStartGames(tournamentId: string) {
+	try {
+		const userId = getUserIdFromToken();
+		if (!userId) {
+			alert("Please log in to start games");
+			return;
+		}
+
+		// Find the user's current upcoming match
+		const currentMatch = await findUserCurrentMatch(tournamentId, userId);
+		if (!currentMatch) {
+			alert("No upcoming matches found for you in this tournament");
+			return;
+		}
+
+		// Mark player as ready
+		await markPlayerReady(tournamentId, currentMatch.match_id!, userId);
+	} catch (error) {
+		console.error("Error starting games:", error);
+		alert("Failed to start games. Please try again.");
+	}
+}
+
+/**
+ * Find the user's current upcoming match in the tournament
+ */
+async function findUserCurrentMatch(
+	tournamentId: string,
+	userId: number
+): Promise<Match | null> {
+	try {
+		const res = await fetch(
+			`${API_BASE_URL}/tournaments/${tournamentId}/matches`,
+			{
+				headers: {
+					Authorization: `Bearer ${getCookie("jwt")}`,
+				},
+			}
+		);
+
+		if (!res.ok) {
+			throw new Error("Failed to fetch matches");
+		}
+
+		const data = await res.json();
+		const matches = data.matches || [];
+
+		// Find the first upcoming match where the user is a participant
+		for (const match of matches) {
+			if (
+				match.match_state === "upcoming" &&
+				(match.player1 == userId || match.player2 == userId)
+			) {
+				return match;
+			}
+		}
+
+		return null;
+	} catch (error) {
+		console.error("Error finding user match:", error);
+		return null;
+	}
+}
+
+/**
+ * Mark a player as ready for their match and handle the response
+ */
+async function markPlayerReady(
+	tournamentId: string,
+	matchId: number,
+	userId: number
+) {
+	try {
+		// Mark player as ready
+		const readyRes = await fetch(
+			`${API_BASE_URL}/tournaments/${tournamentId}/matches/${matchId}/ready`,
+			{
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${getCookie("jwt")}`,
+				},
+			}
+		);
+
+		if (!readyRes.ok) {
+			throw new Error("Failed to mark player as ready");
+		}
+
+		const readyData = await readyRes.json();
+
+		if (readyData.bothReady && readyData.gameId) {
+			// Both players are ready, start the game immediately
+			startTournamentMatch(readyData.gameId, readyData.opponentUsername);
+		} else {
+			// Show waiting modal and poll for opponent
+			showWaitingModal(tournamentId, matchId);
+		}
+	} catch (error) {
+		console.error("Error marking player ready:", error);
+		throw error;
+	}
+}
+
+/**
+ * Show waiting modal and poll for opponent readiness
+ */
+async function showWaitingModal(tournamentId: string, matchId: number) {
+	// Create waiting modal
+	const waitingModal = document.createElement("div");
+	waitingModal.className =
+		"fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[110]";
+	waitingModal.innerHTML = `
+		<div class="bg-[#001B26] border-4 border-[#4CF190] rounded-xl p-8 flex flex-col items-center shadow-2xl relative max-w-md text-center">
+			<h2 class="text-2xl font-bold text-[#4CF190] mb-4">Waiting for Opponent</h2>
+			<div class="text-white mb-6">
+				<div class="animate-spin w-8 h-8 border-2 border-[#4CF190] border-t-transparent rounded-full mx-auto mb-4"></div>
+				<p>Waiting for your opponent to press "Start Games"...</p>
+			</div>
+			<button id="cancelWaiting" class="px-6 py-2 bg-red-600 text-white rounded font-bold border-2 border-red-800 hover:bg-red-700">Cancel</button>
+		</div>
+	`;
+
+	document.body.appendChild(waitingModal);
+
+	// Add cancel event listener
+	const cancelBtn = waitingModal.querySelector("#cancelWaiting");
+	let polling = true;
+
+	cancelBtn?.addEventListener("click", () => {
+		polling = false;
+		document.body.removeChild(waitingModal);
+	});
+
+	// Poll for opponent readiness
+	while (polling) {
+		await new Promise((resolve) => setTimeout(resolve, 2000));
+		if (!polling) break;
+
+		try {
+			const statusRes = await fetch(
+				`${API_BASE_URL}/tournaments/${tournamentId}/matches/${matchId}/status`,
+				{
+					headers: {
+						Authorization: `Bearer ${getCookie("jwt")}`,
+					},
+				}
+			);
+
+			if (statusRes.ok) {
+				const statusData = await statusRes.json();
+				if (statusData.bothReady && statusData.gameId) {
+					polling = false;
+					document.body.removeChild(waitingModal);
+					startTournamentMatch(
+						statusData.gameId,
+						statusData.opponentUsername
+					);
+					break;
+				}
+			}
+		} catch (error) {
+			console.error("Error polling match status:", error);
+		}
+	}
+}
+
+/**
+ * Start the tournament match by setting game data and loading play page
+ */
+function startTournamentMatch(gameId: string, opponentUsername: string) {
+	// Set game data for tournament match
+	(window as any).gameData = {
+		type: "tournament",
+		gameId: gameId,
+		opponentUsername: opponentUsername,
+	};
+
+	// Load the play page
+	window.dispatchEvent(new Event("loadPlayPage"));
 }

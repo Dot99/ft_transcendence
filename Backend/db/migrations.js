@@ -165,4 +165,20 @@ export default function runMigrations(db) {
       FOREIGN KEY (inviter_id) REFERENCES users(id),
       FOREIGN KEY (invitee_id) REFERENCES users(id)
     )`);
+
+	// Tournament Match Readiness
+	db.run(`
+    CREATE TABLE IF NOT EXISTS tournament_match_readiness (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tournament_id INTEGER NOT NULL,
+      match_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      is_ready BOOLEAN DEFAULT false,
+      game_id TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (tournament_id) REFERENCES tournaments(tournament_id),
+      FOREIGN KEY (match_id) REFERENCES matches(match_id),
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      UNIQUE(tournament_id, match_id, user_id)
+    )`);
 }

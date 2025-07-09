@@ -509,4 +509,61 @@ export default async function (fastify, opts) {
 				request.lang
 			),
 	});
+	/**
+	 * @name markPlayerReady
+	 * @description Mark a player as ready for their tournament match
+	 * @route POST /tournaments/{tournamentId}/matches/{matchId}/ready
+	 * @group Tournaments
+	 * @param {string} tournamentId - Tournament id
+	 * @param {string} matchId - Match id
+	 * @returns {Object} 200 - Player marked as ready
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 404 - Match not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.post("/tournaments/:tournamentId/matches/:matchId/ready", {
+		schema: {
+			params: paramsJsonSchema,
+		},
+		preHandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await gamesController.markPlayerReady(
+				request,
+				reply,
+				request.params.tournamentId,
+				request.params.matchId,
+				request.user.id,
+				request.lang
+			),
+	});
+
+	/**
+	 * @name getMatchStatus
+	 * @description Get the status of a tournament match (both players ready, gameId if available)
+	 * @route GET /tournaments/{tournamentId}/matches/{matchId}/status
+	 * @group Tournaments
+	 * @param {string} tournamentId - Tournament id
+	 * @param {string} matchId - Match id
+	 * @returns {Object} 200 - Match status with readiness and gameId
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 404 - Match not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.get("/tournaments/:tournamentId/matches/:matchId/status", {
+		schema: {
+			params: paramsJsonSchema,
+		},
+		preHandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await gamesController.getMatchStatus(
+				request,
+				reply,
+				request.params.tournamentId,
+				request.params.matchId,
+				request.user.id,
+				request.lang
+			),
+	});
 }
