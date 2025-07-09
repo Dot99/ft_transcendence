@@ -14,10 +14,6 @@ const getElement = <T extends HTMLElement>(id: string): T => {
 };
 
 export const loadPlayPage = async (): Promise<void> => {
-	console.log(
-		"[PLAY] loadPlayPage called. window.gameData:",
-		(window as any).gameData
-	);
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = playTemplate;
 	let playerUsername = "Player";

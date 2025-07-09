@@ -731,7 +731,6 @@ export const loadMenuPage = async (): Promise<void> => {
 	if (btnPvP) {
 		const newHandler = async () => {
 			if (isJoiningMatchmaking) {
-				console.log("[FE] Already joining matchmaking, ignoring click");
 				return;
 			}
 			isJoiningMatchmaking = true;
@@ -771,14 +770,12 @@ export const loadMenuPage = async (): Promise<void> => {
 				isJoiningMatchmaking = false;
 				return;
 			}
-			console.log("[FE] Join matchmaking response:", res.status);
 			let polling = true;
 			let hasDispatchedPlayPage = false;
 			// Cancel matchmaking
 			searchingModal
 				.querySelector("#cancelMatchmaking")
 				?.addEventListener("click", async () => {
-					console.log("[FE] Cancel matchmaking clicked");
 					polling = false;
 					await fetch(`${API_BASE_URL}/users/matchmaking/leave`, {
 						method: "POST",
@@ -802,22 +799,11 @@ export const loadMenuPage = async (): Promise<void> => {
 						},
 					}
 				);
-				console.log(
-					"[FE] Matchmaking status response:",
-					matchRes.status
-				);
 				if (matchRes.ok) {
 					const data = await matchRes.json();
-					console.log("[FE] Matchmaking status data:", data);
 					const status = data.matchmakingStatus;
 					if (status && status.matched && !hasDispatchedPlayPage) {
 						hasDispatchedPlayPage = true;
-						console.log(
-							"[FE] Match found! Opponent:",
-							status.opponentUsername,
-							"gameId:",
-							status.gameId
-						);
 						polling = false;
 						document.body.removeChild(searchingModal);
 						// Store game data in window

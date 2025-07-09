@@ -679,7 +679,6 @@ export function getOnlineUsers(lang = "en") {
 
 export function joinMatchmaking(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		console.log(`[MM] joinMatchmaking called for user ${userId}`);
 		db.serialize(() => {
 			db.get(
 				"SELECT * FROM matchmaking WHERE user_id = ?",
@@ -692,16 +691,8 @@ export function joinMatchmaking(userId, lang = "en") {
 						);
 						return reject(err);
 					}
-					console.log(
-						`[MM] Existing entry for user ${userId}:`,
-						existingEntry
-					);
-
 					// If user already has a 'matched' or 'waiting' entry, just return its status
 					if (existingEntry) {
-						console.log(
-							`[MM] User ${userId} already in matchmaking with status: ${existingEntry.status}`
-						);
 						if (existingEntry.status === "matched") {
 							return resolve({
 								success: true,
@@ -722,7 +713,6 @@ export function joinMatchmaking(userId, lang = "en") {
 					afterCleanup();
 
 					function afterCleanup() {
-						console.log(`[MM] After cleanup for user ${userId}`);
 						db.get(
 							"SELECT m.*, u.username FROM matchmaking m JOIN users u ON m.user_id = u.id WHERE m.status = 'waiting' AND m.user_id != ? ORDER BY m.created_at ASC LIMIT 1",
 							[userId],
@@ -734,25 +724,15 @@ export function joinMatchmaking(userId, lang = "en") {
 									);
 									return reject(err);
 								}
-								console.log(
-									`[MM] Waiting opponent for user ${userId}:`,
-									waitingOpponent
-								);
 								if (waitingOpponent) {
 									const gameId = `game_${Date.now()}_${userId}_${
 										waitingOpponent.user_id
 									}`;
-									console.log(
-										`[MM] Matching user ${userId} with opponent ${waitingOpponent.user_id}, gameId: ${gameId}`
-									);
 									db.get(
 										"SELECT * FROM matchmaking WHERE user_id = ? AND status = 'waiting'",
 										[waitingOpponent.user_id],
 										(err, stillWaiting) => {
 											if (err || !stillWaiting) {
-												console.log(
-													`[MM] Opponent ${waitingOpponent.user_id} is no longer waiting, retrying for user ${userId}`
-												);
 												return setTimeout(
 													() =>
 														joinMatchmaking(
@@ -779,9 +759,6 @@ export function joinMatchmaking(userId, lang = "en") {
 														return reject(err);
 													}
 													if (this.changes === 0) {
-														console.log(
-															`[MM] Opponent ${waitingOpponent.user_id} already matched, retrying for user ${userId}`
-														);
 														return setTimeout(
 															() =>
 																joinMatchmaking(
@@ -810,9 +787,6 @@ export function joinMatchmaking(userId, lang = "en") {
 																	err
 																);
 															}
-															console.log(
-																`[MM] User ${userId} matched with ${waitingOpponent.user_id} in game ${gameId}`
-															);
 															return resolve({
 																success: true,
 																matched: true,
@@ -829,9 +803,6 @@ export function joinMatchmaking(userId, lang = "en") {
 										}
 									);
 								} else {
-									console.log(
-										`[MM] No opponent found for user ${userId}, adding to waiting queue`
-									);
 									db.run(
 										"INSERT INTO matchmaking (user_id, status) VALUES (?, 'waiting')",
 										[userId],
@@ -844,9 +815,6 @@ export function joinMatchmaking(userId, lang = "en") {
 												return reject(err);
 											}
 											if (this.changes === 0) {
-												console.log(
-													`[MM] Failed to insert waiting for user ${userId}`
-												);
 												return resolve({
 													success: false,
 													message:
@@ -854,9 +822,6 @@ export function joinMatchmaking(userId, lang = "en") {
 															.failJoinMM,
 												});
 											}
-											console.log(
-												`[MM] User ${userId} added to waiting queue`
-											);
 											resolve({
 												success: true,
 												waiting: true,
@@ -875,7 +840,6 @@ export function joinMatchmaking(userId, lang = "en") {
 
 export function leaveMatchmaking(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		console.log(`[MM] leaveMatchmaking called for user ${userId}`);
 		db.get(
 			"SELECT * FROM matchmaking WHERE user_id = ?",
 			[userId],
@@ -887,14 +851,7 @@ export function leaveMatchmaking(userId, lang = "en") {
 					);
 					return reject(err);
 				}
-				console.log(
-					`[MM] User status on leave for user ${userId}:`,
-					userStatus
-				);
 				if (userStatus && userStatus.game_id) {
-					console.log(
-						`[MM] Deleting all entries for game_id ${userStatus.game_id}`
-					);
 					db.run(
 						"DELETE FROM matchmaking WHERE game_id = ?",
 						[userStatus.game_id],
@@ -906,14 +863,10 @@ export function leaveMatchmaking(userId, lang = "en") {
 								);
 								return reject(err);
 							}
-							console.log(
-								`[MM] Deleted ${this.changes} entries for game_id ${userStatus.game_id}`
-							);
 							resolve({ success: true });
 						}
 					);
 				} else {
-					console.log(`[MM] Deleting entry for user_id ${userId}`);
 					db.run(
 						"DELETE FROM matchmaking WHERE user_id = ?",
 						[userId],
@@ -925,9 +878,6 @@ export function leaveMatchmaking(userId, lang = "en") {
 								);
 								return reject(err);
 							}
-							console.log(
-								`[MM] Deleted ${this.changes} entries for user_id ${userId}`
-							);
 							resolve({ success: true });
 						}
 					);
@@ -939,7 +889,6 @@ export function leaveMatchmaking(userId, lang = "en") {
 
 export function getMatchmakingStatus(userId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		console.log(`[MM] getMatchmakingStatus called for user ${userId}`);
 		db.get(
 			"SELECT * FROM matchmaking WHERE user_id = ?",
 			[userId],
@@ -951,7 +900,6 @@ export function getMatchmakingStatus(userId, lang = "en") {
 					);
 					return reject(err);
 				}
-				console.log(`[MM] Status row for user ${userId}:`, row);
 				if (!row) {
 					return resolve({
 						success: true,
@@ -977,10 +925,6 @@ export function getMatchmakingStatus(userId, lang = "en") {
 									err
 								);
 							} else if (opponent) {
-								console.log(
-									`[MM] Opponent for user ${userId}:`,
-									opponent.username
-								);
 								status.opponentUsername = opponent.username;
 							}
 							resolve({

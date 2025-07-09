@@ -5,179 +5,185 @@ declare const JSC: any;
 const API_BASE_URL = "http://localhost:3000/api";
 
 function getElement<T extends HTMLElement>(id: string): T {
-  const el = document.getElementById(id);
-  if (!el) throw new Error(`Element with id '${id}' not found`);
-  return el as T;
+	const el = document.getElementById(id);
+	if (!el) throw new Error(`Element with id '${id}' not found`);
+	return el as T;
 }
 
 export const loadTournamentPage = async (
-  tournament_id: string
+	tournament_id: string
 ): Promise<void> => {
-  const app = getElement<HTMLElement>("app");
-  app.innerHTML = tournamentTemplate;
+	const app = getElement<HTMLElement>("app");
+	app.innerHTML = tournamentTemplate;
 
-  const res = await fetch(`${API_BASE_URL}/tournaments/${tournament_id}`, {
-    headers: {
-      Authorization: `Bearer ${getCookie("jwt")}`,
-    },
-  });
-  const tournaments = await res.json();
-  const list = getElement<HTMLDivElement>("bracketContainer");
-  console.log("Tournaments fetched:", tournaments);
-  console.log("test");
-  list.innerHTML = `
+	const res = await fetch(`${API_BASE_URL}/tournaments/${tournament_id}`, {
+		headers: {
+			Authorization: `Bearer ${getCookie("jwt")}`,
+		},
+	});
+	const tournaments = await res.json();
+	const list = getElement<HTMLDivElement>("bracketContainer");
+	list.innerHTML = `
     <div class="border border-[#4CF190] p-4 rounded hover:bg-[#0a3e4c] transition cursor-pointer" onclick="joinTournament(${tournaments.tournament.id})">
       <h3 class="text-xl font-semibold">${tournaments.tournament.name}</h3>
       <p class="text-sm">Players: ${tournaments.tournament.PLAYER_COUNT}/${tournaments.tournament.max_players}</p>
     </div>
   `;
-  if (tournament_id) {
-    renderBracket(tournament_id);
-  }
+	if (tournament_id) {
+		renderBracket(tournament_id);
+	}
 };
 
 // Utility function to group an array of objects by a key
 function groupBy<T>(array: T[], key: keyof T): Record<string, T[]> {
-  return array.reduce((result, currentItem) => {
-    const groupKey = String(currentItem[key]);
-    if (!result[groupKey]) {
-      result[groupKey] = [];
-    }
-    result[groupKey].push(currentItem);
-    return result;
-  }, {} as Record<string, T[]>);
+	return array.reduce((result, currentItem) => {
+		const groupKey = String(currentItem[key]);
+		if (!result[groupKey]) {
+			result[groupKey] = [];
+		}
+		result[groupKey].push(currentItem);
+		return result;
+	}, {} as Record<string, T[]>);
 }
 
 type Match = {
-  player1: string;
-  player2: string;
-  scheduled_date: string;
-  round_number: string;
+	player1: string;
+	player2: string;
+	scheduled_date: string;
+	round_number: string;
 };
 
 async function renderBracket(tournamentId: string) {
-  const chartContainer = getElement<HTMLDivElement>("bracketContainer");
-  console.log("chartContainer:", chartContainer);
-  if (!chartContainer) return;
+	const chartContainer = getElement<HTMLDivElement>("bracketContainer");
+	if (!chartContainer) return;
 
-  // Fetch tournament details to get max_players
-  const tournamentRes = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}`, {
-    headers: { Authorization: `Bearer ${getCookie("jwt")}` },
-  });
+	// Fetch tournament details to get max_players
+	const tournamentRes = await fetch(
+		`${API_BASE_URL}/tournaments/${tournamentId}`,
+		{
+			headers: { Authorization: `Bearer ${getCookie("jwt")}` },
+		}
+	);
 
-  if (!tournamentRes.ok) {
-    console.error("Error fetching tournament details:", await tournamentRes.text());
-    return;
-  }
+	if (!tournamentRes.ok) {
+		console.error(
+			"Error fetching tournament details:",
+			await tournamentRes.text()
+		);
+		return;
+	}
 
-  const tournament = await tournamentRes.json();
-  const maxPlayers = tournament.tournament.max_players;
+	const tournament = await tournamentRes.json();
+	const maxPlayers = tournament.tournament.max_players;
 
-  // Render initial bracket layout
-  chartContainer.innerHTML = createBracketLayout(maxPlayers);
+	// Render initial bracket layout
+	chartContainer.innerHTML = createBracketLayout(maxPlayers);
 
-  // Fetch matches
-  const res = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}/matches`, {
-    headers: { Authorization: `Bearer ${getCookie("jwt")}` },
-  });
+	// Fetch matches
+	const res = await fetch(
+		`${API_BASE_URL}/tournaments/${tournamentId}/matches`,
+		{
+			headers: { Authorization: `Bearer ${getCookie("jwt")}` },
+		}
+	);
 
-  if (!res.ok) {
-    console.error("Error searching matches:", await res.text());
-    return;
-  }
+	if (!res.ok) {
+		console.error("Error searching matches:", await res.text());
+		return;
+	}
 
-  const games = await res.json();
-  const matches = games.matches as Match[];
+	const games = await res.json();
+	const matches = games.matches as Match[];
 
-  if (!matches || matches.length === 0) {
-    console.warn("No matches found for tournament:", tournamentId);
-    return;
-  }
+	if (!matches || matches.length === 0) {
+		console.warn("No matches found for tournament:", tournamentId);
+		return;
+	}
 
-  const chartPoints = await generateChartPoints(matches);
-  // Update bracket with actual match data
-  createCustomBracket(chartPoints, matches);
+	const chartPoints = await generateChartPoints(matches);
+	// Update bracket with actual match data
+	createCustomBracket(chartPoints, matches);
 }
 
 async function generateChartPoints(matches: Match[]) {
-  const rounds = groupBy(matches, "round_number");
-  const chartPoints: any[] = [];
-  const matchIdsByRound: Record<number, string[]> = {};
+	const rounds = groupBy(matches, "round_number");
+	const chartPoints: any[] = [];
+	const matchIdsByRound: Record<number, string[]> = {};
 
-  const sortedRounds = Object.keys(rounds)
-    .map(Number)
-    .sort((a, b) => a - b);
+	const sortedRounds = Object.keys(rounds)
+		.map(Number)
+		.sort((a, b) => a - b);
 
-  for (const round of sortedRounds) {
-    const roundMatches = rounds[round];
-    matchIdsByRound[round] = [];
+	for (const round of sortedRounds) {
+		const roundMatches = rounds[round];
+		matchIdsByRound[round] = [];
 
-    for (let index = 0; index < roundMatches.length; index++) {
-      const match = roundMatches[index];
-      const matchId = `r${round}_m${index}`;
-      matchIdsByRound[round].push(matchId);
+		for (let index = 0; index < roundMatches.length; index++) {
+			const match = roundMatches[index];
+			const matchId = `r${round}_m${index}`;
+			matchIdsByRound[round].push(matchId);
 
-      const parentRound = matchIdsByRound[round - 1];
-      const parentId =
-        round > 1 && parentRound
-          ? parentRound[Math.floor(index / 2)]
-          : undefined;
+			const parentRound = matchIdsByRound[round - 1];
+			const parentId =
+				round > 1 && parentRound
+					? parentRound[Math.floor(index / 2)]
+					: undefined;
 
-      const [player1Res, player2Res] = await Promise.all([
-        fetch(`${API_BASE_URL}/users/${match.player1}`, {
-          headers: { Authorization: `Bearer ${getCookie("jwt")}` },
-        }),
-        fetch(`${API_BASE_URL}/users/${match.player2}`, {
-          headers: { Authorization: `Bearer ${getCookie("jwt")}` },
-        }),
-      ]);
-      const [player1Data, player2Data] = await Promise.all([
-        player1Res.json(),
-        player2Res.json(),
-      ]);
+			const [player1Res, player2Res] = await Promise.all([
+				fetch(`${API_BASE_URL}/users/${match.player1}`, {
+					headers: { Authorization: `Bearer ${getCookie("jwt")}` },
+				}),
+				fetch(`${API_BASE_URL}/users/${match.player2}`, {
+					headers: { Authorization: `Bearer ${getCookie("jwt")}` },
+				}),
+			]);
+			const [player1Data, player2Data] = await Promise.all([
+				player1Res.json(),
+				player2Res.json(),
+			]);
 
-      chartPoints.push({
-        id: matchId,
-        name: `match_${index}`,
-        label: {
-          text: `${player1Data.user.username}\nvs\n${
-            player2Data.user.username
-          }\n${new Date(match.scheduled_date).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}`,
-        },
+			chartPoints.push({
+				id: matchId,
+				name: `match_${index}`,
+				label: {
+					text: `${player1Data.user.username}\nvs\n${
+						player2Data.user.username
+					}\n${new Date(match.scheduled_date).toLocaleTimeString([], {
+						hour: "2-digit",
+						minute: "2-digit",
+					})}`,
+				},
 
-        ...(parentId && { parent: parentId }),
-      });
-    }
-  }
+				...(parentId && { parent: parentId }),
+			});
+		}
+	}
 
-  return chartPoints;
+	return chartPoints;
 }
 
 function truncate(name: string, maxLength = 12): string {
-  return name.length > maxLength ? name.slice(0, maxLength - 1) + "…" : name;
+	return name.length > maxLength ? name.slice(0, maxLength - 1) + "…" : name;
 }
 
 function createCustomBracket(chartPoints: any[], matches: Match[]) {
-  const chartContainer = document.getElementById("bracketContainer");
-  if (!chartContainer) return;
+	const chartContainer = document.getElementById("bracketContainer");
+	if (!chartContainer) return;
 
-  // Group matches by round for better organization
-  const rounds = groupBy(matches, "round_number");
-  const sortedRounds = Object.keys(rounds)
-    .map(Number)
-    .sort((a, b) => a - b);
+	// Group matches by round for better organization
+	const rounds = groupBy(matches, "round_number");
+	const sortedRounds = Object.keys(rounds)
+		.map(Number)
+		.sort((a, b) => a - b);
 
-  // Ensure the final round is always displayed
-  const totalRounds = Math.log2(chartPoints.length * 2);
-  if (!sortedRounds.includes(totalRounds)) {
-    sortedRounds.push(totalRounds);
-  }
+	// Ensure the final round is always displayed
+	const totalRounds = Math.log2(chartPoints.length * 2);
+	if (!sortedRounds.includes(totalRounds)) {
+		sortedRounds.push(totalRounds);
+	}
 
-  // Create bracket HTML with proper grid layout
-  let bracketHTML = `
+	// Create bracket HTML with proper grid layout
+	let bracketHTML = `
     <div class="bracket-container" style="
       display: flex;
       align-items: center;
@@ -195,14 +201,14 @@ function createCustomBracket(chartPoints: any[], matches: Match[]) {
     ">
   `;
 
-  for (let roundIndex = 0; roundIndex < sortedRounds.length; roundIndex++) {
-    const round = sortedRounds[roundIndex];
-    const roundMatches = rounds[round] || []; // Handle empty rounds
-    const roundNumber = Number(round);
+	for (let roundIndex = 0; roundIndex < sortedRounds.length; roundIndex++) {
+		const round = sortedRounds[roundIndex];
+		const roundMatches = rounds[round] || []; // Handle empty rounds
+		const roundNumber = Number(round);
 
-    const verticalSpacing = Math.max(15, 40 * Math.pow(1.6, roundIndex));
+		const verticalSpacing = Math.max(15, 40 * Math.pow(1.6, roundIndex));
 
-    bracketHTML += `
+		bracketHTML += `
       <div class="round-column" style=" 
         display: flex;
         flex-direction: column;
@@ -236,23 +242,35 @@ function createCustomBracket(chartPoints: any[], matches: Match[]) {
         ">
     `;
 
-    for (let matchIndex = 0; matchIndex < Math.max(roundMatches.length, 1); matchIndex++) {
-      const match = roundMatches[matchIndex] || {}; // Handle empty matches
-      const chartPoint = chartPoints.find(
-        (point) => point.id === `r${round}_m${matchIndex}`
-      );
+		for (
+			let matchIndex = 0;
+			matchIndex < Math.max(roundMatches.length, 1);
+			matchIndex++
+		) {
+			const match = roundMatches[matchIndex] || {}; // Handle empty matches
+			const chartPoint = chartPoints.find(
+				(point) => point.id === `r${round}_m${matchIndex}`
+			);
 
-      const player1 = chartPoint?.label?.text.split("\n")[0] || match.player1 || "TBD";
-      const player2 = chartPoint?.label?.text.split("\n")[2] || match.player2 || "TBD";
-      const scheduledTime = match?.scheduled_date
-        ? new Date(match.scheduled_date).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : "";
+			const player1 =
+				chartPoint?.label?.text.split("\n")[0] ||
+				match.player1 ||
+				"TBD";
+			const player2 =
+				chartPoint?.label?.text.split("\n")[2] ||
+				match.player2 ||
+				"TBD";
+			const scheduledTime = match?.scheduled_date
+				? new Date(match.scheduled_date).toLocaleTimeString([], {
+						hour: "2-digit",
+						minute: "2-digit",
+				  })
+				: "";
 
-      bracketHTML += `
-        <div class="match-card" data-round="${roundIndex + 1}" data-match="${matchIndex}" style="
+			bracketHTML += `
+        <div class="match-card" data-round="${
+			roundIndex + 1
+		}" data-match="${matchIndex}" style="
           background: linear-gradient(145deg, #083744, #0a3e4c);
           border: 2px solid #4CF190;
           border-radius: 15px;
@@ -304,8 +322,8 @@ function createCustomBracket(chartPoints: any[], matches: Match[]) {
           </div>
           
           ${
-            scheduledTime
-              ? `
+				scheduledTime
+					? `
             <div style="
               color: #83B7C4;
               font-size: 10px;
@@ -317,16 +335,16 @@ function createCustomBracket(chartPoints: any[], matches: Match[]) {
               🕒 ${scheduledTime}
             </div>
           `
-              : ""
-          }
+					: ""
+			}
         </div>
       `;
 
-      // Add connector lines to the next round
-      if (roundIndex < sortedRounds.length - 1) {
-        const nextRoundIndex = roundIndex + 1;
-        const nextMatchIndex = Math.floor(matchIndex / 2);
-        bracketHTML += `
+			// Add connector lines to the next round
+			if (roundIndex < sortedRounds.length - 1) {
+				const nextRoundIndex = roundIndex + 1;
+				const nextMatchIndex = Math.floor(matchIndex / 2);
+				bracketHTML += `
           <div class="connector-line" style="
             width: 2px;
             height: ${verticalSpacing}px;
@@ -343,23 +361,25 @@ function createCustomBracket(chartPoints: any[], matches: Match[]) {
             position: absolute;
             left: 50%;
             bottom: -${verticalSpacing}px;
-            transform: translateX(${nextRoundIndex === sortedRounds.length - 1 ? '-50%' : '0%'});
+            transform: translateX(${
+				nextRoundIndex === sortedRounds.length - 1 ? "-50%" : "0%"
+			});
           "></div>
         `;
-      }
-    }
+			}
+		}
 
-    bracketHTML += "</div></div>"; // Close matches-container and round-column
-  }
+		bracketHTML += "</div></div>"; // Close matches-container and round-column
+	}
 
-  bracketHTML += "</div>";
+	bracketHTML += "</div>";
 
-  chartContainer.innerHTML = bracketHTML;
+	chartContainer.innerHTML = bracketHTML;
 }
 
 function createBracketLayout(maxPlayers: number): string {
-  const totalRounds = Math.log2(maxPlayers); // Número de rodadas
-  let bracketHTML = `
+	const totalRounds = Math.log2(maxPlayers); // Número de rodadas
+	let bracketHTML = `
     <div class="bracket-container" style="
       display: flex;
       align-items: flex-start;
@@ -377,11 +397,11 @@ function createBracketLayout(maxPlayers: number): string {
     ">
   `;
 
-  for (let roundIndex = 0; roundIndex < totalRounds; roundIndex++) {
-    const matchesInRound = maxPlayers / Math.pow(2, roundIndex + 1); // Número de partidas na rodada
-    const verticalSpacing = Math.max(15, 40 * Math.pow(1.6, roundIndex)); // Espaçamento vertical
+	for (let roundIndex = 0; roundIndex < totalRounds; roundIndex++) {
+		const matchesInRound = maxPlayers / Math.pow(2, roundIndex + 1); // Número de partidas na rodada
+		const verticalSpacing = Math.max(15, 40 * Math.pow(1.6, roundIndex)); // Espaçamento vertical
 
-    bracketHTML += `
+		bracketHTML += `
       <div class="round-column" style=" 
         display: flex;
         flex-direction: column;
@@ -415,9 +435,11 @@ function createBracketLayout(maxPlayers: number): string {
         ">
     `;
 
-    for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
-      bracketHTML += `
-        <div class="match-card" data-round="${roundIndex + 1}" data-match="${matchIndex}" style="
+		for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
+			bracketHTML += `
+        <div class="match-card" data-round="${
+			roundIndex + 1
+		}" data-match="${matchIndex}" style="
           background: linear-gradient(145deg, #083744, #0a3e4c);
           border: 2px solid #4CF190;
           border-radius: 15px;
@@ -469,24 +491,24 @@ function createBracketLayout(maxPlayers: number): string {
           </div>
         </div>
       `;
-    }
+		}
 
-    bracketHTML += "</div></div>"; // Close matches-container and round-column
-  }
+		bracketHTML += "</div></div>"; // Close matches-container and round-column
+	}
 
-  bracketHTML += "</div>"; // Close bracket-container
+	bracketHTML += "</div>"; // Close bracket-container
 
-  return bracketHTML;
+	return bracketHTML;
 }
 
 function getRoundName(roundNumber: number, totalRounds: number): string {
-  if (roundNumber === totalRounds) return "🏆 FINAL";
-  if (roundNumber === totalRounds - 1) return "🥉 SEMI-FINAL";
-  if (roundNumber === totalRounds - 2 && totalRounds > 3)
-    return "🏅 QUARTER-FINAL";
-  if (roundNumber === totalRounds - 3 && totalRounds > 4)
-    return "🎯 ROUND OF 16";
-  if (roundNumber === totalRounds - 4 && totalRounds > 5)
-    return "⚡ ROUND OF 32";
-  return `🎮 ROUND ${roundNumber}`;
+	if (roundNumber === totalRounds) return "🏆 FINAL";
+	if (roundNumber === totalRounds - 1) return "🥉 SEMI-FINAL";
+	if (roundNumber === totalRounds - 2 && totalRounds > 3)
+		return "🏅 QUARTER-FINAL";
+	if (roundNumber === totalRounds - 3 && totalRounds > 4)
+		return "🎯 ROUND OF 16";
+	if (roundNumber === totalRounds - 4 && totalRounds > 5)
+		return "⚡ ROUND OF 32";
+	return `🎮 ROUND ${roundNumber}`;
 }

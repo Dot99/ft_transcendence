@@ -498,9 +498,6 @@ async function loadPastTournaments(
 
 		if (!res.ok) {
 			if (res.status === 404) {
-				console.log(
-					"Tournament endpoint not found - tournaments feature not implemented"
-				);
 				const container = getElement<HTMLDivElement>(
 					"tournamentTableBody"
 				);

@@ -281,10 +281,6 @@ export default async function (fastify) {
 								"Error cleaning up matchmaking on disconnect:",
 								err
 							);
-						} else if (this.changes > 0) {
-							console.log(
-								`Cleaned up matchmaking entry for user ${userId}`
-							);
 						}
 					}
 				);
