@@ -1,6 +1,7 @@
 import { getUserById } from "../../src/services/usersServices.js";
 import db from "../../db/dataBase.js";
 import { onlineUsers, userConnections } from "../utils/userStatus.js";
+import { processGameResult } from "../services/gamesService.js";
 
 const connections = new Set();
 const gameRooms = new Map(); // gameId -> { player1: conn, player2: conn, gameState: {...} }
@@ -294,7 +295,7 @@ export default async function (fastify) {
 			return;
 		}
 
-		connection.on("message", (message) => {
+		connection.on("message", async (message) => {
 			try {
 				const data = JSON.parse(message.toString());
 
@@ -360,6 +361,47 @@ export default async function (fastify) {
 						room.gameState.rightScore = data.rightScore;
 						room.gameState.winner = data.winner;
 
+						// If game has ended with a winner, process tournament results
+						if (
+							data.winner &&
+							gameId &&
+							gameId.startsWith("tournament_")
+						) {
+							const gameData = {
+								player1: room.player1?.userId,
+								player2: room.player2?.userId,
+								player1_score:
+									room.player1?.side === "left"
+										? data.leftScore
+										: data.rightScore,
+								player2_score:
+									room.player2?.side === "left"
+										? data.leftScore
+										: data.rightScore,
+								winner:
+									data.winner === "left"
+										? room.player1?.userId
+										: room.player2?.userId,
+							};
+
+							try {
+								const result = await processGameResult(
+									gameData,
+									gameId,
+									"en"
+								);
+								console.log(
+									"Tournament result processed:",
+									result
+								);
+							} catch (error) {
+								console.error(
+									"Error processing tournament result:",
+									error
+								);
+							}
+						}
+
 						// Broadcast to other player
 						if (otherPlayer) {
 							otherPlayer.connection.send(
@@ -374,6 +416,42 @@ export default async function (fastify) {
 					} else if (data.type === "giveUp") {
 						// Player is giving up - notify opponent they win
 						if (otherPlayer && !room.gameState.winner) {
+							room.gameState.winner = otherPlayer.side;
+
+							// If this is a tournament game, process the result
+							if (gameId && gameId.startsWith("tournament_")) {
+								const gameData = {
+									player1: room.player1?.userId,
+									player2: room.player2?.userId,
+									player1_score:
+										room.player1?.side === "left"
+											? room.gameState.leftScore || 0
+											: room.gameState.rightScore || 0,
+									player2_score:
+										room.player2?.side === "left"
+											? room.gameState.leftScore || 0
+											: room.gameState.rightScore || 0,
+									winner: otherPlayer.userId,
+								};
+
+								try {
+									const result = await processGameResult(
+										gameData,
+										gameId,
+										"en"
+									);
+									console.log(
+										"Tournament result processed (give up):",
+										result
+									);
+								} catch (error) {
+									console.error(
+										"Error processing tournament result (give up):",
+										error
+									);
+								}
+							}
+
 							otherPlayer.connection.send(
 								JSON.stringify({
 									type: "opponentLeft",
@@ -406,7 +484,7 @@ export default async function (fastify) {
 			}
 		});
 
-		connection.on("close", () => {
+		connection.on("close", async () => {
 			onlineUsers.delete(userId);
 			connections.delete(connection);
 			userConnections.delete(userId);
@@ -443,6 +521,34 @@ export default async function (fastify) {
 
 				// Notify other player that opponent left
 				if (otherPlayer && !room.gameState.winner) {
+					// If this is a tournament game, process the result
+					if (gameId && gameId.startsWith("tournament_")) {
+						const gameData = {
+							player1: room.player1?.userId || userId,
+							player2: room.player2?.userId || otherPlayer.userId,
+							player1_score: 0,
+							player2_score: 0,
+							winner: otherPlayer.userId,
+						};
+
+						try {
+							const result = await processGameResult(
+								gameData,
+								gameId,
+								"en"
+							);
+							console.log(
+								"Tournament result processed (disconnect):",
+								result
+							);
+						} catch (error) {
+							console.error(
+								"Error processing tournament result (disconnect):",
+								error
+							);
+						}
+					}
+
 					otherPlayer.connection.send(
 						JSON.stringify({
 							type: "opponentLeft",

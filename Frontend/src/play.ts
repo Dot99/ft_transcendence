@@ -2,6 +2,7 @@ import { playTemplate } from "./templates/playTemplate.js";
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
 import { WS_BASE_URL, API_BASE_URL } from "./config.js";
 import { BotAI } from "./botAI.js";
+import { cleanupTournamentPage } from "./tournament.js";
 
 const botAI = new BotAI();
 let resetTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
@@ -10,8 +11,10 @@ let resetTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
 const getElement = <T extends HTMLElement>(id: string): T => {
 	const element = document.getElementById(id) as T;
 	if (!element) {
-		console.error(`Element with id ${id} not found. Available elements:`, 
-			Array.from(document.querySelectorAll('[id]')).map(el => el.id));
+		console.error(
+			`Element with id ${id} not found. Available elements:`,
+			Array.from(document.querySelectorAll("[id]")).map((el) => el.id)
+		);
 		throw new Error(`Element with id ${id} not found`);
 	}
 	return element;
@@ -28,12 +31,15 @@ const getElementSafe = <T extends HTMLElement>(id: string): T | null => {
 };
 
 export const loadPlayPage = async (): Promise<void> => {
+	// Cleanup any previous tournament auto-refresh
+	cleanupTournamentPage();
+
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = playTemplate;
-	
+
 	// Wait for DOM to be ready
-	await new Promise(resolve => setTimeout(resolve, 100));
-	
+	await new Promise((resolve) => setTimeout(resolve, 100));
+
 	let playerUsername = "Player";
 	let leftPlayerName = "Player 1";
 	let rightPlayerName = "Player 2";
@@ -59,11 +65,13 @@ export const loadPlayPage = async (): Promise<void> => {
 				const user = data.user;
 				playerUsername = user.username || "Player";
 				leftPlayerName = playerUsername;
-				const playerUsernameElement = getElementSafe<HTMLElement>("player-username");
+				const playerUsernameElement =
+					getElementSafe<HTMLElement>("player-username");
 				if (playerUsernameElement) {
 					playerUsernameElement.textContent = leftPlayerName;
 				}
-				const avatar = getElementSafe<HTMLImageElement>("player-avatar");
+				const avatar =
+					getElementSafe<HTMLImageElement>("player-avatar");
 				if (avatar) {
 					if (user.pfp) {
 						// Check if it's an external URL or local file
@@ -86,7 +94,8 @@ export const loadPlayPage = async (): Promise<void> => {
 				}
 			} else {
 				// If user fetch fails, show default avatar
-				const avatar = getElementSafe<HTMLImageElement>("player-avatar");
+				const avatar =
+					getElementSafe<HTMLImageElement>("player-avatar");
 				if (avatar) {
 					avatar.src = "/images/default_pfp.png";
 					avatar.style.display = "";
@@ -121,18 +130,29 @@ export const loadPlayPage = async (): Promise<void> => {
 
 	function showWinnerModal(winnerSide: "left" | "right") {
 		// Force a direct DOM read of current displayed names
-		const playerUsernameElement = getElementSafe<HTMLElement>("player-username");
+		const playerUsernameElement =
+			getElementSafe<HTMLElement>("player-username");
 		const botUsernameElement = getElementSafe<HTMLElement>("bot-username");
-		const winnerUsernameSpan = getElementSafe<HTMLElement>("winnerUsername");
+		const winnerUsernameSpan =
+			getElementSafe<HTMLElement>("winnerUsername");
 		const winnerModal = getElementSafe<HTMLDivElement>("winnerModal");
-		
-		if (!playerUsernameElement || !botUsernameElement || !winnerUsernameSpan || !winnerModal) {
-			console.warn("Winner modal elements not found, skipping modal display");
+
+		if (
+			!playerUsernameElement ||
+			!botUsernameElement ||
+			!winnerUsernameSpan ||
+			!winnerModal
+		) {
+			console.warn(
+				"Winner modal elements not found, skipping modal display"
+			);
 			return;
 		}
-		
-		const displayedLeftName = playerUsernameElement.textContent || leftPlayerName;
-		const displayedRightName = botUsernameElement.textContent || rightPlayerName;
+
+		const displayedLeftName =
+			playerUsernameElement.textContent || leftPlayerName;
+		const displayedRightName =
+			botUsernameElement.textContent || rightPlayerName;
 
 		if (winnerSide === "left") {
 			winnerUsernameSpan.textContent = displayedLeftName;
@@ -294,17 +314,17 @@ export const loadPlayPage = async (): Promise<void> => {
 		const botBanner = getElementSafe("bot-banner");
 		const playerScore = getElementSafe("player-score");
 		const botScore = getElementSafe("bot-score");
-		
+
 		if (!playerBanner || !botBanner || !playerScore || !botScore) {
 			console.warn("Banner elements not found, skipping banner glow");
 			return;
 		}
-		
+
 		playerBanner.classList.remove("winner-banner");
 		botBanner.classList.remove("winner-banner");
 		playerScore.classList.remove("score-glow-winner");
 		botScore.classList.remove("score-glow-winner");
-		
+
 		if (winnerSide === "left") {
 			playerBanner.classList.add("winner-banner");
 			playerScore.classList.add("score-glow-winner");
@@ -319,12 +339,14 @@ export const loadPlayPage = async (): Promise<void> => {
 		const botBanner = getElementSafe("bot-banner");
 		const playerScore = getElementSafe("player-score");
 		const botScore = getElementSafe("bot-score");
-		
+
 		if (!playerBanner || !botBanner || !playerScore || !botScore) {
-			console.warn("Banner elements not found, skipping clear banner glow");
+			console.warn(
+				"Banner elements not found, skipping clear banner glow"
+			);
 			return;
 		}
-		
+
 		playerBanner.classList.remove("winner-banner");
 		botBanner.classList.remove("winner-banner");
 		playerScore.classList.remove("score-glow-winner");
@@ -334,23 +356,28 @@ export const loadPlayPage = async (): Promise<void> => {
 	function updateScoreDisplay() {
 		const playerScoreElement = getElementSafe<HTMLElement>("player-score");
 		const botScoreElement = getElementSafe<HTMLElement>("bot-score");
-		
+
 		if (!playerScoreElement || !botScoreElement) {
 			console.warn("Score elements not found, retrying in 100ms...");
 			setTimeout(() => {
-				const retryPlayerScore = getElementSafe<HTMLElement>("player-score");
+				const retryPlayerScore =
+					getElementSafe<HTMLElement>("player-score");
 				const retryBotScore = getElementSafe<HTMLElement>("bot-score");
-				
+
 				if (retryPlayerScore && retryBotScore) {
-					retryPlayerScore.textContent = leftScore.toString().padStart(2, "0");
-					retryBotScore.textContent = rightScore.toString().padStart(2, "0");
+					retryPlayerScore.textContent = leftScore
+						.toString()
+						.padStart(2, "0");
+					retryBotScore.textContent = rightScore
+						.toString()
+						.padStart(2, "0");
 				} else {
 					console.error("Score elements still not found after retry");
 				}
 			}, 100);
 			return;
 		}
-		
+
 		playerScoreElement.textContent = leftScore.toString().padStart(2, "0");
 		botScoreElement.textContent = rightScore.toString().padStart(2, "0");
 	}
@@ -601,7 +628,8 @@ export const loadPlayPage = async (): Promise<void> => {
 		// Update right player name for single player modes
 		if (!isMultiplayer) {
 			rightPlayerName = "Bot";
-			const botUsernameElement = getElementSafe<HTMLElement>("bot-username");
+			const botUsernameElement =
+				getElementSafe<HTMLElement>("bot-username");
 			if (botUsernameElement) {
 				botUsernameElement.textContent = rightPlayerName;
 			}
@@ -675,9 +703,11 @@ export const loadPlayPage = async (): Promise<void> => {
 					if (data.leftPlayerName && data.rightPlayerName) {
 						leftPlayerName = data.leftPlayerName;
 						rightPlayerName = data.rightPlayerName;
-						const playerUsernameElement = getElementSafe<HTMLElement>("player-username");
-						const botUsernameElement = getElementSafe<HTMLElement>("bot-username");
-						
+						const playerUsernameElement =
+							getElementSafe<HTMLElement>("player-username");
+						const botUsernameElement =
+							getElementSafe<HTMLElement>("bot-username");
+
 						if (playerUsernameElement) {
 							playerUsernameElement.textContent = leftPlayerName;
 						}
@@ -809,8 +839,10 @@ export const loadPlayPage = async (): Promise<void> => {
 													"player-avatar"
 												);
 											if (leftPanelAvatar && leftResult) {
-												leftPanelAvatar.src = leftResult.src;
-												leftPanelAvatar.style.display = "";
+												leftPanelAvatar.src =
+													leftResult.src;
+												leftPanelAvatar.style.display =
+													"";
 											}
 											// Set right player avatar with preloaded/validated URL
 											const rightAvatar =
@@ -825,13 +857,17 @@ export const loadPlayPage = async (): Promise<void> => {
 													: "Player";
 											} else if (rightResult) {
 												const botBanner =
-													getElementSafe("bot-banner");
+													getElementSafe(
+														"bot-banner"
+													);
 												if (botBanner) {
-													const username = rightProfile
-														? rightProfile.username
-														: "Player";
+													const username =
+														rightProfile
+															? rightProfile.username
+															: "Player";
 													const avatarImg = `<img src="${rightResult.src}" alt="${username}" class="w-24 h-24 rounded" />`;
-													botBanner.innerHTML = avatarImg;
+													botBanner.innerHTML =
+														avatarImg;
 												}
 											}
 
@@ -1466,7 +1502,7 @@ export const loadPlayPage = async (): Promise<void> => {
 	});
 
 	// Initialize scores and ball - wait for DOM to be ready
-	await new Promise(resolve => setTimeout(resolve, 50));
+	await new Promise((resolve) => setTimeout(resolve, 50));
 	leftScore = 0;
 	rightScore = 0;
 	updateScoreDisplay();

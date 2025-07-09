@@ -16,6 +16,7 @@ import { getLang, setLang, t } from "./locales/localeMiddleware.js";
 import { loadMenuPage } from "./menu.js";
 import { startOnlineWebSocket } from "./utils/ws.js";
 import { API_BASE_URL } from "./config.js";
+import { cleanupTournamentPage } from "./tournament.js";
 
 // DOM Elements
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -43,6 +44,9 @@ const handleRegister = (): void => {
 
 // UI Functions
 export const loadHomePage = (): void => {
+	// Cleanup any previous tournament auto-refresh
+	cleanupTournamentPage();
+
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = homeTemplate;
 	const langSelector = document.getElementById(

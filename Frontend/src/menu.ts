@@ -7,7 +7,7 @@ import { API_BASE_URL } from "./config.js";
 import { loadPlayPage } from "./play.js";
 import { stopOnlineWebSocket } from "./utils/ws.js";
 import { getLang, t } from "./locales/localeMiddleware.js";
-import { loadTournamentPage } from "./tournament.js";
+import { loadTournamentPage, cleanupTournamentPage } from "./tournament.js";
 
 // Extend window type for game customization refresh
 declare global {
@@ -135,6 +135,9 @@ const fetchUsername = async (): Promise<string> => {
 
 // Load Menu Page
 export const loadMenuPage = async (): Promise<void> => {
+	// Cleanup any previous tournament auto-refresh
+	cleanupTournamentPage();
+
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = menuTemplate;
 	applyGameCustomizations();

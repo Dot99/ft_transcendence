@@ -16,12 +16,7 @@ export const loadTournamentPage = async (
 ): Promise<void> => {
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = tournamentTemplate;
-	// const homeBtn = document.getElementById("homeBtn");
-	// if (homeBtn) {
-	// 	const homeText = homeBtn.querySelector("span.text-base");
-	// 	if (homeText) homeText.textContent = t("home");
-	// 	homeBtn.onclick = () => loadMenuPage();
-	// }
+
 	const res = await fetch(`${API_BASE_URL}/tournaments/${tournament_id}`, {
 		headers: {
 			Authorization: `Bearer ${getCookie("jwt")}`,
@@ -38,13 +33,33 @@ export const loadTournamentPage = async (
 	if (tournament_id) {
 		renderBracket(tournament_id);
 
+		// Check if current user can start games (has upcoming match)
+		const canStartGames = await checkUserCanStartGames(tournament_id);
+
 		// Add event listener for Start Games button
 		const startMatchesBtn = document.getElementById("startMatchesBtn");
 		if (startMatchesBtn) {
-			startMatchesBtn.addEventListener("click", () => {
-				handleStartGames(tournament_id);
-			});
+			if (canStartGames) {
+				startMatchesBtn.addEventListener("click", () => {
+					handleStartGames(tournament_id);
+				});
+				startMatchesBtn.style.opacity = "1";
+				startMatchesBtn.style.cursor = "pointer";
+			} else {
+				// Disable button for users without upcoming matches
+				startMatchesBtn.style.opacity = "0.5";
+				startMatchesBtn.style.cursor = "not-allowed";
+				startMatchesBtn.addEventListener("click", (e) => {
+					e.preventDefault();
+					alert(
+						"You don't have any upcoming matches in this tournament."
+					);
+				});
+			}
 		}
+
+		// Start auto-refresh to show tournament progression
+		startBracketAutoRefresh(tournament_id);
 	}
 };
 
@@ -687,4 +702,109 @@ function startTournamentMatch(gameId: string, opponentUsername: string) {
 
 	// Load the play page
 	window.dispatchEvent(new Event("loadPlayPage"));
+}
+
+/**
+ * Check if the current user has an upcoming match in the tournament
+ */
+async function checkUserCanStartGames(tournamentId: string): Promise<boolean> {
+	try {
+		const userId = getUserIdFromToken();
+		if (!userId) {
+			return false;
+		}
+
+		const res = await fetch(
+			`${API_BASE_URL}/tournaments/${tournamentId}/matches`,
+			{
+				headers: {
+					Authorization: `Bearer ${getCookie("jwt")}`,
+				},
+			}
+		);
+
+		if (!res.ok) {
+			return false;
+		}
+
+		const data = await res.json();
+		const matches = data.matches || [];
+
+		// Check if user has any upcoming matches
+		return matches.some(
+			(match: any) =>
+				match.match_state === "upcoming" &&
+				(match.player1 == userId || match.player2 == userId)
+		);
+	} catch (error) {
+		console.error("Error checking if user can start games:", error);
+		return false;
+	}
+}
+
+/**
+ * Refresh the tournament bracket display
+ */
+async function refreshBracket(tournamentId: string) {
+	try {
+		await renderBracket(tournamentId);
+
+		// Also update the start button status
+		const canStartGames = await checkUserCanStartGames(tournamentId);
+		const startMatchesBtn = document.getElementById("startMatchesBtn");
+
+		if (startMatchesBtn) {
+			// Remove existing event listeners
+			const newBtn = startMatchesBtn.cloneNode(true) as HTMLElement;
+			startMatchesBtn.parentNode?.replaceChild(newBtn, startMatchesBtn);
+
+			if (canStartGames) {
+				newBtn.addEventListener("click", () => {
+					handleStartGames(tournamentId);
+				});
+				newBtn.style.opacity = "1";
+				newBtn.style.cursor = "pointer";
+			} else {
+				newBtn.style.opacity = "0.5";
+				newBtn.style.cursor = "not-allowed";
+				newBtn.addEventListener("click", (e) => {
+					e.preventDefault();
+					alert(
+						"You don't have any upcoming matches in this tournament."
+					);
+				});
+			}
+		}
+	} catch (error) {
+		console.error("Error refreshing bracket:", error);
+	}
+}
+
+// Auto-refresh bracket every 10 seconds to show tournament progression
+let refreshInterval: number | null = null;
+
+// Function to start auto-refresh
+function startBracketAutoRefresh(tournamentId: string) {
+	// Clear any existing interval
+	if (refreshInterval) {
+		window.clearInterval(refreshInterval);
+	}
+
+	// Set up new interval
+	refreshInterval = window.setInterval(() => {
+		refreshBracket(tournamentId);
+	}, 10000); // Refresh every 10 seconds
+}
+
+// Function to stop auto-refresh
+function stopBracketAutoRefresh() {
+	if (refreshInterval) {
+		window.clearInterval(refreshInterval);
+		refreshInterval = null;
+	}
+}
+
+// Export cleanup function for use by other modules
+export function cleanupTournamentPage() {
+	stopBracketAutoRefresh();
 }
