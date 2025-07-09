@@ -489,20 +489,31 @@ const getPendingGameInvitations = async (request, reply, lang) => {
 const saveGameResult = async (request, reply, lang) => {
 	try {
 		const gameData = request.body;
-		const result = await gameService.saveGameResult(gameData, lang);
+		const gameId = gameData.gameId || request.query.gameId; // Get gameId from gameData or query params
+
+		// Use the new processGameResult function that handles all game types
+		const result = await gameService.processGameResult(
+			gameData,
+			gameId,
+			lang
+		);
 
 		if (!result.success) {
 			return reply.code(400).send({
 				success: false,
-				message: result.message,
+				message: result.error || result.message,
 			});
 		}
 
 		reply.send({
 			success: true,
-			match_id: result.match_id,
+			type: result.type,
+			match_id:
+				result.result?.match_id || result.tournamentResult?.match_id,
 			message: result.message,
-			warning: result.warning,
+			warning: result.warning || result.result?.warning,
+			tournamentResult: result.tournamentResult,
+			historyResult: result.historyResult,
 		});
 	} catch (error) {
 		console.error("Error saving game result:", error);
@@ -613,6 +624,91 @@ const getMatchStatus = async (request, reply) => {
 	}
 };
 
+/**
+ * @description Get detailed tournament status for debugging
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @returns {Promise<void>}
+ */
+const getTournamentStatus = async (request, reply) => {
+	try {
+		const { tournamentId } = request.params;
+		const result = await gameService.getTournamentStatus(tournamentId);
+
+		if (!result.success) {
+			return reply.code(404).send(result);
+		}
+
+		reply.send(result);
+	} catch (error) {
+		console.error("Internal Server Error:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * @description Simulate a tournament match result for testing
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @returns {Promise<void>}
+ */
+const debugSimulateTournamentResult = async (request, reply) => {
+	try {
+		const { tournamentId, matchId } = request.params;
+		const { winnerId, player1Score, player2Score } = request.body;
+
+		const result = await gameService.debugSimulateTournamentResult(
+			parseInt(tournamentId),
+			parseInt(matchId),
+			winnerId,
+			player1Score,
+			player2Score
+		);
+
+		if (!result.success) {
+			return reply.code(400).send(result);
+		}
+
+		reply.send(result);
+	} catch (error) {
+		console.error("Internal Server Error:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
+/**
+ * @description Reset tournament readiness for debugging
+ * @param {Object} request - The request object
+ * @param {Object} reply - The response object
+ * @returns {Promise<void>}
+ */
+const debugResetTournamentReadiness = async (request, reply) => {
+	try {
+		const { tournamentId } = request.params;
+		const result = await gameService.debugResetTournamentReadiness(
+			parseInt(tournamentId)
+		);
+
+		if (!result.success) {
+			return reply.code(400).send(result);
+		}
+
+		reply.send(result);
+	} catch (error) {
+		console.error("Internal Server Error:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
 export default {
 	getAllGames,
 	getGameById,
@@ -637,4 +733,7 @@ export default {
 	recalculateUserStats,
 	markPlayerReady,
 	getMatchStatus,
+	getTournamentStatus,
+	debugSimulateTournamentResult,
+	debugResetTournamentReadiness,
 };

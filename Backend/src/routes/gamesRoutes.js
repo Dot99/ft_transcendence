@@ -566,4 +566,77 @@ export default async function (fastify, opts) {
 				request.lang
 			),
 	});
+	/**
+	 * @name getTournamentStatus
+	 * @description Get detailed tournament status for debugging
+	 * @route GET /tournaments/{tournamentId}/debug-status
+	 * @group Tournaments
+	 * @param {number} tournamentId - Tournament ID
+	 * @returns {Object} 200 - Success response with tournament details
+	 * @returns {Error} 404 - Tournament not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.get("/tournaments/:tournamentId/debug-status", {
+		schema: {
+			params: paramsJsonSchema,
+		},
+		preHandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await gamesController.getTournamentStatus(request, reply),
+	});
+
+	/**
+	 * @name debugSimulateTournamentResult
+	 * @description Simulate a tournament match result for testing
+	 * @route POST /tournaments/{tournamentId}/matches/{matchId}/debug-result
+	 * @group Tournaments
+	 * @param {number} tournamentId - Tournament ID
+	 * @param {number} matchId - Match ID
+	 * @param {Object} body - Simulation data
+	 * @param {number} body.winnerId - Winner user ID
+	 * @param {number} body.player1Score - Player 1 score
+	 * @param {number} body.player2Score - Player 2 score
+	 * @returns {Object} 200 - Success response with result
+	 * @returns {Error} 404 - Match not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.post("/tournaments/:tournamentId/matches/:matchId/debug-result", {
+		schema: {
+			params: paramsJsonSchema,
+			body: {
+				type: "object",
+				properties: {
+					winnerId: { type: "number" },
+					player1Score: { type: "number" },
+					player2Score: { type: "number" },
+				},
+				required: ["winnerId", "player1Score", "player2Score"],
+			},
+		},
+		preHandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await gamesController.debugSimulateTournamentResult(request, reply),
+	});
+
+	/**
+	 * @name debugResetTournamentReadiness
+	 * @description Reset tournament readiness for debugging
+	 * @route POST /tournaments/{tournamentId}/debug-reset-readiness
+	 * @group Tournaments
+	 * @param {number} tournamentId - Tournament ID
+	 * @returns {Object} 200 - Success response
+	 * @returns {Error} 404 - Tournament not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.post("/tournaments/:tournamentId/debug-reset-readiness", {
+		schema: {
+			params: paramsJsonSchema,
+		},
+		preHandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await gamesController.debugResetTournamentReadiness(request, reply),
+	});
 }

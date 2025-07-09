@@ -60,7 +60,8 @@ rfrontend:
 
 re :
 	@docker compose down
-	@docker compose up --build
+	@docker compose up
+	
 # Deploy for network access
 network: fclean
 	@echo "$(GREEN)🚀 Starting ft_transcendence for network access...$(NC)"

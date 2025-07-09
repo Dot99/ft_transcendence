@@ -158,8 +158,8 @@ export default function runMigrations(db) {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       inviter_id INTEGER NOT NULL,
       invitee_id INTEGER NOT NULL,
-      status TEXT CHECK(status IN ('pending', 'accepted', 'declined', 'expired')) DEFAULT 'pending',
-      game_id TEXT,
+      status TEXT CHECK(status IN ('pending', 'accepted', 'declined', 'expired', 'completed')) DEFAULT 'pending',
+      match_id TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       responded_at DATETIME,
       FOREIGN KEY (inviter_id) REFERENCES users(id),
@@ -174,10 +174,9 @@ export default function runMigrations(db) {
       match_id INTEGER NOT NULL,
       user_id INTEGER NOT NULL,
       is_ready BOOLEAN DEFAULT false,
-      game_id TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (tournament_id) REFERENCES tournaments(tournament_id),
-      FOREIGN KEY (match_id) REFERENCES matches(match_id),
+      FOREIGN KEY (match_id) REFERENCES tournament_matches(match_id),
       FOREIGN KEY (user_id) REFERENCES users(id),
       UNIQUE(tournament_id, match_id, user_id)
     )`);

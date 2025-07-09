@@ -46,6 +46,29 @@ export function sendGameInvitationNotification(userId, invitation) {
 	}
 }
 
+/**
+ * Check if a game ID is valid for multiplayer (exists in matchmaking)
+ */
+async function isValidGameId(gameId) {
+	if (!gameId) return false;
+
+	// Check if this gameId exists in matchmaking table
+	return new Promise((resolve) => {
+		db.get(
+			"SELECT COUNT(*) as count FROM matchmaking WHERE game_id = ? AND status = 'matched'",
+			[gameId],
+			(err, result) => {
+				if (err) {
+					console.error("Error checking game validity:", err);
+					resolve(false);
+				} else {
+					resolve(result.count >= 2); // Should have exactly 2 players
+				}
+			}
+		);
+	});
+}
+
 export default async function (fastify) {
 	fastify.get("/ws", { websocket: true }, async (connection, req) => {
 		let userId;
@@ -76,7 +99,30 @@ export default async function (fastify) {
 
 			// If gameId is provided, add to game room
 			if (gameId) {
+				console.log(
+					"DEBUG: User",
+					userId,
+					"connecting to game",
+					gameId
+				);
+
+				// For multiplayer games, validate the gameId
+				if (gameId.startsWith("game_")) {
+					const isValid = await isValidGameId(gameId);
+					if (!isValid) {
+						console.log(
+							"DEBUG: Invalid game ID",
+							gameId,
+							"for user",
+							userId
+						);
+						connection.close(4001, "Invalid game ID");
+						return;
+					}
+				}
+
 				if (!gameRooms.has(gameId)) {
+					console.log("DEBUG: Creating new game room for", gameId);
 					gameRooms.set(gameId, {
 						player1: null,
 						player2: null,
@@ -96,6 +142,10 @@ export default async function (fastify) {
 				}
 
 				const room = gameRooms.get(gameId);
+				console.log("DEBUG: Current room state:", {
+					player1: room.player1 ? room.player1.userId : null,
+					player2: room.player2 ? room.player2.userId : null,
+				});
 
 				// Get user info from database
 				const userResult = await getUserById(userId);
@@ -103,24 +153,69 @@ export default async function (fastify) {
 					? userResult.user.username
 					: `Player${userId}`;
 
-				if (!room.player1) {
-					room.player1 = {
-						connection,
+				// Check if user is already in the room (reconnection)
+				let isReconnection = false;
+				if (room.player1 && room.player1.userId === userId) {
+					console.log(
+						"DEBUG: User",
 						userId,
-						side: "left",
-						username,
-					};
-				} else if (!room.player2) {
-					room.player2 = {
-						connection,
+						"reconnecting as player1"
+					);
+					room.player1.connection = connection;
+					isReconnection = true;
+				} else if (room.player2 && room.player2.userId === userId) {
+					console.log(
+						"DEBUG: User",
 						userId,
-						side: "right",
-						username,
-					};
+						"reconnecting as player2"
+					);
+					room.player2.connection = connection;
+					isReconnection = true;
 				}
 
-				// Notify both players when room is ready
+				// If not reconnection, add as new player
+				if (!isReconnection) {
+					if (!room.player1) {
+						console.log(
+							"DEBUG: Adding user",
+							userId,
+							"as player1 (left)"
+						);
+						room.player1 = {
+							connection,
+							userId,
+							side: "left",
+							username,
+						};
+					} else if (!room.player2) {
+						console.log(
+							"DEBUG: Adding user",
+							userId,
+							"as player2 (right)"
+						);
+						room.player2 = {
+							connection,
+							userId,
+							side: "right",
+							username,
+						};
+					} else {
+						console.log(
+							"DEBUG: Game room",
+							gameId,
+							"is full, rejecting connection"
+						);
+						connection.close(4000, "Game room is full");
+						return;
+					}
+				}
+
+				// Only notify players when both are connected
 				if (room.player1 && room.player2) {
+					console.log(
+						"DEBUG: Both players connected, sending gameReady messages"
+					);
+
 					// Send individual messages to each player with their correct side and player names
 					const readyMessageLeft = JSON.stringify({
 						type: "gameReady",
@@ -141,8 +236,54 @@ export default async function (fastify) {
 						gameState: room.gameState,
 					});
 
-					room.player1.connection.send(readyMessageLeft);
-					room.player2.connection.send(readyMessageRight);
+					try {
+						if (
+							room.player1.connection &&
+							room.player1.connection.readyState === 1
+						) {
+							room.player1.connection.send(readyMessageLeft);
+						}
+						if (
+							room.player2.connection &&
+							room.player2.connection.readyState === 1
+						) {
+							room.player2.connection.send(readyMessageRight);
+						}
+					} catch (error) {
+						console.error(
+							"DEBUG: Error sending gameReady messages:",
+							error
+						);
+					}
+				} else {
+					console.log(
+						"DEBUG: Waiting for second player to connect..."
+					);
+					// Send a waiting message to the connected player
+					const waitingMessage = JSON.stringify({
+						type: "waitingForOpponent",
+						message: "Waiting for opponent to connect...",
+					});
+
+					try {
+						if (
+							room.player1 &&
+							room.player1.connection.readyState === 1
+						) {
+							room.player1.connection.send(waitingMessage);
+						}
+						if (
+							room.player2 &&
+							room.player2.connection.readyState === 1
+						) {
+							room.player2.connection.send(waitingMessage);
+						}
+					} catch (error) {
+						console.error(
+							"DEBUG: Error sending waiting message:",
+							error
+						);
+					}
 				}
 			}
 		} catch (e) {

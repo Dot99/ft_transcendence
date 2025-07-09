@@ -323,7 +323,6 @@ function generateTournamentMatches(tournamentId, maxPlayers) {
 									match.player1,
 									match.player2,
 									match.round_number,
-									match.match_state,
 								],
 								(err) => {
 									if (err) return reject(err);
@@ -333,40 +332,22 @@ function generateTournamentMatches(tournamentId, maxPlayers) {
 						})
 				);
 
-				// Promise.all(insertPromises)
-				// 	.then(() => {
-				// 		// Resolve current round before calling generateNextRound
-				// 		getCurrentRound(tournamentId)
-				// 			.then((result) => {
-				// 				if (result.success) {
-				// 					updateMatchAndRound(
-				// 						1,
-				// 						1,
-				// 						3,
-				// 						1,
-				// 						1,
-				// 						result.current_round
-				// 					);
-				// 					updateMatchAndRound(
-				// 						2,
-				// 						4,
-				// 						3,
-				// 						1,
-				// 						1,
-				// 						result.current_round
-				// 					);
-				// 					generateNextRound(
-				// 						tournamentId,
-				// 						result.current_round,
-				// 						maxPlayers
-				// 					);
-				// 				} else {
-				// 					reject(result.message);
-				// 				}
-				// 			})
-				// 			.catch((err) => reject(err));
-				// 	})
-				// 	.catch((err) => reject(err));
+				Promise.all(insertPromises)
+					.then(() => {
+						console.log("Tournament matches created successfully");
+						resolve({
+							success: true,
+							message:
+								"Tournament matches generated successfully",
+						});
+					})
+					.catch((err) => {
+						console.error(
+							"Error creating tournament matches:",
+							err
+						);
+						reject(err);
+					});
 			}
 		);
 	});
@@ -637,7 +618,7 @@ export function createGameInvitation(inviterId, inviteeId, lang = "en") {
 						// Create the game invitation
 						const gameId = uuidv4();
 						db.run(
-							`INSERT INTO game_invitations (inviter_id, invitee_id, game_id) 
+							`INSERT INTO game_invitations (inviter_id, invitee_id, match_id) 
                VALUES (?, ?, ?)`,
 							[inviterId, inviteeId, gameId],
 							function (err) {
@@ -668,7 +649,7 @@ export function createGameInvitation(inviterId, inviteeId, lang = "en") {
 												id: this.lastID,
 												inviter_id: inviterId,
 												invitee_id: inviteeId,
-												game_id: gameId,
+												match_id: gameId,
 												status: "pending",
 												inviter_username:
 													inviter.username,
@@ -679,7 +660,7 @@ export function createGameInvitation(inviterId, inviteeId, lang = "en") {
 											success: true,
 											invitation: {
 												id: this.lastID,
-												game_id: gameId,
+												match_id: gameId,
 											},
 											message:
 												messages[lang].invitationSent ||
@@ -751,7 +732,7 @@ export function respondToGameInvitation(
 						const result = {
 							success: true,
 							accepted: accept,
-							gameId: accept ? invitation.game_id : null,
+							gameId: accept ? invitation.match_id : null,
 							inviterUsername: invitation.inviter_username,
 							message: accept
 								? messages[lang].invitationAccepted ||
@@ -772,7 +753,7 @@ export function respondToGameInvitation(
 											invitation.inviter_id,
 											{
 												type: "invitationAccepted",
-												gameId: invitation.game_id,
+												gameId: invitation.match_id,
 												inviteeUsername:
 													invitee.username,
 												message: `${invitee.username} accepted your game invitation!`,
@@ -1092,7 +1073,14 @@ export function recalculateUserStats(userId, lang = "en") {
  */
 export function generateNextRound(tournamentId, currentRound, numPlayers) {
 	return new Promise((resolve, reject) => {
+		console.log("DEBUG: Starting generateNextRound with params:", {
+			tournamentId,
+			currentRound,
+			numPlayers,
+		});
+
 		if (![4, 8].includes(numPlayers)) {
+			console.error("DEBUG: Invalid number of players:", numPlayers);
 			return resolve({
 				success: false,
 				message:
@@ -1102,31 +1090,105 @@ export function generateNextRound(tournamentId, currentRound, numPlayers) {
 
 		// Get winners from the current round
 		db.all(
-			`SELECT winner FROM tournament_matches 
-       WHERE tournament_id = ? AND round_number = ?`,
+			`SELECT Winner, match_id, player1, player2, player1_score, player2_score FROM tournament_matches 
+			 WHERE tournament_id = ? AND round_number = ? AND match_state = 'completed'`,
 			[tournamentId, currentRound],
-			(err, winners) => {
+			(err, completedMatches) => {
 				if (err) {
+					console.error(
+						"DEBUG: Error getting completed matches:",
+						err
+					);
 					return reject({ success: false, error: err });
 				}
 
-				console.log(`Winners from round ${currentRound}:`, winners);
+				console.log(
+					"DEBUG: Completed matches from current round:",
+					completedMatches
+				);
+
+				// Extract winners (filter out null/undefined winners)
+				const winners = completedMatches
+					.filter(
+						(match) =>
+							match.Winner !== null && match.Winner !== undefined
+					)
+					.map((match) => ({ Winner: match.Winner }));
+
+				console.log("DEBUG: Winners extracted:", winners);
+
+				// Calculate expected winners based on tournament structure
+				const expectedWinners = Math.floor(
+					numPlayers / Math.pow(2, currentRound)
+				);
+				console.log(
+					"DEBUG: Expected winners for next round:",
+					expectedWinners
+				);
 
 				// Ensure winners array is valid
-				if (!winners || winners.length < numPlayers / 2) {
+				if (!winners || winners.length === 0) {
+					console.error("DEBUG: No winners found");
 					return resolve({
 						success: false,
 						message:
-							"Not enough winners to advance to the next round.",
+							"No winners found to advance to the next round.",
+					});
+				}
+
+				if (winners.length < expectedWinners) {
+					console.error("DEBUG: Not enough winners:", {
+						winnersFound: winners.length,
+						expectedWinners,
+					});
+					return resolve({
+						success: false,
+						message: `Not enough winners to advance to the next round. Found ${winners.length}, expected ${expectedWinners}.`,
+					});
+				}
+
+				// Check if this is the final round (only 1 winner expected)
+				if (winners.length === 1) {
+					console.log("DEBUG: Tournament completed - only 1 winner");
+					// Update tournament status to completed
+					db.run(
+						`UPDATE tournaments SET status = 'completed' WHERE tournament_id = ?`,
+						[tournamentId],
+						function (updateErr) {
+							if (updateErr) {
+								console.error(
+									"DEBUG: Error updating tournament status:",
+									updateErr
+								);
+							} else {
+								console.log(
+									"DEBUG: Tournament marked as completed"
+								);
+							}
+						}
+					);
+					return resolve({
+						success: true,
+						message: "Tournament completed! Winner determined.",
+						tournamentComplete: true,
+						winner: winners[0].Winner,
 					});
 				}
 
 				// Prepare matches for the next round
 				const nextRound = currentRound + 1;
 				const nextRoundMatches = [];
+
+				console.log("DEBUG: Creating matches for round", nextRound);
+
 				for (let i = 0; i < winners.length; i += 2) {
-					const player1 = winners[i]?.winner;
-					const player2 = winners[i + 1]?.winner;
+					const player1 = winners[i]?.Winner;
+					const player2 = winners[i + 1]?.Winner;
+
+					console.log("DEBUG: Pairing players:", {
+						player1,
+						player2,
+					});
 
 					if (player1 && player2) {
 						nextRoundMatches.push({
@@ -1135,43 +1197,106 @@ export function generateNextRound(tournamentId, currentRound, numPlayers) {
 							player2,
 							round_number: nextRound,
 						});
+					} else if (player1 && !player2) {
+						// Odd number of winners - give bye to the last player
+						console.log("DEBUG: Giving bye to player:", player1);
+						nextRoundMatches.push({
+							tournament_id: tournamentId,
+							player1,
+							player2: null, // Bye
+							round_number: nextRound,
+						});
 					}
 				}
 
-				console.log("Matches for next round:", nextRoundMatches);
+				console.log(
+					"DEBUG: Next round matches to create:",
+					nextRoundMatches
+				);
+
+				if (nextRoundMatches.length === 0) {
+					console.error("DEBUG: No matches created for next round");
+					return resolve({
+						success: false,
+						message:
+							"No matches could be created for the next round.",
+					});
+				}
 
 				// Insert matches into the database
 				const insertPromises = nextRoundMatches.map(
 					(match) =>
 						new Promise((resolve, reject) => {
+							console.log("DEBUG: Inserting match:", match);
 							db.run(
 								`INSERT INTO tournament_matches 
-                   (tournament_id, player1, player2, round_number, match_state)
-                   VALUES (?, ?, ?, ?, 'upcoming')`,
+								 (tournament_id, player1, player2, round_number, match_state)
+								 VALUES (?, ?, ?, ?, 'upcoming')`,
 								[
 									match.tournament_id,
 									match.player1,
 									match.player2,
 									match.round_number,
 								],
-								(err) => {
-									if (err) return reject(err);
-									resolve();
+								function (err) {
+									if (err) {
+										console.error(
+											"DEBUG: Error inserting match:",
+											err
+										);
+										return reject(err);
+									}
+									console.log(
+										"DEBUG: Match inserted with ID:",
+										this.lastID
+									);
+									resolve(this.lastID);
 								}
 							);
 						})
 				);
 
 				Promise.all(insertPromises)
-					.then(() =>
-						resolve({
-							success: true,
-							message: `Advanced to round ${nextRound} successfully.`,
-						})
-					)
-					.catch((insertErr) =>
-						reject({ success: false, error: insertErr })
-					);
+					.then((insertedIds) => {
+						console.log(
+							"DEBUG: All matches inserted successfully:",
+							insertedIds
+						);
+
+						// Verify the matches were created
+						db.all(
+							`SELECT * FROM tournament_matches WHERE tournament_id = ? AND round_number = ?`,
+							[tournamentId, nextRound],
+							(err, verifyMatches) => {
+								if (err) {
+									console.error(
+										"DEBUG: Error verifying created matches:",
+										err
+									);
+								} else {
+									console.log(
+										"DEBUG: Verified created matches:",
+										verifyMatches
+									);
+								}
+
+								resolve({
+									success: true,
+									message: `Advanced to round ${nextRound} successfully.`,
+									nextRound,
+									matchesCreated: insertedIds.length,
+									matches: verifyMatches || [],
+								});
+							}
+						);
+					})
+					.catch((insertErr) => {
+						console.error(
+							"DEBUG: Error creating tournament matches:",
+							insertErr
+						);
+						reject({ success: false, error: insertErr });
+					});
 			}
 		);
 	});
@@ -1181,7 +1306,8 @@ export function generateNextRound(tournamentId, currentRound, numPlayers) {
  * Update the match result and the current round of a tournament if all matches in the current round are completed.
  * @param {number} matchId - The ID of the match to update.
  * @param {number} winnerId - The ID of the winning player.
- * @param {string} result - The result of the match (e.g., "2-1").
+ * @param {number} player1_score - Player 1 score.
+ * @param {number} player2_score - Player 2 score.
  * @param {number} tournamentId - The ID of the tournament.
  * @param {number} currentRound - The current round number.
  * @returns {Promise<Object>} - The result of the operation.
@@ -1195,60 +1321,330 @@ export function updateMatchAndRound(
 	currentRound
 ) {
 	return new Promise((resolve, reject) => {
-		// Update the match result
-		db.run(
-			`UPDATE tournament_matches 
-			 SET winner = ?, player1_score = ?, player2_score = ?, match_state = 'completed' 
-			 WHERE match_id = ?`,
-			[winnerId, player1_score, player2_score, matchId],
-			function (err) {
+		console.log("DEBUG: Starting updateMatchAndRound with params:", {
+			matchId,
+			winnerId,
+			player1_score,
+			player2_score,
+			tournamentId,
+			currentRound,
+		});
+
+		// First, verify the match exists and get current state
+		db.get(
+			`SELECT * FROM tournament_matches WHERE match_id = ? AND tournament_id = ?`,
+			[matchId, tournamentId],
+			(err, existingMatch) => {
 				if (err) {
+					console.error("DEBUG: Error checking existing match:", err);
 					return reject({ success: false, error: err });
 				}
 
-				// Check if all matches in the current round are completed
-				db.all(
-					`SELECT match_state FROM tournament_matches 
-					 WHERE tournament_id = ? AND round_number = ?`,
-					[tournamentId, currentRound],
-					(err, matches) => {
+				if (!existingMatch) {
+					console.error("DEBUG: Match not found:", {
+						matchId,
+						tournamentId,
+					});
+					return reject({
+						success: false,
+						error: "Match not found in tournament",
+					});
+				}
+
+				console.log("DEBUG: Existing match found:", existingMatch);
+
+				// Update the match result
+				db.run(
+					`UPDATE tournament_matches 
+					 SET Winner = ?, player1_score = ?, player2_score = ?, match_state = 'completed' 
+					 WHERE match_id = ?`,
+					[winnerId, player1_score, player2_score, matchId],
+					function (err) {
 						if (err) {
+							console.error("DEBUG: Error updating match:", err);
 							return reject({ success: false, error: err });
 						}
 
-						// Verify if all matches are completed
-						const allCompleted = matches.every(
-							(match) => match.match_state === "completed"
+						console.log(
+							"DEBUG: Match updated successfully, changes:",
+							this.changes
 						);
 
-						if (!allCompleted) {
-							return resolve({
-								success: true,
-								message:
-									"Match result updated successfully, but not all matches in the current round are completed.",
-							});
+						if (this.changes === 0) {
+							console.warn(
+								"DEBUG: No rows were updated - match might already be completed"
+							);
 						}
 
-						// Update the tournament's current round
-						db.run(
-							`UPDATE tournaments 
-							 SET current_round = current_round + 1 
-							 WHERE tournament_id = ?`,
-							[tournamentId],
-							function (err) {
+						// Verify the update worked
+						db.get(
+							`SELECT * FROM tournament_matches WHERE match_id = ?`,
+							[matchId],
+							(err, updatedMatch) => {
 								if (err) {
+									console.error(
+										"DEBUG: Error verifying match update:",
+										err
+									);
 									return reject({
 										success: false,
 										error: err,
 									});
 								}
 
-								resolve({
-									success: true,
-									message: `Match result updated successfully. Tournament round updated to ${
-										currentRound + 1
-									}.`,
-								});
+								console.log(
+									"DEBUG: Match after update:",
+									updatedMatch
+								);
+
+								// Check if all matches in the current round are completed
+								db.all(
+									`SELECT match_id, match_state, Winner, player1_score, player2_score FROM tournament_matches 
+									 WHERE tournament_id = ? AND round_number = ?`,
+									[tournamentId, currentRound],
+									(err, matches) => {
+										if (err) {
+											console.error(
+												"DEBUG: Error getting round matches:",
+												err
+											);
+											return reject({
+												success: false,
+												error: err,
+											});
+										}
+
+										console.log(
+											"DEBUG: All matches in current round:",
+											matches
+										);
+
+										// Verify if all matches are completed
+										const completedMatches = matches.filter(
+											(match) =>
+												match.match_state ===
+												"completed"
+										);
+										const allCompleted = matches.every(
+											(match) =>
+												match.match_state ===
+												"completed"
+										);
+
+										console.log(
+											"DEBUG: Round completion status:",
+											{
+												totalMatches: matches.length,
+												completedMatches:
+													completedMatches.length,
+												allCompleted,
+											}
+										);
+
+										if (!allCompleted) {
+											console.log(
+												"DEBUG: Not all matches completed yet"
+											);
+											return resolve({
+												success: true,
+												matchUpdated: true,
+												roundAdvanced: false,
+												message:
+													"Match result updated successfully, but not all matches in the current round are completed.",
+												debugInfo: {
+													totalMatches:
+														matches.length,
+													completedMatches:
+														completedMatches.length,
+													pendingMatches:
+														matches.filter(
+															(m) =>
+																m.match_state !==
+																"completed"
+														).length,
+												},
+											});
+										}
+
+										console.log(
+											"DEBUG: All matches completed, advancing round"
+										);
+
+										// Clean up readiness records for completed matches
+										cleanupTournamentMatchReadiness(matchId)
+											.then(() => {
+												console.log(
+													"DEBUG: Cleaned up readiness records for match",
+													matchId
+												);
+											})
+											.catch((err) => {
+												console.warn(
+													"DEBUG: Failed to clean up readiness records:",
+													err
+												);
+											});
+
+										// Get max players to determine if we need to generate next round
+										db.get(
+											`SELECT max_players, current_round FROM tournaments WHERE tournament_id = ?`,
+											[tournamentId],
+											(err, tournament) => {
+												if (err) {
+													console.error(
+														"DEBUG: Error getting tournament info:",
+														err
+													);
+													return reject({
+														success: false,
+														error: err,
+													});
+												}
+
+												console.log(
+													"DEBUG: Tournament info:",
+													tournament
+												);
+
+												// Update the tournament's current round
+												db.run(
+													`UPDATE tournaments 
+													 SET current_round = current_round + 1 
+													 WHERE tournament_id = ?`,
+													[tournamentId],
+													function (err) {
+														if (err) {
+															console.error(
+																"DEBUG: Error updating tournament round:",
+																err
+															);
+															return reject({
+																success: false,
+																error: err,
+															});
+														}
+
+														console.log(
+															"DEBUG: Tournament round updated, changes:",
+															this.changes
+														);
+
+														const nextRound =
+															currentRound + 1;
+
+														// Check if we need to generate matches for the next round
+														const expectedWinners =
+															matches.length / 2;
+														const actualWinners =
+															completedMatches.filter(
+																(m) => m.Winner
+															).length;
+
+														console.log(
+															"DEBUG: Winners info:",
+															{
+																expectedWinners,
+																actualWinners,
+																nextRound,
+															}
+														);
+
+														if (
+															actualWinners >=
+																expectedWinners &&
+															nextRound <=
+																Math.log2(
+																	tournament.max_players
+																)
+														) {
+															console.log(
+																"DEBUG: Generating next round matches"
+															);
+															// Generate matches for next round
+															generateNextRound(
+																tournamentId,
+																currentRound,
+																tournament.max_players
+															)
+																.then(
+																	(
+																		nextRoundResult
+																	) => {
+																		console.log(
+																			"DEBUG: Next round generated:",
+																			nextRoundResult
+																		);
+																		resolve(
+																			{
+																				success: true,
+																				matchUpdated: true,
+																				roundAdvanced: true,
+																				nextRoundGenerated: true,
+																				message: `Match result updated successfully. Tournament round updated to ${nextRound} and next round matches generated.`,
+																				debugInfo:
+																					{
+																						currentRound,
+																						nextRound,
+																						nextRoundResult,
+																					},
+																			}
+																		);
+																	}
+																)
+																.catch(
+																	(
+																		nextRoundError
+																	) => {
+																		console.error(
+																			"DEBUG: Error generating next round:",
+																			nextRoundError
+																		);
+																		resolve(
+																			{
+																				success: true,
+																				matchUpdated: true,
+																				roundAdvanced: true,
+																				nextRoundGenerated: false,
+																				message: `Match result updated successfully. Tournament round updated to ${nextRound} but failed to generate next round matches.`,
+																				warning:
+																					"Next round generation failed",
+																				debugInfo:
+																					{
+																						currentRound,
+																						nextRound,
+																						nextRoundError,
+																					},
+																			}
+																		);
+																	}
+																);
+														} else {
+															console.log(
+																"DEBUG: Tournament completed or no next round needed"
+															);
+															resolve({
+																success: true,
+																matchUpdated: true,
+																roundAdvanced: true,
+																nextRoundGenerated: false,
+																message: `Match result updated successfully. Tournament round updated to ${nextRound}.`,
+																debugInfo: {
+																	currentRound,
+																	nextRound,
+																	tournamentCompleted:
+																		nextRound >
+																		Math.log2(
+																			tournament.max_players
+																		),
+																},
+															});
+														}
+													}
+												);
+											}
+										);
+									}
+								);
 							}
 						);
 					}
@@ -1315,30 +1711,23 @@ export function markPlayerReady(tournamentId, matchId, userId, lang = "en") {
 					});
 				}
 
-				// Check if player readiness table exists, create if not
+				// Mark this player as ready (table already exists from migrations)
 				db.run(
-					`CREATE TABLE IF NOT EXISTS tournament_match_readiness (
-						match_id INTEGER,
-						user_id INTEGER,
-						ready_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-						PRIMARY KEY (match_id, user_id),
-						FOREIGN KEY (match_id) REFERENCES tournament_matches(match_id),
-						FOREIGN KEY (user_id) REFERENCES users(id)
-					)`,
-					(err) => {
+					`INSERT OR REPLACE INTO tournament_match_readiness (tournament_id, match_id, user_id) VALUES (?, ?, ?)`,
+					[tournamentId, matchId, userId],
+					function (err) {
 						if (err) {
-							console.error(
-								"Error creating readiness table:",
-								err
-							);
-							return reject({ success: false, error: err });
+							return reject({
+								success: false,
+								error: err,
+							});
 						}
 
-						// Mark this player as ready
-						db.run(
-							`INSERT OR REPLACE INTO tournament_match_readiness (match_id, user_id) VALUES (?, ?)`,
-							[matchId, userId],
-							function (err) {
+						// Check if both players are now ready
+						db.all(
+							`SELECT COUNT(*) as ready_count FROM tournament_match_readiness WHERE match_id = ?`,
+							[matchId],
+							(err, result) => {
 								if (err) {
 									return reject({
 										success: false,
@@ -1346,55 +1735,27 @@ export function markPlayerReady(tournamentId, matchId, userId, lang = "en") {
 									});
 								}
 
-								// Check if both players are now ready
-								db.all(
-									`SELECT COUNT(*) as ready_count FROM tournament_match_readiness WHERE match_id = ?`,
-									[matchId],
-									(err, result) => {
-										if (err) {
-											return reject({
-												success: false,
-												error: err,
-											});
-										}
+								const readyCount = result[0].ready_count;
+								if (readyCount >= 2) {
+									// Both players are ready, create game room
+									const gameId = `tournament_${tournamentId}_match_${matchId}`;
 
-										const readyCount =
-											result[0].ready_count;
-										if (readyCount >= 2) {
-											// Both players are ready, create game room
-											const gameId = `tournament_${tournamentId}_match_${matchId}_${Date.now()}`;
-
-											// Update match with game_id
-											db.run(
-												`UPDATE tournament_matches SET game_id = ? WHERE match_id = ?`,
-												[gameId, matchId],
-												(err) => {
-													if (err) {
-														return reject({
-															success: false,
-															error: err,
-														});
-													}
-
-													resolve({
-														success: true,
-														message:
-															"Both players are ready! Game starting...",
-														gameId: gameId,
-														bothReady: true,
-													});
-												}
-											);
-										} else {
-											resolve({
-												success: true,
-												message:
-													"Waiting for opponent to be ready...",
-												bothReady: false,
-											});
-										}
-									}
-								);
+									// Both players ready, return the game ID
+									resolve({
+										success: true,
+										message:
+											"Both players are ready! Game starting...",
+										gameId: gameId,
+										bothReady: true,
+									});
+								} else {
+									resolve({
+										success: true,
+										message:
+											"Waiting for opponent to be ready...",
+										bothReady: false,
+									});
+								}
 							}
 						);
 					}
@@ -1441,7 +1802,10 @@ export function getMatchStatus(tournamentId, matchId, userId, lang = "en") {
 						const readyCount = result[0].ready_count;
 						const bothReady = readyCount >= 2;
 
-						if (bothReady && match.game_id) {
+						if (bothReady) {
+							// Generate consistent game ID for this match
+							const gameId = `tournament_${tournamentId}_match_${matchId}`;
+
 							// Get opponent username
 							const opponentId =
 								match.player1 === userId
@@ -1461,7 +1825,7 @@ export function getMatchStatus(tournamentId, matchId, userId, lang = "en") {
 									resolve({
 										success: true,
 										bothReady: true,
-										gameId: match.game_id,
+										gameId: gameId,
 										opponentUsername: opponent
 											? opponent.username
 											: "Unknown Player",
@@ -1478,6 +1842,719 @@ export function getMatchStatus(tournamentId, matchId, userId, lang = "en") {
 						}
 					}
 				);
+			}
+		);
+	});
+}
+
+/**
+ * Process game result - handles tournament matches, friend games, and regular games
+ * @param {Object} gameData - Game result data
+ * @param {string} gameId - The game ID to determine the type of game
+ * @param {string} lang - Language for messages
+ * @returns {Promise<Object>} - Result of the operation
+ */
+export function processGameResult(gameData, gameId, lang = "en") {
+	return new Promise(async (resolve, reject) => {
+		try {
+			console.log("DEBUG: ProcessGameResult called with:", {
+				gameData,
+				gameId,
+				lang,
+			});
+
+			// Validate gameData
+			if (!gameData || !gameData.player1 || !gameData.player2) {
+				console.error("DEBUG: Invalid game data:", gameData);
+				return reject({
+					success: false,
+					error: "Invalid game data - missing player information",
+				});
+			}
+
+			// Check if this is a tournament game by analyzing the gameId format
+			const isTournamentGame = gameId && gameId.startsWith("tournament_");
+			console.log("DEBUG: Is tournament game:", isTournamentGame);
+
+			if (isTournamentGame) {
+				// Extract tournament and match info from gameId format: tournament_{tournamentId}_match_{matchId}
+				const gameIdParts = gameId.split("_");
+				console.log("DEBUG: Game ID parts:", gameIdParts);
+
+				if (gameIdParts.length >= 4) {
+					const tournamentId = parseInt(gameIdParts[1]);
+					const matchId = parseInt(gameIdParts[3]);
+					console.log(
+						"DEBUG: Tournament ID:",
+						tournamentId,
+						"Match ID:",
+						matchId
+					);
+
+					// Validate tournament and match IDs
+					if (isNaN(tournamentId) || isNaN(matchId)) {
+						console.error(
+							"DEBUG: Invalid tournament or match ID:",
+							{ tournamentId, matchId }
+						);
+						return reject({
+							success: false,
+							error: "Invalid tournament or match ID format",
+						});
+					}
+
+					// Verify match exists and is in correct state
+					db.get(
+						`SELECT * FROM tournament_matches WHERE match_id = ? AND tournament_id = ?`,
+						[matchId, tournamentId],
+						async (err, match) => {
+							if (err) {
+								console.error(
+									"DEBUG: Error checking match:",
+									err
+								);
+								return reject({
+									success: false,
+									error:
+										"Database error checking match: " +
+										err.message,
+								});
+							}
+
+							if (!match) {
+								console.error("DEBUG: Match not found:", {
+									matchId,
+									tournamentId,
+								});
+								return reject({
+									success: false,
+									error: "Tournament match not found",
+								});
+							}
+
+							console.log(
+								"DEBUG: Found tournament match:",
+								match
+							);
+
+							if (match.match_state === "completed") {
+								console.warn(
+									"DEBUG: Match already completed:",
+									match
+								);
+								return resolve({
+									success: false,
+									error: "Match already completed",
+								});
+							}
+
+							// Get current round for this tournament match
+							try {
+								const currentRoundResult =
+									await getCurrentRound(tournamentId, lang);
+								console.log(
+									"DEBUG: Current round result:",
+									currentRoundResult
+								);
+
+								if (!currentRoundResult.success) {
+									console.error(
+										"DEBUG: Could not get current round:",
+										currentRoundResult
+									);
+									return reject({
+										success: false,
+										error: "Could not determine current tournament round",
+									});
+								}
+
+								const currentRound =
+									currentRoundResult.current_round;
+								console.log(
+									"DEBUG: Current round:",
+									currentRound
+								);
+
+								// Verify this match belongs to the current round
+								if (match.round_number !== currentRound) {
+									console.warn(
+										"DEBUG: Match round mismatch:",
+										{
+											matchRound: match.round_number,
+											currentRound,
+										}
+									);
+								}
+
+								const {
+									player1,
+									player2,
+									player1_score,
+									player2_score,
+									winner,
+								} = gameData;
+
+								// Verify players match the tournament match
+								if (
+									(match.player1 !== player1 ||
+										match.player2 !== player2) &&
+									(match.player1 !== player2 ||
+										match.player2 !== player1)
+								) {
+									console.error("DEBUG: Player mismatch:", {
+										gameData: { player1, player2 },
+										matchData: {
+											player1: match.player1,
+											player2: match.player2,
+										},
+									});
+									return reject({
+										success: false,
+										error: "Player mismatch in tournament match",
+									});
+								}
+
+								console.log(
+									"DEBUG: Updating tournament match with:",
+									{
+										matchId,
+										winner,
+										player1_score,
+										player2_score,
+										tournamentId,
+										currentRound,
+									}
+								);
+
+								// Update tournament match
+								const tournamentResult =
+									await updateMatchAndRound(
+										matchId,
+										winner,
+										player1_score,
+										player2_score,
+										tournamentId,
+										currentRound
+									);
+
+								console.log(
+									"DEBUG: Tournament update result:",
+									tournamentResult
+								);
+
+								if (tournamentResult.success) {
+									// Also save to match history for stats tracking
+									try {
+										const historyResult =
+											await saveGameResult(
+												gameData,
+												lang
+											);
+										console.log(
+											"DEBUG: History save result:",
+											historyResult
+										);
+
+										resolve({
+											success: true,
+											type: "tournament",
+											tournamentResult,
+											historyResult,
+											message:
+												"Tournament match result updated successfully",
+											debugInfo: {
+												matchId,
+												tournamentId,
+												currentRound,
+												winner,
+												scores: {
+													player1_score,
+													player2_score,
+												},
+											},
+										});
+									} catch (historyError) {
+										console.error(
+											"DEBUG: Error saving to history:",
+											historyError
+										);
+										// Tournament update succeeded but history failed
+										resolve({
+											success: true,
+											type: "tournament",
+											tournamentResult,
+											historyResult: {
+												success: false,
+												error: historyError,
+											},
+											message:
+												"Tournament match updated but history save failed",
+											warning: "History not saved",
+										});
+									}
+								} else {
+									console.error(
+										"DEBUG: Tournament update failed:",
+										tournamentResult
+									);
+									reject(tournamentResult);
+								}
+							} catch (error) {
+								console.error(
+									"DEBUG: Error in tournament processing:",
+									error
+								);
+								reject({
+									success: false,
+									error:
+										"Error processing tournament match: " +
+										error.message,
+								});
+							}
+						}
+					);
+				} else {
+					console.error(
+						"DEBUG: Invalid tournament game ID format:",
+						gameId
+					);
+					return reject({
+						success: false,
+						error: "Invalid tournament game ID format",
+					});
+				}
+			} else if (gameId && gameId.length > 0) {
+				// Check if this is a friend game invitation by looking for the gameId in game_invitations
+				console.log("DEBUG: Checking if friend game:", gameId);
+				db.get(
+					`SELECT * FROM game_invitations WHERE match_id = ? AND status = 'accepted'`,
+					[gameId],
+					async (err, invitation) => {
+						if (err) {
+							console.error(
+								"DEBUG: Error checking game invitation:",
+								err
+							);
+							return reject({
+								success: false,
+								error:
+									"Error checking game invitation: " +
+									err.message,
+							});
+						}
+
+						console.log(
+							"DEBUG: Game invitation found:",
+							invitation
+						);
+
+						if (invitation) {
+							// This is a friend game
+							try {
+								console.log("DEBUG: Processing friend game");
+								const result = await completeFriendGame(
+									gameId,
+									gameData,
+									lang
+								);
+								console.log(
+									"DEBUG: Friend game result:",
+									result
+								);
+								resolve(result);
+							} catch (error) {
+								console.error(
+									"DEBUG: Error processing friend game:",
+									error
+								);
+								reject(error);
+							}
+						} else {
+							// Regular game - just save to match history
+							try {
+								console.log("DEBUG: Processing regular game");
+								const result = await saveGameResult(
+									gameData,
+									lang
+								);
+								console.log(
+									"DEBUG: Regular game result:",
+									result
+								);
+								resolve({
+									success: true,
+									type: "regular",
+									result,
+									message: "Game result saved successfully",
+								});
+							} catch (error) {
+								console.error(
+									"DEBUG: Error saving regular game:",
+									error
+								);
+								reject(error);
+							}
+						}
+					}
+				);
+			} else {
+				// No gameId provided - treat as regular game
+				try {
+					console.log("DEBUG: Processing regular game (no gameId)");
+					const result = await saveGameResult(gameData, lang);
+					console.log("DEBUG: Regular game result:", result);
+					resolve({
+						success: true,
+						type: "regular",
+						result,
+						message: "Game result saved successfully",
+					});
+				} catch (error) {
+					console.error("DEBUG: Error saving regular game:", error);
+					reject(error);
+				}
+			}
+		} catch (error) {
+			console.error(
+				"DEBUG: Unexpected error in processGameResult:",
+				error
+			);
+			reject({
+				success: false,
+				error:
+					error.message || "Unexpected error processing game result",
+			});
+		}
+	});
+}
+
+/**
+ * Complete a friend game invitation by saving the result and updating the invitation status
+ * @param {string} gameId - The game ID from the invitation (match_id)
+ * @param {Object} gameData - Game result data
+ * @param {string} lang - Language for messages
+ * @returns {Promise<Object>} - Result of the operation
+ */
+export function completeFriendGame(gameId, gameData, lang = "en") {
+	return new Promise((resolve, reject) => {
+		// First save the game result
+		saveGameResult(gameData, lang)
+			.then((saveResult) => {
+				if (saveResult.success) {
+					// Update the game invitation status to completed (if it exists)
+					db.run(
+						`UPDATE game_invitations 
+						 SET status = 'completed' 
+						 WHERE match_id = ? AND status = 'accepted'`,
+						[gameId],
+						function (err) {
+							if (err) {
+								console.error(
+									"Error updating invitation status:",
+									err
+								);
+								// Still return success since game was saved
+								resolve({
+									success: true,
+									type: "friend",
+									result: saveResult,
+									message:
+										"Game saved but could not update invitation status",
+									warning: "Invitation status update failed",
+								});
+							} else {
+								resolve({
+									success: true,
+									type: "friend",
+									result: saveResult,
+									invitationUpdated: this.changes > 0,
+									message:
+										"Friend game completed successfully",
+								});
+							}
+						}
+					);
+				} else {
+					reject(saveResult);
+				}
+			})
+			.catch(reject);
+	});
+}
+
+/**
+ * Clean up tournament match readiness records for completed matches
+ * @param {number} matchId - Match ID to clean up
+ * @returns {Promise<Object>} - Result of the operation
+ */
+export function cleanupTournamentMatchReadiness(matchId) {
+	return new Promise((resolve, reject) => {
+		db.run(
+			`DELETE FROM tournament_match_readiness WHERE match_id = ?`,
+			[matchId],
+			function (err) {
+				if (err) {
+					reject({
+						success: false,
+						error: err.message,
+					});
+				} else {
+					resolve({
+						success: true,
+						deletedRecords: this.changes,
+						message: "Tournament match readiness cleaned up",
+					});
+				}
+			}
+		);
+	});
+}
+
+/**
+ * Get active games that need to be updated when they finish
+ * @param {string} lang - Language for messages
+ * @returns {Promise<Object>} - List of active games
+ */
+export function getActiveGames(lang = "en") {
+	return new Promise((resolve, reject) => {
+		// Get tournament matches that are ready but not completed
+		db.all(
+			`SELECT tm.*, 
+					COUNT(tmr.user_id) as ready_players,
+					t.name as tournament_name
+			 FROM tournament_matches tm
+			 LEFT JOIN tournament_match_readiness tmr ON tm.match_id = tmr.match_id
+			 LEFT JOIN tournaments t ON tm.tournament_id = t.tournament_id
+			 WHERE tm.match_state IN ('upcoming', 'in_progress')
+			 GROUP BY tm.match_id
+			 HAVING ready_players >= 2`,
+			[],
+			(err, tournamentMatches) => {
+				if (err) {
+					return reject({ success: false, error: err });
+				}
+
+				// Get active friend game invitations
+				db.all(
+					`SELECT gi.*, 
+							u1.username as inviter_username,
+							u2.username as invitee_username
+					 FROM game_invitations gi
+					 LEFT JOIN users u1 ON gi.inviter_id = u1.id
+					 LEFT JOIN users u2 ON gi.invitee_id = u2.id
+					 WHERE gi.status = 'accepted'`,
+					[],
+					(err, friendGames) => {
+						if (err) {
+							return reject({ success: false, error: err });
+						}
+
+						resolve({
+							success: true,
+							activeGames: {
+								tournamentMatches: tournamentMatches || [],
+								friendGames: friendGames || [],
+							},
+							message: "Active games retrieved successfully",
+						});
+					}
+				);
+			}
+		);
+	});
+}
+
+/**
+ * Debug function to manually update a tournament match result
+ * @param {number} tournamentId - Tournament ID
+ * @param {number} matchId - Match ID
+ * @param {number} winnerId - Winner user ID
+ * @param {number} player1Score - Player 1 score
+ * @param {number} player2Score - Player 2 score
+ * @returns {Promise<Object>} - Result of the operation
+ */
+export function debugUpdateTournamentMatch(
+	tournamentId,
+	matchId,
+	winnerId,
+	player1Score,
+	player2Score
+) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			console.log("Debug: Updating tournament match manually");
+			console.log("Params:", {
+				tournamentId,
+				matchId,
+				winnerId,
+				player1Score,
+				player2Score,
+			});
+
+			// Get current round
+			const currentRoundResult = await getCurrentRound(tournamentId);
+			if (!currentRoundResult.success) {
+				return reject({
+					success: false,
+					error: "Could not get current round",
+				});
+			}
+
+			const currentRound = currentRoundResult.current_round;
+			console.log("Current round:", currentRound);
+
+			// Check if match exists
+			db.get(
+				`SELECT * FROM tournament_matches WHERE match_id = ? AND tournament_id = ?`,
+				[matchId, tournamentId],
+				async (err, match) => {
+					if (err) {
+						return reject({ success: false, error: err.message });
+					}
+
+					console.log("Match found:", match);
+
+					if (!match) {
+						return reject({
+							success: false,
+							error: "Match not found",
+						});
+					}
+
+					// Update the match
+					const updateResult = await updateMatchAndRound(
+						matchId,
+						winnerId,
+						player1Score,
+						player2Score,
+						tournamentId,
+						currentRound
+					);
+
+					console.log("Update result:", updateResult);
+					resolve(updateResult);
+				}
+			);
+		} catch (error) {
+			console.error("Debug error:", error);
+			reject({
+				success: false,
+				error: error.message,
+			});
+		}
+	});
+}
+
+/**
+ * Debug function to simulate a tournament match result for testing
+ * @param {number} tournamentId - Tournament ID
+ * @param {number} matchId - Match ID
+ * @param {number} winnerId - Winner user ID
+ * @param {number} player1Score - Player 1 score
+ * @param {number} player2Score - Player 2 score
+ * @returns {Promise<Object>} - Result of the operation
+ */
+export function debugSimulateTournamentResult(
+	tournamentId,
+	matchId,
+	winnerId,
+	player1Score,
+	player2Score
+) {
+	return new Promise(async (resolve, reject) => {
+		try {
+			console.log("DEBUG: Simulating tournament result");
+			console.log("DEBUG: Params:", {
+				tournamentId,
+				matchId,
+				winnerId,
+				player1Score,
+				player2Score,
+			});
+
+			// Get match details first
+			db.get(
+				`SELECT * FROM tournament_matches WHERE match_id = ? AND tournament_id = ?`,
+				[matchId, tournamentId],
+				async (err, match) => {
+					if (err) {
+						console.error("DEBUG: Error getting match:", err);
+						return reject({ success: false, error: err.message });
+					}
+
+					if (!match) {
+						console.error("DEBUG: Match not found");
+						return reject({
+							success: false,
+							error: "Match not found",
+						});
+					}
+
+					console.log("DEBUG: Match found:", match);
+
+					// Create game data object
+					const gameData = {
+						player1: match.player1,
+						player2: match.player2,
+						player1_score: player1Score,
+						player2_score: player2Score,
+						winner: winnerId,
+					};
+
+					console.log("DEBUG: Game data:", gameData);
+
+					// Create game ID
+					const gameId = `tournament_${tournamentId}_match_${matchId}`;
+					console.log("DEBUG: Game ID:", gameId);
+
+					// Process the result
+					const result = await processGameResult(
+						gameData,
+						gameId,
+						"en"
+					);
+					console.log("DEBUG: Process result:", result);
+
+					resolve(result);
+				}
+			);
+		} catch (error) {
+			console.error("DEBUG: Simulation error:", error);
+			reject({
+				success: false,
+				error: error.message || "Simulation failed",
+			});
+		}
+	});
+}
+
+/**
+ * Debug function to reset tournament match readiness for testing
+ * @param {number} tournamentId - Tournament ID
+ * @returns {Promise<Object>} - Result of the operation
+ */
+export function debugResetTournamentReadiness(tournamentId) {
+	return new Promise((resolve, reject) => {
+		console.log("DEBUG: Resetting tournament readiness for:", tournamentId);
+
+		db.run(
+			`DELETE FROM tournament_match_readiness WHERE tournament_id = ?`,
+			[tournamentId],
+			function (err) {
+				if (err) {
+					console.error("DEBUG: Error resetting readiness:", err);
+					reject({ success: false, error: err.message });
+				} else {
+					console.log(
+						"DEBUG: Readiness reset, deleted rows:",
+						this.changes
+					);
+					resolve({
+						success: true,
+						deletedRows: this.changes,
+						message: "Tournament readiness reset successfully",
+					});
+				}
 			}
 		);
 	});

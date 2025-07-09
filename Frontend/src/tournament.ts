@@ -140,11 +140,12 @@ async function createCustomBracket(
 	const chartContainer = document.getElementById("bracketContainer");
 	if (!chartContainer) return;
 
-	const rounds = groupBy(matches, "round_number"); // agora numbers
+	const rounds = groupBy(matches, "round_number");
 	const expectedRounds = [...Array(totalRounds).keys()].map((i) => i + 1);
 	const sortedRounds = Array.from(
 		new Set([...expectedRounds, ...Object.keys(rounds).map(Number)])
 	).sort((a, b) => a - b);
+
 	sortedRounds.forEach((r) => {
 		if (!rounds[r]) rounds[r] = [];
 	});
@@ -157,7 +158,6 @@ async function createCustomBracket(
 	sortedRounds.forEach((r) => {
 		if (!rounds[r]) rounds[r] = [];
 	});
-
 	sortedRounds.sort((a, b) => a - b);
 
 	const tournamentRes = await fetch(
@@ -181,7 +181,6 @@ async function createCustomBracket(
 		(match) => match.match_state === "completed"
 	);
 	const totalKnownMatches = upcomingMatches.length + completedMatches.length;
-
 	const totalExpectedMatches = tournament.tournament.max_players - 1;
 
 	if (totalKnownMatches < totalExpectedMatches && !missingMatchesFetched) {
@@ -194,18 +193,30 @@ async function createCustomBracket(
 	chartPoints = await generateChartPoints(matches);
 	missingMatchesFetched = false;
 
-	// Create bracket HTML with proper grid layout
-	let bracketHTML = `
-    <div class="flex items-center justify-center gap-8 p-8 overflow-auto min-h-screen max-h-screen bg-gradient-to-br from-gray-800 to-teal-700 rounded-lg border-2 border-green-500 shadow-xl relative">
-  `;
+	// --- DESIGN MELHORADO E BRACKETS ALINHADOS ---
+	const roundsCount = sortedRounds.length;
+	const maxMatches = Math.max(
+		...sortedRounds.map((r) => rounds[r].length || 1),
+		1
+	);
 
-	for (let roundIndex = 0; roundIndex < sortedRounds.length; roundIndex++) {
+	let bracketHTML = `
+	<div class="overflow-auto min-h-screen max-h-screen bg-gradient-to-br from-gray-900 to-teal-900 rounded-lg border-2 border-green-500 shadow-2xl p-8">
+		<div class="grid" style="grid-template-columns: repeat(${roundsCount}, minmax(220px, 1fr)); gap: 48px;">
+	`;
+
+	// SVG connectors
+	let connectorsSVG = `<svg class="absolute top-0 left-0 pointer-events-none w-full h-full" style="z-index:0;" xmlns="http://www.w3.org/2000/svg">`;
+
+	const cardHeight = 110;
+	const cardGap = 40;
+
+	for (let roundIndex = 0; roundIndex < roundsCount; roundIndex++) {
 		const round = sortedRounds[roundIndex];
 		const roundNumber = Number(round);
 		let roundMatches = rounds[round] || [];
 
-		// Forçar criação de match "TBD vs TBD" na final se não existir nenhum
-		const isFinalRound = roundNumber === sortedRounds.length;
+		const isFinalRound = roundNumber === roundsCount;
 		if (isFinalRound && roundMatches.length === 0) {
 			roundMatches = [
 				{
@@ -220,22 +231,18 @@ async function createCustomBracket(
 			];
 		}
 
-		const verticalSpacing = Math.max(15, 40 * Math.pow(1.6, roundIndex));
-
-		// Ensure the final round is displayed even if no matches exist
 		const matchesInRound = Math.max(
 			roundMatches.length,
 			Math.pow(2, totalRounds - roundNumber)
 		);
 
 		bracketHTML += `
-      <div class="flex flex-col items-center relative min-w-36 flex-shrink-0">
-        <h3 class="text-green-200 text-lg font-bold mb-4 text-center shadow-md uppercase tracking-wide py-2 px-5 bg-green-600 rounded-lg border border-green-400">
-          ${getRoundName(roundNumber, sortedRounds.length)}
-        </h3>
-        
-        <div class="flex flex-col gap-${verticalSpacing}px items-center">
-    `;
+		<div class="flex flex-col items-center relative min-w-[220px]">
+			<h3 class="text-green-100 text-lg font-bold mb-6 text-center shadow uppercase tracking-wider py-2 px-6 bg-green-700 rounded-lg border border-green-400 drop-shadow">
+				${getRoundName(roundNumber, roundsCount)}
+			</h3>
+			<div class="flex flex-col items-center gap-[${cardGap}px] relative">
+		`;
 
 		for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
 			const match = roundMatches[matchIndex] || {
@@ -276,61 +283,73 @@ async function createCustomBracket(
 			const isPlayer1Winner = isCompleted && winnerId == match.player1;
 			const isPlayer2Winner = isCompleted && winnerId == match.player2;
 
-			// Ensure TBD is displayed for the final match if no players are available
-			const isFinalRound = roundNumber === sortedRounds.length;
 			const displayPlayer1 =
 				isFinalRound && !match.player1 ? "TBD" : player1;
 			const displayPlayer2 =
 				isFinalRound && !match.player2 ? "TBD" : player2;
 
+			// Card
 			bracketHTML += `
-        <div class="bg-gradient-to-br from-teal-700 to-teal-600 border-2 border-green-400 rounded-lg p-5 w-36 min-h-20 flex flex-col justify-center relative shadow-lg transition cursor-pointer backdrop-blur-md hover:scale-105 hover:bg-teal-500">
-          <div class="bg-green-300 rounded-md px-4 py-3 mb-3 border-l-4 ${
-				isPlayer1Winner ? "border-green-500" : "border-green-400"
-			}">
-			<span class="${
-				isPlayer1Winner ? "text-green-500" : "text-green-400"
-			} font-bold text-sm">
-				${truncate(displayPlayer1, 15)}${isCompleted ? ` (${player1Score})` : ""}
-			</span>
+			<div class="relative z-10 flex flex-col items-center">
+				<div class="bg-gradient-to-br from-teal-900 to-teal-700 border-2 border-green-400 rounded-xl p-4 w-52 min-h-[${cardHeight}px] flex flex-col justify-center shadow-xl transition hover:scale-105 hover:bg-teal-800 duration-150">
+					<div class="bg-green-200 rounded-md px-3 py-2 mb-2 border-l-4 ${
+						isPlayer1Winner
+							? "border-green-600"
+							: "border-green-400"
+					}">
+						<span class="${
+							isPlayer1Winner
+								? "text-green-700"
+								: "text-green-500"
+						} font-bold text-base">
+							${truncate(displayPlayer1, 15)}${isCompleted ? ` (${player1Score})` : ""}
+						</span>
+					</div>
+					<div class="text-center text-green-400 text-xs font-bold my-1 shadow">VS</div>
+					<div class="bg-green-200 rounded-md px-3 py-2 mt-2 border-l-4 ${
+						isPlayer2Winner
+							? "border-green-600"
+							: "border-green-400"
+					}">
+						<span class="${
+							isPlayer2Winner
+								? "text-green-700"
+								: "text-green-500"
+						} font-bold text-base">
+							${truncate(displayPlayer2, 15)}${isCompleted ? ` (${player2Score})` : ""}
+						</span>
+					</div>
+				</div>
 			</div>
+			`;
 
-			<div class="text-center text-green-300 text-sm font-bold my-3 shadow-md">VS</div>
+			// SVG connectors (draw only if not last round)
+			if (roundIndex < roundsCount - 1) {
+				const fromX = 220 * roundIndex + 220; // right edge of current column
+				const fromY =
+					matchIndex * (cardHeight + cardGap) + cardHeight / 2 + 60;
+				const toX = 220 * (roundIndex + 1);
+				const toY =
+					Math.floor(matchIndex / 2) * (cardHeight + cardGap) +
+					cardHeight / 2 +
+					60;
 
-			<div class="bg-green-300 rounded-md px-4 py-3 mb-3 border-l-4 ${
-				isPlayer2Winner ? "border-green-500" : "border-green-400"
-			}">
-			<span class="${
-				isPlayer2Winner ? "text-green-500" : "text-green-400"
-			} font-bold text-sm">
-				${truncate(displayPlayer2, 15)}${isCompleted ? ` (${player2Score})` : ""}
-			</span>
-			</div>
-        </div>
-      `;
-
-			// Add connector lines to the next round
-			if (roundIndex < sortedRounds.length - 1) {
-				const nextRoundIndex = roundIndex + 1;
-				const nextMatchIndex = Math.floor(matchIndex / 2);
-
-				bracketHTML += `
-					<div class="w-0.5 h-${verticalSpacing}px bg-green-400 absolute left-1/2 bottom-0 transform -translate-x-1/2"></div>
-					<div class="w-12 h-0.5 bg-green-400 absolute ${
-						matchIndex % 2 === 0 ? "left-full" : "left-1/2"
-					} bottom-${verticalSpacing}px transform ${
-					matchIndex % 2 === 0 ? "" : "-translate-x-full"
-				}"></div>
+				connectorsSVG += `
+					<path d="M${fromX},${fromY} C${fromX + 30},${fromY} ${
+					toX - 30
+				},${toY} ${toX},${toY}"
+						stroke="#22c55e" stroke-width="3" fill="none" opacity="0.7"/>
 				`;
 			}
 		}
 
-		bracketHTML += "</div></div>"; // Close matches-container and round-column
+		bracketHTML += `</div></div>`;
 	}
 
-	bracketHTML += "</div>";
+	bracketHTML += `</div></div>`;
+	connectorsSVG += `</svg>`;
 
-	chartContainer.innerHTML = bracketHTML;
+	chartContainer.innerHTML = `<div class="relative">${bracketHTML}${connectorsSVG}</div>`;
 }
 
 async function fetchMissingMatches(
@@ -569,6 +588,7 @@ async function markPlayerReady(
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${getCookie("jwt")}`,
 				},
+				body: JSON.stringify({ userId: userId }),
 			}
 		);
 

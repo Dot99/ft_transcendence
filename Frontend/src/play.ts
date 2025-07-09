@@ -9,13 +9,31 @@ let resetTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
 // Utility to get element by id
 const getElement = <T extends HTMLElement>(id: string): T => {
 	const element = document.getElementById(id) as T;
-	if (!element) throw new Error(`Element with id ${id} not found`);
+	if (!element) {
+		console.error(`Element with id ${id} not found. Available elements:`, 
+			Array.from(document.querySelectorAll('[id]')).map(el => el.id));
+		throw new Error(`Element with id ${id} not found`);
+	}
+	return element;
+};
+
+// Safe version that returns null if element not found
+const getElementSafe = <T extends HTMLElement>(id: string): T | null => {
+	const element = document.getElementById(id) as T;
+	if (!element) {
+		console.warn(`Element with id ${id} not found`);
+		return null;
+	}
 	return element;
 };
 
 export const loadPlayPage = async (): Promise<void> => {
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = playTemplate;
+	
+	// Wait for DOM to be ready
+	await new Promise(resolve => setTimeout(resolve, 100));
+	
 	let playerUsername = "Player";
 	let leftPlayerName = "Player 1";
 	let rightPlayerName = "Player 2";
@@ -41,59 +59,80 @@ export const loadPlayPage = async (): Promise<void> => {
 				const user = data.user;
 				playerUsername = user.username || "Player";
 				leftPlayerName = playerUsername;
-				getElement<HTMLElement>("player-username").textContent =
-					leftPlayerName;
-				const avatar = getElement<HTMLImageElement>("player-avatar");
-				if (user.pfp) {
-					// Check if it's an external URL or local file
-					if (
-						user.pfp.startsWith("http://") ||
-						user.pfp.startsWith("https://")
-					) {
-						avatar.src = user.pfp; // External URL
-					} else {
-						avatar.src = `/images/${user.pfp}`; // Local file
-					}
-				} else {
-					avatar.src = "/images/default_pfp.png";
+				const playerUsernameElement = getElementSafe<HTMLElement>("player-username");
+				if (playerUsernameElement) {
+					playerUsernameElement.textContent = leftPlayerName;
 				}
-				avatar.style.display = "";
-				// Handle broken images
-				avatar.onerror = () => {
-					avatar.src = "/images/default_pfp.png";
-				};
+				const avatar = getElementSafe<HTMLImageElement>("player-avatar");
+				if (avatar) {
+					if (user.pfp) {
+						// Check if it's an external URL or local file
+						if (
+							user.pfp.startsWith("http://") ||
+							user.pfp.startsWith("https://")
+						) {
+							avatar.src = user.pfp; // External URL
+						} else {
+							avatar.src = `/images/${user.pfp}`; // Local file
+						}
+					} else {
+						avatar.src = "/images/default_pfp.png";
+					}
+					avatar.style.display = "";
+					// Handle broken images
+					avatar.onerror = () => {
+						avatar.src = "/images/default_pfp.png";
+					};
+				}
 			} else {
 				// If user fetch fails, show default avatar
-				const avatar = getElement<HTMLImageElement>("player-avatar");
-				avatar.src = "/images/default_pfp.png";
-				avatar.style.display = "";
+				const avatar = getElementSafe<HTMLImageElement>("player-avatar");
+				if (avatar) {
+					avatar.src = "/images/default_pfp.png";
+					avatar.style.display = "";
+				}
 			}
 		} else {
 			// If no JWT, show default avatar
-			const avatar = getElement<HTMLImageElement>("player-avatar");
-			avatar.src = "/images/default_pfp.png";
-			avatar.style.display = "";
+			const avatar = getElementSafe<HTMLImageElement>("player-avatar");
+			if (avatar) {
+				avatar.src = "/images/default_pfp.png";
+				avatar.style.display = "";
+			}
 		}
 	} catch {
 		// If any error, show default avatar
-		const avatar = getElement<HTMLImageElement>("player-avatar");
-		avatar.src = "/images/default_pfp.png";
-		avatar.style.display = "";
+		const avatar = getElementSafe<HTMLImageElement>("player-avatar");
+		if (avatar) {
+			avatar.src = "/images/default_pfp.png";
+			avatar.style.display = "";
+		}
 	}
 
 	// Winner Modal elements
-	const winnerModal = getElement<HTMLDivElement>("winnerModal");
-	const winnerUsernameSpan = getElement<HTMLElement>("winnerUsername");
-	const menuBtn = getElement<HTMLButtonElement>("menuBtn");
+	const winnerModal = getElementSafe<HTMLDivElement>("winnerModal");
+	const winnerUsernameSpan = getElementSafe<HTMLElement>("winnerUsername");
+	const menuBtn = getElementSafe<HTMLButtonElement>("menuBtn");
+
+	if (!winnerModal || !winnerUsernameSpan || !menuBtn) {
+		console.error("Winner modal elements not found");
+		return;
+	}
 
 	function showWinnerModal(winnerSide: "left" | "right") {
 		// Force a direct DOM read of current displayed names
-		const displayedLeftName =
-			getElement<HTMLElement>("player-username").textContent ||
-			leftPlayerName;
-		const displayedRightName =
-			getElement<HTMLElement>("bot-username").textContent ||
-			rightPlayerName;
+		const playerUsernameElement = getElementSafe<HTMLElement>("player-username");
+		const botUsernameElement = getElementSafe<HTMLElement>("bot-username");
+		const winnerUsernameSpan = getElementSafe<HTMLElement>("winnerUsername");
+		const winnerModal = getElementSafe<HTMLDivElement>("winnerModal");
+		
+		if (!playerUsernameElement || !botUsernameElement || !winnerUsernameSpan || !winnerModal) {
+			console.warn("Winner modal elements not found, skipping modal display");
+			return;
+		}
+		
+		const displayedLeftName = playerUsernameElement.textContent || leftPlayerName;
+		const displayedRightName = botUsernameElement.textContent || rightPlayerName;
 
 		if (winnerSide === "left") {
 			winnerUsernameSpan.textContent = displayedLeftName;
@@ -105,7 +144,10 @@ export const loadPlayPage = async (): Promise<void> => {
 	}
 
 	function hideWinnerModal() {
-		winnerModal.classList.add("hidden");
+		const winnerModal = getElementSafe<HTMLDivElement>("winnerModal");
+		if (winnerModal) {
+			winnerModal.classList.add("hidden");
+		}
 	}
 	menuBtn.addEventListener("click", async () => {
 		hideWinnerModal();
@@ -224,7 +266,10 @@ export const loadPlayPage = async (): Promise<void> => {
 	// Set initial display names
 	if (gameMode === "ai") {
 		rightPlayerName = "Bot";
-		getElement<HTMLElement>("bot-username").textContent = rightPlayerName;
+		const botUsername = getElementSafe<HTMLElement>("bot-username");
+		if (botUsername) {
+			botUsername.textContent = rightPlayerName;
+		}
 	}
 
 	// Load current user's customization first
@@ -233,6 +278,10 @@ export const loadPlayPage = async (): Promise<void> => {
 	if (opponentUsername && gameIdFromData) {
 		gameId = gameIdFromData;
 		opponentDisplayName = opponentUsername;
+		// For tournaments, we need to set isMultiplayer to true
+		if (gameMode === "tournament") {
+			isMultiplayer = true;
+		}
 		connectToGame();
 	} else if (gameIdFromData) {
 		gameId = gameIdFromData;
@@ -241,33 +290,69 @@ export const loadPlayPage = async (): Promise<void> => {
 	}
 
 	function setBannerGlow(winnerSide: "left" | "right" | null) {
-		getElement("player-banner").classList.remove("winner-banner");
-		getElement("bot-banner").classList.remove("winner-banner");
-		getElement("player-score").classList.remove("score-glow-winner");
-		getElement("bot-score").classList.remove("score-glow-winner");
+		const playerBanner = getElementSafe("player-banner");
+		const botBanner = getElementSafe("bot-banner");
+		const playerScore = getElementSafe("player-score");
+		const botScore = getElementSafe("bot-score");
+		
+		if (!playerBanner || !botBanner || !playerScore || !botScore) {
+			console.warn("Banner elements not found, skipping banner glow");
+			return;
+		}
+		
+		playerBanner.classList.remove("winner-banner");
+		botBanner.classList.remove("winner-banner");
+		playerScore.classList.remove("score-glow-winner");
+		botScore.classList.remove("score-glow-winner");
+		
 		if (winnerSide === "left") {
-			getElement("player-banner").classList.add("winner-banner");
-			getElement("player-score").classList.add("score-glow-winner");
+			playerBanner.classList.add("winner-banner");
+			playerScore.classList.add("score-glow-winner");
 		} else if (winnerSide === "right") {
-			getElement("bot-banner").classList.add("winner-banner");
-			getElement("bot-score").classList.add("score-glow-winner");
+			botBanner.classList.add("winner-banner");
+			botScore.classList.add("score-glow-winner");
 		}
 	}
 
 	function clearBannerGlow() {
-		getElement("player-banner").classList.remove("winner-banner");
-		getElement("bot-banner").classList.remove("winner-banner");
-		getElement("player-score").classList.remove("score-glow-winner");
-		getElement("bot-score").classList.remove("score-glow-winner");
+		const playerBanner = getElementSafe("player-banner");
+		const botBanner = getElementSafe("bot-banner");
+		const playerScore = getElementSafe("player-score");
+		const botScore = getElementSafe("bot-score");
+		
+		if (!playerBanner || !botBanner || !playerScore || !botScore) {
+			console.warn("Banner elements not found, skipping clear banner glow");
+			return;
+		}
+		
+		playerBanner.classList.remove("winner-banner");
+		botBanner.classList.remove("winner-banner");
+		playerScore.classList.remove("score-glow-winner");
+		botScore.classList.remove("score-glow-winner");
 	}
 
 	function updateScoreDisplay() {
-		getElement("player-score").textContent = leftScore
-			.toString()
-			.padStart(2, "0");
-		getElement("bot-score").textContent = rightScore
-			.toString()
-			.padStart(2, "0");
+		const playerScoreElement = getElementSafe<HTMLElement>("player-score");
+		const botScoreElement = getElementSafe<HTMLElement>("bot-score");
+		
+		if (!playerScoreElement || !botScoreElement) {
+			console.warn("Score elements not found, retrying in 100ms...");
+			setTimeout(() => {
+				const retryPlayerScore = getElementSafe<HTMLElement>("player-score");
+				const retryBotScore = getElementSafe<HTMLElement>("bot-score");
+				
+				if (retryPlayerScore && retryBotScore) {
+					retryPlayerScore.textContent = leftScore.toString().padStart(2, "0");
+					retryBotScore.textContent = rightScore.toString().padStart(2, "0");
+				} else {
+					console.error("Score elements still not found after retry");
+				}
+			}, 100);
+			return;
+		}
+		
+		playerScoreElement.textContent = leftScore.toString().padStart(2, "0");
+		botScoreElement.textContent = rightScore.toString().padStart(2, "0");
 	}
 
 	async function fetchUserCustomization(userId: number) {
@@ -314,6 +399,16 @@ export const loadPlayPage = async (): Promise<void> => {
 	window.refreshGameCustomization = loadCurrentUserCustomization;
 
 	function startGame() {
+		console.log("DEBUG: startGame called", {
+			gameStarted,
+			winner,
+			hasGameStartedOnce,
+			isMultiplayer,
+			playerSide,
+			leftPlayerId,
+			rightPlayerId,
+		});
+
 		if (winner) {
 			hideWinnerModal();
 			clearBannerGlow();
@@ -329,9 +424,20 @@ export const loadPlayPage = async (): Promise<void> => {
 			}, 100);
 			return;
 		}
+
+		// In multiplayer, only left player can start the game and only when both players are connected
+		if (isMultiplayer) {
+			if (playerSide !== "left") {
+				console.log("DEBUG: Only left player can start the game");
+				return;
+			}
+			if (!leftPlayerId || !rightPlayerId) {
+				console.log("DEBUG: Both players must be connected to start");
+				return;
+			}
+		}
+
 		if (!gameStarted && !winner && !hasGameStartedOnce) {
-			// In multiplayer, only left player can start the game
-			if (isMultiplayer && playerSide !== "left") return;
 			if (leftScore !== 0 || rightScore !== 0) {
 				leftScore = 0;
 				rightScore = 0;
@@ -342,6 +448,8 @@ export const loadPlayPage = async (): Promise<void> => {
 			showPressSpace = false;
 			ballVX = ballSpeed * (Math.random() > 0.5 ? 1 : -1);
 			ballVY = ballSpeed * (Math.random() * 2 - 1);
+
+			console.log("DEBUG: Game started", { ballVX, ballVY });
 
 			// Send ball update to sync game start
 			if (isMultiplayer && ws && playerSide === "left") {
@@ -410,13 +518,39 @@ export const loadPlayPage = async (): Promise<void> => {
 
 	// Function to save PvP game results to the database
 	async function savePvPGameResult() {
-		// Only save results for multiplayer games and only if we're the left player (host)
+		console.log("DEBUG: savePvPGameResult called with state:", {
+			isMultiplayer,
+			gameMode,
+			leftPlayerId,
+			rightPlayerId,
+			playerSide,
+			winner,
+			leftScore,
+			rightScore,
+			gameId,
+		});
+
+		// Only save results for multiplayer games and tournaments and only if we're the left player (host)
 		if (
-			!isMultiplayer ||
+			(!isMultiplayer && gameMode !== "tournament") ||
 			!leftPlayerId ||
 			!rightPlayerId ||
 			playerSide !== "left"
 		) {
+			console.log(
+				"DEBUG: savePvPGameResult returning early due to conditions:",
+				{
+					isMultiplayer,
+					gameMode,
+					leftPlayerId,
+					rightPlayerId,
+					playerSide,
+					condition1: !isMultiplayer && gameMode !== "tournament",
+					condition2: !leftPlayerId,
+					condition3: !rightPlayerId,
+					condition4: playerSide !== "left",
+				}
+			);
 			return;
 		}
 
@@ -440,8 +574,12 @@ export const loadPlayPage = async (): Promise<void> => {
 				player1_score: leftScore,
 				player2_score: rightScore,
 				winner: winnerId,
+				gameId: gameId,
 			};
 
+			console.log("DEBUG: Saving game result", {
+				gameData,
+			});
 			const response = await fetch(`${API_BASE_URL}/games/save-result`, {
 				method: "POST",
 				headers: {
@@ -463,8 +601,10 @@ export const loadPlayPage = async (): Promise<void> => {
 		// Update right player name for single player modes
 		if (!isMultiplayer) {
 			rightPlayerName = "Bot";
-			getElement<HTMLElement>("bot-username").textContent =
-				rightPlayerName;
+			const botUsernameElement = getElementSafe<HTMLElement>("bot-username");
+			if (botUsernameElement) {
+				botUsernameElement.textContent = rightPlayerName;
+			}
 		}
 	}
 
@@ -476,32 +616,74 @@ export const loadPlayPage = async (): Promise<void> => {
 		ws = new WebSocket(wsUrl);
 
 		ws.onopen = () => {
-			console.log("Connected to game WebSocket");
+			console.log("DEBUG: Connected to game WebSocket");
+			// Don't allow game to start until both players are ready
+			gameStarted = false;
+			showPressSpace = false; // Hide press space until both players are ready
 		};
 
 		ws.onmessage = (event) => {
 			try {
 				const data = JSON.parse(event.data);
+				console.log("DEBUG: Received WebSocket message:", data);
+
+				if (data.type === "waitingForOpponent") {
+					console.log("DEBUG: Waiting for opponent to connect...");
+					// Show waiting message to player
+					const waitingOverlay = document.createElement("div");
+					waitingOverlay.id = "waitingOverlay";
+					waitingOverlay.innerHTML = `
+						<div class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+							<div class="bg-[#001B26] border-4 border-[#4CF190] rounded-xl p-8 flex flex-col items-center shadow-2xl">
+								<span class="text-2xl font-bold text-[#4CF190] mb-4">Waiting for opponent...</span>
+								<div class="loader"></div>
+							</div>
+						</div>
+					`;
+					document.body.appendChild(waitingOverlay);
+					return;
+				}
 
 				if (data.type === "gameReady") {
+					console.log("DEBUG: Game ready, both players connected");
+					// Remove waiting overlay if it exists
+					const waitingOverlay =
+						document.getElementById("waitingOverlay");
+					if (waitingOverlay) {
+						document.body.removeChild(waitingOverlay);
+					}
+
 					playerSide = data.yourSide;
 					// Store player IDs for saving game results
 					leftPlayerId = data.leftPlayerId;
 					rightPlayerId = data.rightPlayerId;
 
+					console.log("DEBUG: gameReady set variables:", {
+						playerSide,
+						leftPlayerId,
+						rightPlayerId,
+						isMultiplayer,
+					});
+
 					// Set multiplayer flag if we have both player IDs
 					if (leftPlayerId && rightPlayerId) {
 						isMultiplayer = true;
+						console.log("DEBUG: isMultiplayer set to true");
 					}
 
 					// Set player names consistently - left panel = left player, right panel = right player
 					if (data.leftPlayerName && data.rightPlayerName) {
 						leftPlayerName = data.leftPlayerName;
 						rightPlayerName = data.rightPlayerName;
-						getElement<HTMLElement>("player-username").textContent =
-							leftPlayerName;
-						getElement<HTMLElement>("bot-username").textContent =
-							rightPlayerName;
+						const playerUsernameElement = getElementSafe<HTMLElement>("player-username");
+						const botUsernameElement = getElementSafe<HTMLElement>("bot-username");
+						
+						if (playerUsernameElement) {
+							playerUsernameElement.textContent = leftPlayerName;
+						}
+						if (botUsernameElement) {
+							botUsernameElement.textContent = rightPlayerName;
+						}
 
 						// Fetch profile data for both players (only for avatars)
 						if (data.leftPlayerId && data.rightPlayerId) {
@@ -623,14 +805,13 @@ export const loadPlayPage = async (): Promise<void> => {
 												);
 											// Set left player avatar with preloaded/validated URL
 											const leftPanelAvatar =
-												getElement<HTMLImageElement>(
+												getElementSafe<HTMLImageElement>(
 													"player-avatar"
 												);
-											if (leftResult) {
-												leftPanelAvatar.src =
-													leftResult.src;
+											if (leftPanelAvatar && leftResult) {
+												leftPanelAvatar.src = leftResult.src;
+												leftPanelAvatar.style.display = "";
 											}
-											leftPanelAvatar.style.display = "";
 											// Set right player avatar with preloaded/validated URL
 											const rightAvatar =
 												document.querySelector(
@@ -644,12 +825,14 @@ export const loadPlayPage = async (): Promise<void> => {
 													: "Player";
 											} else if (rightResult) {
 												const botBanner =
-													getElement("bot-banner");
-												const username = rightProfile
-													? rightProfile.username
-													: "Player";
-												const avatarImg = `<img src="${rightResult.src}" alt="${username}" class="w-24 h-24 rounded" />`;
-												botBanner.innerHTML = avatarImg;
+													getElementSafe("bot-banner");
+												if (botBanner) {
+													const username = rightProfile
+														? rightProfile.username
+														: "Player";
+													const avatarImg = `<img src="${rightResult.src}" alt="${username}" class="w-24 h-24 rounded" />`;
+													botBanner.innerHTML = avatarImg;
+												}
 											}
 
 											// Update styling after all data is loaded
@@ -658,13 +841,14 @@ export const loadPlayPage = async (): Promise<void> => {
 											// Final verification
 											setTimeout(() => {
 												const leftAvatar =
-													getElement<HTMLImageElement>(
+													getElementSafe<HTMLImageElement>(
 														"player-avatar"
 													);
 												const rightAvatar =
 													document.querySelector(
 														"#bot-banner img"
 													) as HTMLImageElement;
+												// Verification completed
 											}, 100);
 										}
 									);
@@ -689,7 +873,16 @@ export const loadPlayPage = async (): Promise<void> => {
 					gameStarted = data.gameState.gameStarted;
 					winner = data.gameState.winner;
 
+					// Now that both players are connected, allow game to start
+					if (!gameStarted && !winner && !hasGameStartedOnce) {
+						showPressSpace = true;
+					}
+
 					updateScoreDisplay();
+					console.log(
+						"DEBUG: Game ready complete, playerSide:",
+						playerSide
+					);
 				} else if (data.type === "paddleUpdate") {
 					if (data.side === "left") {
 						leftY = data.y;
@@ -710,11 +903,26 @@ export const loadPlayPage = async (): Promise<void> => {
 					winner = data.winner;
 					updateScoreDisplay();
 
+					console.log("DEBUG: scoreUpdate received:", {
+						leftScore,
+						rightScore,
+						winner,
+						isMultiplayer,
+						gameMode,
+						leftPlayerId,
+						rightPlayerId,
+						playerSide,
+					});
+
 					if (winner) {
 						setBannerGlow(winner);
 						showWinnerModal(winner);
 						gameStarted = false;
 						// Save game result to database
+						console.log(
+							"DEBUG: Calling savePvPGameResult from scoreUpdate with winner:",
+							winner
+						);
 						savePvPGameResult().catch((error) => {
 							console.error("Error saving game result:", error);
 						});
@@ -723,10 +931,24 @@ export const loadPlayPage = async (): Promise<void> => {
 					// Opponent left the game
 					winner = data.winner;
 					gameStarted = false;
+
+					console.log("DEBUG: opponentLeft received:", {
+						winner,
+						isMultiplayer,
+						gameMode,
+						leftPlayerId,
+						rightPlayerId,
+						playerSide,
+					});
+
 					if (winner) {
 						setBannerGlow(winner);
 						showWinnerModal(winner);
 						// Save game result to database
+						console.log(
+							"DEBUG: Calling savePvPGameResult from opponentLeft with winner:",
+							winner
+						);
 						savePvPGameResult().catch((error) => {
 							console.error("Error saving game result:", error);
 						});
@@ -743,8 +965,23 @@ export const loadPlayPage = async (): Promise<void> => {
 			}
 		};
 
-		ws.onclose = () => {
-			console.log("WebSocket connection closed");
+		ws.onclose = (event) => {
+			console.log("DEBUG: WebSocket connection closed", event);
+
+			// Remove waiting overlay if it exists
+			const waitingOverlay = document.getElementById("waitingOverlay");
+			if (waitingOverlay) {
+				document.body.removeChild(waitingOverlay);
+			}
+
+			// Check if this was an error closure
+			if (event.code === 4000) {
+				alert("Game room is full. Please try again.");
+				window.dispatchEvent(new Event("loadMenuPage"));
+			} else if (event.code === 4001) {
+				alert("Invalid game session. Please try again.");
+				window.dispatchEvent(new Event("loadMenuPage"));
+			}
 		};
 
 		ws.onerror = (error) => {
@@ -1010,6 +1247,11 @@ export const loadPlayPage = async (): Promise<void> => {
 			rightScore++;
 			updateScoreDisplay();
 
+			console.log("DEBUG: Right player scored, new score:", {
+				leftScore,
+				rightScore,
+			});
+
 			if (rightScore >= 5) {
 				winner = "right";
 				setBannerGlow("right");
@@ -1018,11 +1260,22 @@ export const loadPlayPage = async (): Promise<void> => {
 				}
 				showWinnerModal("right");
 				gameStarted = false;
+				console.log(
+					"DEBUG: Right player won locally, calling savePvPGameResult"
+				);
+
+				// Call save function for local wins too
+				if (isMultiplayer || gameMode === "tournament") {
+					savePvPGameResult().catch((error) => {
+						console.error("Error saving game result:", error);
+					});
+				}
 			} else {
 				resetBall();
 			}
 
 			if (isMultiplayer && ws && playerSide === "left") {
+				console.log("DEBUG: Sending scoreUpdate to WebSocket");
 				ws.send(
 					JSON.stringify({
 						type: "scoreUpdate",
@@ -1039,6 +1292,11 @@ export const loadPlayPage = async (): Promise<void> => {
 			leftScore++;
 			updateScoreDisplay();
 
+			console.log("DEBUG: Left player scored, new score:", {
+				leftScore,
+				rightScore,
+			});
+
 			if (leftScore >= 5) {
 				winner = "left";
 				setBannerGlow("left");
@@ -1047,11 +1305,22 @@ export const loadPlayPage = async (): Promise<void> => {
 				}
 				showWinnerModal("left");
 				gameStarted = false;
+				console.log(
+					"DEBUG: Left player won locally, calling savePvPGameResult"
+				);
+
+				// Call save function for local wins too
+				if (isMultiplayer || gameMode === "tournament") {
+					savePvPGameResult().catch((error) => {
+						console.error("Error saving game result:", error);
+					});
+				}
 			} else {
 				resetBall();
 			}
 
 			if (isMultiplayer && ws && playerSide === "left") {
+				console.log("DEBUG: Sending scoreUpdate to WebSocket");
 				ws.send(
 					JSON.stringify({
 						type: "scoreUpdate",
@@ -1139,7 +1408,20 @@ export const loadPlayPage = async (): Promise<void> => {
 			ctx.fillStyle = "#fff";
 			ctx.font = "bold 28px Arial";
 			ctx.textAlign = "left";
-			ctx.fillText("Press SPACE to start", 20, fieldHeight - 30);
+
+			// Show different messages based on game state
+			if (isMultiplayer && (!leftPlayerId || !rightPlayerId)) {
+				ctx.fillText("Waiting for opponent...", 20, fieldHeight - 30);
+			} else if (isMultiplayer && playerSide !== "left") {
+				ctx.fillText(
+					"Waiting for host to start...",
+					20,
+					fieldHeight - 30
+				);
+			} else {
+				ctx.fillText("Press SPACE to start", 20, fieldHeight - 30);
+			}
+
 			ctx.fillText("Controls: w s", 20, 50);
 			ctx.restore();
 		}
@@ -1183,7 +1465,8 @@ export const loadPlayPage = async (): Promise<void> => {
 		}
 	});
 
-	// Initialize scores and ball
+	// Initialize scores and ball - wait for DOM to be ready
+	await new Promise(resolve => setTimeout(resolve, 50));
 	leftScore = 0;
 	rightScore = 0;
 	updateScoreDisplay();
