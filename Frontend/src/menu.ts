@@ -412,6 +412,7 @@ export const loadMenuPage = async (): Promise<void> => {
 				name: string;
 				PLAYER_COUNT: number;
 				max_players: number;
+				status?: string;
 			}[] = [];
 			try {
 				const res = await fetch(`${API_BASE_URL}/tournaments`, {
@@ -427,7 +428,10 @@ export const loadMenuPage = async (): Promise<void> => {
 							tournament_id: number;
 							PLAYER_COUNT: number;
 							max_players: number;
-						}) => t.PLAYER_COUNT <= t.max_players
+							status?: string;
+						}) =>
+							t.PLAYER_COUNT <= t.max_players &&
+							t.status !== "completed"
 					);
 				}
 			} catch (e) {
