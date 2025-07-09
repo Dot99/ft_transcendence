@@ -406,8 +406,6 @@ export const loadPlayPage = async (): Promise<void> => {
 			} else if (winner === "right") {
 				winnerId = rightPlayerId;
 			}
-			// If winner is null, it's a tie (though pong typically doesn't have ties)
-
 			const gameData = {
 				player1: leftPlayerId,
 				player2: rightPlayerId,
@@ -651,7 +649,6 @@ export const loadPlayPage = async (): Promise<void> => {
 								});
 						}
 					}
-
 					// Update game state
 					leftY = data.gameState.leftY;
 					rightY = data.gameState.rightY;
@@ -695,7 +692,7 @@ export const loadPlayPage = async (): Promise<void> => {
 						});
 					}
 				} else if (data.type === "opponentLeft") {
-					// Opponent left the game - you win!
+					// Opponent left the game
 					winner = data.winner;
 					gameStarted = false;
 					if (winner) {
@@ -775,7 +772,6 @@ export const loadPlayPage = async (): Promise<void> => {
 				})
 			);
 		}
-
 		// Clean up matchmaking status on the backend
 		try {
 			await fetch(`${API_BASE_URL}/users/matchmaking/leave`, {
@@ -805,7 +801,6 @@ export const loadPlayPage = async (): Promise<void> => {
 
 		// Clean up any remaining window data
 		delete (window as any).gameData;
-
 		window.dispatchEvent(new Event("loadMenuPage"));
 	});
 
@@ -841,8 +836,6 @@ export const loadPlayPage = async (): Promise<void> => {
 		gameStarted = false;
 		winner = null;
 		showPressSpace = true;
-
-		// Reset AI state (important!)
 		lastBotUpdate = 0;
 	}
 
@@ -855,28 +848,6 @@ export const loadPlayPage = async (): Promise<void> => {
 	) {
 		ctx.beginPath();
 		ctx.rect(x, y, w, h);
-		ctx.closePath();
-		ctx.fill();
-	}
-
-	function roundRect(
-		ctx: CanvasRenderingContext2D,
-		x: number,
-		y: number,
-		w: number,
-		h: number,
-		r: number
-	) {
-		ctx.beginPath();
-		ctx.moveTo(x + r, y);
-		ctx.lineTo(x + w - r, y);
-		ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-		ctx.lineTo(x + w, y + h - r);
-		ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-		ctx.lineTo(x + r, y + h);
-		ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-		ctx.lineTo(x, y + r);
-		ctx.quadraticCurveTo(x, y, x + r, y);
 		ctx.closePath();
 		ctx.fill();
 	}
@@ -922,7 +893,6 @@ export const loadPlayPage = async (): Promise<void> => {
 				}
 			}
 		} else {
-			// Single player mode - both players can use their controls
 			if (keys.w) leftY -= paddleSpeed;
 			if (keys.s) leftY += paddleSpeed;
 			leftY = Math.max(0, Math.min(fieldHeight - paddleHeight, leftY));
@@ -954,9 +924,6 @@ export const loadPlayPage = async (): Promise<void> => {
 					Math.min(fieldHeight - paddleHeight, rightY)
 				);
 			}
-			// Note: No local PvP mode - only AI or multiplayer
-
-			// Update old positions for single player
 			leftYOld = leftY;
 			rightYOld = rightY;
 		}
@@ -1015,7 +982,7 @@ export const loadPlayPage = async (): Promise<void> => {
 			rightScore++;
 			updateScoreDisplay();
 
-			if (rightScore >= 3) {
+			if (rightScore >= 5) {
 				winner = "right";
 				setBannerGlow("right");
 				if (!isMultiplayer) {
@@ -1044,7 +1011,7 @@ export const loadPlayPage = async (): Promise<void> => {
 			leftScore++;
 			updateScoreDisplay();
 
-			if (leftScore >= 3) {
+			if (leftScore >= 5) {
 				winner = "left";
 				setBannerGlow("left");
 				if (playerUsername && playerUsername !== "Player") {
@@ -1177,23 +1144,13 @@ export const loadPlayPage = async (): Promise<void> => {
 	window.addEventListener("keydown", (e) => {
 		if (paused) return; // Don't process any keys when game is paused
 		if (e.code === "Space") startGame();
-		if (
-			e.key === "w" ||
-			e.key === "s" ||
-			e.key === "ArrowUp" ||
-			e.key === "ArrowDown"
-		) {
+		if (e.key === "w" || e.key === "s") {
 			keys[e.key] = true;
 		}
 	});
 	window.addEventListener("keyup", (e) => {
 		if (paused) return; // Don't process any keys when game is paused
-		if (
-			e.key === "w" ||
-			e.key === "s" ||
-			e.key === "ArrowUp" ||
-			e.key === "ArrowDown"
-		) {
+		if (e.key === "w" || e.key === "s") {
 			keys[e.key] = false;
 		}
 	});
