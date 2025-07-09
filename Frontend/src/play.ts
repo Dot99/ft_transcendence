@@ -14,6 +14,10 @@ const getElement = <T extends HTMLElement>(id: string): T => {
 };
 
 export const loadPlayPage = async (): Promise<void> => {
+	console.log(
+		"[PLAY] loadPlayPage called. window.gameData:",
+		(window as any).gameData
+	);
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = playTemplate;
 	let playerUsername = "Player";
@@ -197,6 +201,7 @@ export const loadPlayPage = async (): Promise<void> => {
 			gameData.type === "friend_invite"
 		) {
 			gameMode = "multiplayer";
+			isMultiplayer = true;
 			opponentUsername = gameData.opponentUsername;
 			gameIdFromData = gameData.gameId;
 			// Clear the data after use
@@ -210,6 +215,16 @@ export const loadPlayPage = async (): Promise<void> => {
 		}
 	}
 
+	if (!gameData && window.location.search.includes("gameId=")) {
+		const params = new URLSearchParams(window.location.search);
+		const gameIdParam = params.get("gameId");
+		if (gameIdParam) {
+			gameMode = "multiplayer";
+			isMultiplayer = true;
+			gameIdFromData = gameIdParam;
+		}
+	}
+
 	// Set initial display names
 	if (gameMode === "ai") {
 		rightPlayerName = "Bot";
@@ -220,11 +235,12 @@ export const loadPlayPage = async (): Promise<void> => {
 	await loadCurrentUserCustomization();
 
 	if (opponentUsername && gameIdFromData) {
-		isMultiplayer = true;
 		gameId = gameIdFromData;
 		opponentDisplayName = opponentUsername;
-
-		// Connect to WebSocket for multiplayer game
+		connectToGame();
+	} else if (gameIdFromData) {
+		gameId = gameIdFromData;
+		isMultiplayer = true;
 		connectToGame();
 	}
 
@@ -1189,10 +1205,6 @@ export const loadPlayPage = async (): Promise<void> => {
 	// Check PvP
 	if (opponentUsername) {
 		opponentDisplayName = opponentUsername;
-	}
-	if (!isMultiplayer) {
-		rightPlayerName = "Bot";
-		getElement<HTMLElement>("bot-username").textContent = rightPlayerName;
 	}
 	loop();
 };

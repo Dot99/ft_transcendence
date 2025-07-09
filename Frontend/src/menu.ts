@@ -729,7 +729,7 @@ export const loadMenuPage = async (): Promise<void> => {
 	const btnPvP = document.getElementById("btnPvP");
 	let isJoiningMatchmaking = false;
 	if (btnPvP) {
-		btnPvP.addEventListener("click", async () => {
+		const newHandler = async () => {
 			if (isJoiningMatchmaking) {
 				console.log("[FE] Already joining matchmaking, ignoring click");
 				return;
@@ -773,6 +773,7 @@ export const loadMenuPage = async (): Promise<void> => {
 			}
 			console.log("[FE] Join matchmaking response:", res.status);
 			let polling = true;
+			let hasDispatchedPlayPage = false;
 			// Cancel matchmaking
 			searchingModal
 				.querySelector("#cancelMatchmaking")
@@ -809,7 +810,8 @@ export const loadMenuPage = async (): Promise<void> => {
 					const data = await matchRes.json();
 					console.log("[FE] Matchmaking status data:", data);
 					const status = data.matchmakingStatus;
-					if (status && status.matched) {
+					if (status && status.matched && !hasDispatchedPlayPage) {
+						hasDispatchedPlayPage = true;
 						console.log(
 							"[FE] Match found! Opponent:",
 							status.opponentUsername,
@@ -825,18 +827,22 @@ export const loadMenuPage = async (): Promise<void> => {
 							gameId: status.gameId,
 						};
 						window.dispatchEvent(new Event("loadPlayPage"));
-						isJoiningMatchmaking = false;
+						return;
 					}
 				}
 			}
 			isJoiningMatchmaking = false;
-		});
+		};
+		const btnPvPClone = btnPvP.cloneNode(true) as HTMLElement;
+		btnPvP.parentNode?.replaceChild(btnPvPClone, btnPvP);
+
+		btnPvPClone.addEventListener("click", newHandler);
 	}
 };
 
-// Auto-load if routed directly
-document.addEventListener("DOMContentLoaded", () => {
+if (!(window as any)._ft_transcendence_events_registered) {
 	window.addEventListener("loadMenuPage", loadMenuPage);
 	window.addEventListener("loadProfilePage", () => loadProfilePage());
 	window.addEventListener("loadPlayPage", () => loadPlayPage());
-});
+	(window as any)._ft_transcendence_events_registered = true;
+}
