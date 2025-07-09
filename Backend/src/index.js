@@ -106,6 +106,17 @@ fastify.setErrorHandler((error, request, reply) => {
 	});
 });
 
-await fastify.listen({ port: process.env.PORT || 3000, host: "0.0.0.0" });
+const start = async () => {
+	try {
+		await fastify.listen({ port: process.env.PORT || 3000, host: "0.0.0.0" });
+		console.log(`Server listening on port ${process.env.PORT || 3000}`);
+	} catch (err) {
+		fastify.log.error(err);
+		console.error("Error starting server:", err);
+		process.exit(1);
+	}
+};
+
+start();
 
 export default fastify;
