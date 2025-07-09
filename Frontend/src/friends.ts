@@ -605,9 +605,12 @@ async function respondToInvitation(
 
 			if (accept) {
 				const data = await response.json();
-				// Navigate to play page with the game ID and opponent name
-				sessionStorage.setItem("gameId", gameId);
-				sessionStorage.setItem("pvpOpponent", data.inviterUsername);
+				// Store game data in window and navigate to play page
+				(window as any).gameData = {
+					type: "friend_invite",
+					opponentUsername: data.inviterUsername,
+					gameId: gameId,
+				};
 				window.dispatchEvent(new Event("loadPlayPage"));
 			} else {
 				showMessage("Invitation declined", "success");

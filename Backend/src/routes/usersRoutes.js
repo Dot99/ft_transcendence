@@ -491,7 +491,7 @@ export default async function (fastify, opts) {
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
 	 */
-	fastify.post("/matchmaking/join", {
+	fastify.post("/users/matchmaking/join", {
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.joinMatchmaking(request, reply),
@@ -506,7 +506,7 @@ export default async function (fastify, opts) {
 	 * @returns {Error} 500 - Internal server error
 	 * @security JWT
 	 */
-	fastify.post("/matchmaking/leave", {
+	fastify.post("/users/matchmaking/leave", {
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
 			await usersController.leaveMatchmaking(request, reply),
@@ -524,6 +524,10 @@ export default async function (fastify, opts) {
 	fastify.get("/users/matchmaking/status", {
 		preHandler: [fastify.authenticate],
 		handler: async (request, reply) =>
-			await usersController.getMatchmakingStatus(request, reply, request.lang),
+			await usersController.getMatchmakingStatus(
+				request,
+				reply,
+				request.lang
+			),
 	});
 }

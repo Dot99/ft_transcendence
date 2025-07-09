@@ -37,8 +37,8 @@ export const playTemplate = `
     <div class="absolute left-1/2 top-0 -translate-x-1/2 h-full flex flex-col items-center z-0 pointer-events-none">
       <div class="flex flex-col h-full justify-between py-2">
         ${Array(13)
-          .fill('<div class="w-1 h-8 bg-[#4CF190] mb-4 opacity-50"></div>')
-          .join("")}
+			.fill('<div class="w-1 h-8 bg-[#4CF190] mb-4 opacity-50"></div>')
+			.join("")}
       </div>
     </div>
     <canvas id="pong-canvas" width="850" height="500" class="absolute left-0 top-0 z-10"></canvas>
@@ -54,7 +54,6 @@ export const playTemplate = `
       <h2 class="text-2xl font-bold text-[#EFD671] mb-2 text-center">Winner!</h2>
       <span id="winnerUsername" class="block text-[#4CF190] text-xl font-bold mb-6 px-6 py-2"></span>
       <div class="flex gap-4 w-full justify-center">
-        <button id="playAgainBtn" class="px-6 py-2 bg-[#4CF190] text-[#001B26] rounded font-bold border-2 border-[#001B26] hover:bg-[#34c47c]">Play Again</button>
         <button id="menuBtn" class="px-6 py-2 bg-[#4CF190] text-[#001B26] rounded font-bold border-2 border-[#001B26] hover:bg-[#34c47c]">Menu</button>
       </div>
     </div>
