@@ -134,9 +134,6 @@ function translateMenuStaticTexts() {
 		.querySelector("#tournaments")
 		?.parentElement?.querySelector(".text-gray-400");
 	if (tournamentsLabel) tournamentsLabel.textContent = t("tournaments_win");
-	const leaderboardLabel = document.getElementById("leaderboardLabel");
-	if (leaderboardLabel)
-		leaderboardLabel.textContent = "🏆 " + t("leaderboard_rank");
 
 	// Chart Titles
 	const allTimeStatsTitle = document.getElementById("allTimeStatsTitle");
@@ -147,7 +144,7 @@ function translateMenuStaticTexts() {
 	if (statsPerTournamentTitle)
 		statsPerTournamentTitle.textContent = t("stats_per_tournament");
 
-	// Recent Matches, Past Tournaments, Upcoming Matches, Current Tournament
+	// Recent Matches, Past Tournaments, Upcoming Matches
 	const recentMatchesTitle = document.getElementById("recentMatchesTitle");
 	if (recentMatchesTitle)
 		recentMatchesTitle.textContent = t("recent_matches");
@@ -161,21 +158,6 @@ function translateMenuStaticTexts() {
 	);
 	if (upcomingMatchesTitle)
 		upcomingMatchesTitle.textContent = t("upcoming_matches");
-	const currentTournamentTitle = document.getElementById(
-		"currentTournamentTitle"
-	);
-	if (currentTournamentTitle)
-		currentTournamentTitle.textContent = t("current_tournament");
-
-	// Current Tournament Position
-	const currTournamentPositionLabel = document.querySelector(
-		"#currTournamentPosition"
-	)?.parentElement;
-	if (currTournamentPositionLabel) {
-		currTournamentPositionLabel.innerHTML =
-			t("position") +
-			': <span id="currTournamentPosition" class="text-[#EFD671]"></span>';
-	}
 	// === END TRANSLATE STATIC TEXTS ===
 }
 
@@ -255,7 +237,6 @@ async function loadDashboardData(): Promise<void> {
 		getElement<HTMLDivElement>("avgScore").textContent = "0";
 		getElement<HTMLDivElement>("winStreak").textContent = "0";
 		getElement<HTMLDivElement>("tournaments").textContent = "0";
-		getElement<HTMLDivElement>("leaderboard").textContent = "0";
 
 		const userId = getUserIdFromToken();
 		if (!userId) {
@@ -365,8 +346,6 @@ async function loadUserStatsAndMatches(userId: number): Promise<void> {
 				stats.win_streak_max?.toString() ?? "0";
 			getElement<HTMLDivElement>("tournaments").textContent =
 				stats.tournaments_won?.toString() ?? "0";
-			getElement<HTMLDivElement>("leaderboard").textContent =
-				stats.leaderboard_position?.toString() ?? "0";
 		}
 	} catch (error) {
 		console.error("Error loading user stats:", error);
@@ -382,10 +361,7 @@ async function loadUserStatsAndMatches(userId: number): Promise<void> {
 
 	// Load tournaments
 	try {
-		if (stats && stats.current_tournament) {
-			await loadPastTournaments(userId, stats.current_tournament);
-			await loadUpComingMatchesById(stats.current_tournament, userId);
-		}
+		await loadPastTournaments(userId, 0);
 	} catch (error) {
 		console.error(
 			"Error loading tournament data (this is expected if tournaments are not implemented):",

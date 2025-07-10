@@ -130,10 +130,6 @@ export const profileTemplate = `
                 <div id="tournaments" class="text-2xl text-[#4CF190]"></div>
             </div>
         </div>
-        <div class="bg-[rgba(76,241,144,0.05)] border-2 border-[#EFD671] p-4 rounded-lg text-center">
-            <div id="leaderboardLabel" class="text-gray-400 text-sm mb-2">🏆 Leaderboard Rank</div>
-            <div id="leaderboard" class="text-3xl text-[#EFD671]"></div>
-        </div>
     </div>
         <!-- Performance Overview as Chart -->
    <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6 mb-6">
@@ -200,22 +196,6 @@ export const profileTemplate = `
                 </div>
                 <div id="upcomingMatches" class="space-y-2 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-[#4CF190] scrollbar-track-[rgba(76,241,144,0.1)]">
                     <!-- Upcoming matches populated by JS -->
-                </div>
-            </div>
-
-            <!-- Current Tournament -->
-            <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6">
-                <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold">
-                    <h2 id="currentTournamentTitle" class="text-xl font-bold">Current Tournament</h2>
-                </div>
-                <div class="bg-[rgba(239,214,113,0.1)] border-2 border-[#EFD671] p-4 mb-4 rounded">
-                    <div id="currTournamentName" class="text-[#EFD671] text-xl mb-2"></div>
-                    <div class="text-sm text-gray-400">
-                        Position: <span id="currTournamentPosition" class="text-[#EFD671]"></span>
-                    </div>
-                </div>
-                <div id="currTournamentMatches" class="space-y-2 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-[#4CF190] scrollbar-track-[rgba(76,241,144,0.1)]">
-                    <!-- Tournament matches populated by JS -->
                 </div>
             </div>
         </div>

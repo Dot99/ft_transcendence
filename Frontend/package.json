@@ -5,7 +5,7 @@
 		"build": "tsc && cp src/index.html dist/index.html && cp -r src/images dist/images",
 		"watch": "cp src/index.html dist/index.html && cp -r src/images dist/images && tsc -w",
 		"dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-		"serve": "npm run build && http-server dist -p 3001 -a 0.0.0.0 --cors"
+		"serve": "npm run build && http-server dist -p 3001 -a 0.0.0.0 --cors -s"
 	},
 	"dependencies": {
 		"@tsconfig/recommended": "1.0.1",
