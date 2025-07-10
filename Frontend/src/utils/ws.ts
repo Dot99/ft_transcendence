@@ -72,29 +72,15 @@ export function startOnlineWebSocket() {
 			} else if (data.type === "gameInvitation") {
 				notifyInvitationListeners(data.invitation);
 			} else if (data.type === "invitationAccepted") {
-				// Handle invitation acceptance - redirect both players to game
-				console.log(
-					"DEBUG: Invitation accepted, navigating to game:",
-					data
-				);
-
 				// Check if we have pending game data (for inviter)
 				const pendingGameData = (window as any).pendingGameData;
 
 				if (pendingGameData) {
 					// This is the inviter - use the pending game data
-					console.log(
-						"DEBUG: Inviter detected, using pending game data:",
-						pendingGameData
-					);
 					(window as any).gameData = pendingGameData;
 					delete (window as any).pendingGameData;
 				} else {
 					// This is the invitee - use the data from the WebSocket message
-					console.log(
-						"DEBUG: Invitee detected, using WebSocket data:",
-						data
-					);
 					(window as any).gameData = {
 						type: "friend_invite",
 						opponentUsername: data.inviterUsername || "Unknown",

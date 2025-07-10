@@ -252,15 +252,7 @@ export const loadPlayPage = async (): Promise<void> => {
 	const gameData = (window as any).gameData;
 	let opponentUsername: string | null = null;
 	let gameIdFromData: string | null = null;
-
-	console.log("DEBUG: Play page initialization", {
-		gameData,
-		currentGameMode: gameMode,
-		currentIsMultiplayer: isMultiplayer,
-	});
-
 	if (gameData) {
-		console.log("DEBUG: gameData found", gameData);
 		if (
 			gameData.type === "matchmaking" ||
 			gameData.type === "friend_invite"
@@ -269,12 +261,6 @@ export const loadPlayPage = async (): Promise<void> => {
 			isMultiplayer = true;
 			opponentUsername = gameData.opponentUsername;
 			gameIdFromData = gameData.gameId;
-			console.log("DEBUG: Set to multiplayer mode", {
-				gameMode,
-				isMultiplayer,
-				opponentUsername,
-				gameIdFromData,
-			});
 			// Clear the data after use
 			delete (window as any).gameData;
 		} else if (gameData.type === "tournament") {
@@ -282,12 +268,6 @@ export const loadPlayPage = async (): Promise<void> => {
 			isMultiplayer = true; // Ensure tournament is always multiplayer
 			opponentUsername = gameData.opponentUsername;
 			gameIdFromData = gameData.gameId;
-			console.log("DEBUG: Set to tournament mode (multiplayer)", {
-				gameMode,
-				isMultiplayer,
-				opponentUsername,
-				gameIdFromData,
-			});
 			// Clear the data after use
 			delete (window as any).gameData;
 		}
@@ -310,7 +290,6 @@ export const loadPlayPage = async (): Promise<void> => {
 		if (botUsername) {
 			botUsername.textContent = rightPlayerName;
 		}
-		console.log("DEBUG: Set right player name to Bot (AI mode)");
 	} else if (gameMode === "multiplayer") {
 		// In multiplayer mode, set placeholder names that will be updated by WebSocket
 		if (opponentUsername) {
@@ -319,10 +298,6 @@ export const loadPlayPage = async (): Promise<void> => {
 			if (botUsername) {
 				botUsername.textContent = rightPlayerName;
 			}
-			console.log("DEBUG: Set right player name to opponent", {
-				rightPlayerName,
-				opponentUsername,
-			});
 		} else {
 			// Set placeholder name for multiplayer
 			rightPlayerName = "Opponent";
@@ -330,9 +305,6 @@ export const loadPlayPage = async (): Promise<void> => {
 			if (botUsername) {
 				botUsername.textContent = rightPlayerName;
 			}
-			console.log(
-				"DEBUG: Set right player name to placeholder (multiplayer mode)"
-			);
 		}
 	}
 
@@ -340,12 +312,6 @@ export const loadPlayPage = async (): Promise<void> => {
 	await loadCurrentUserCustomization();
 
 	if (opponentUsername && gameIdFromData) {
-		console.log("DEBUG: Connecting to game with opponent", {
-			opponentUsername,
-			gameIdFromData,
-			gameMode,
-			isMultiplayer,
-		});
 		gameId = gameIdFromData;
 		opponentDisplayName = opponentUsername;
 		// For tournaments, we need to set isMultiplayer to true
@@ -354,11 +320,6 @@ export const loadPlayPage = async (): Promise<void> => {
 		}
 		connectToGame();
 	} else if (gameIdFromData) {
-		console.log("DEBUG: Connecting to game without opponent username", {
-			gameIdFromData,
-			gameMode,
-			isMultiplayer,
-		});
 		gameId = gameIdFromData;
 		isMultiplayer = true;
 		connectToGame();
@@ -378,15 +339,6 @@ export const loadPlayPage = async (): Promise<void> => {
 		if (botUsername) {
 			botUsername.textContent = rightPlayerName;
 		}
-		console.log("DEBUG: Fell back to AI mode due to missing gameId");
-	} else {
-		console.log(
-			"DEBUG: No game data found, staying in single player mode",
-			{
-				gameMode,
-				isMultiplayer,
-			}
-		);
 	}
 
 	function setBannerGlow(winnerSide: "left" | "right" | null) {
@@ -506,16 +458,6 @@ export const loadPlayPage = async (): Promise<void> => {
 	window.refreshGameCustomization = loadCurrentUserCustomization;
 
 	function startGame() {
-		console.log("DEBUG: startGame called", {
-			gameStarted,
-			winner,
-			hasGameStartedOnce,
-			isMultiplayer,
-			playerSide,
-			leftPlayerId,
-			rightPlayerId,
-		});
-
 		if (winner) {
 			hideWinnerModal();
 			clearBannerGlow();
@@ -535,11 +477,9 @@ export const loadPlayPage = async (): Promise<void> => {
 		// In multiplayer, only left player can start the game and only when both players are connected
 		if (isMultiplayer) {
 			if (playerSide !== "left") {
-				console.log("DEBUG: Only left player can start the game");
 				return;
 			}
 			if (!leftPlayerId || !rightPlayerId) {
-				console.log("DEBUG: Both players must be connected to start");
 				return;
 			}
 		}
@@ -555,9 +495,6 @@ export const loadPlayPage = async (): Promise<void> => {
 			showPressSpace = false;
 			ballVX = ballSpeed * (Math.random() > 0.5 ? 1 : -1);
 			ballVY = ballSpeed * (Math.random() * 2 - 1);
-
-			console.log("DEBUG: Game started", { ballVX, ballVY });
-
 			// Send ball update to sync game start
 			if (isMultiplayer && ws && playerSide === "left") {
 				ws.send(
@@ -625,18 +562,6 @@ export const loadPlayPage = async (): Promise<void> => {
 
 	// Function to save PvP game results to the database
 	async function savePvPGameResult() {
-		console.log("DEBUG: savePvPGameResult called with state:", {
-			isMultiplayer,
-			gameMode,
-			leftPlayerId,
-			rightPlayerId,
-			playerSide,
-			winner,
-			leftScore,
-			rightScore,
-			gameId,
-		});
-
 		// Only save results for multiplayer games and tournaments and only if we're the left player (host)
 		if (
 			(!isMultiplayer && gameMode !== "tournament") ||
@@ -644,20 +569,6 @@ export const loadPlayPage = async (): Promise<void> => {
 			!rightPlayerId ||
 			playerSide !== "left"
 		) {
-			console.log(
-				"DEBUG: savePvPGameResult returning early due to conditions:",
-				{
-					isMultiplayer,
-					gameMode,
-					leftPlayerId,
-					rightPlayerId,
-					playerSide,
-					condition1: !isMultiplayer && gameMode !== "tournament",
-					condition2: !leftPlayerId,
-					condition3: !rightPlayerId,
-					condition4: playerSide !== "left",
-				}
-			);
 			return;
 		}
 
@@ -683,10 +594,6 @@ export const loadPlayPage = async (): Promise<void> => {
 				winner: winnerId,
 				gameId: gameId,
 			};
-
-			console.log("DEBUG: Saving game result", {
-				gameData,
-			});
 			const response = await fetch(`${API_BASE_URL}/games/save-result`, {
 				method: "POST",
 				headers: {
@@ -718,22 +625,12 @@ export const loadPlayPage = async (): Promise<void> => {
 
 	function connectToGame() {
 		if (!gameId) return;
-		console.log("DEBUG: connectToGame called", {
-			gameId,
-			isMultiplayer,
-			gameMode,
-		});
 		const wsUrl = `${WS_BASE_URL}/api/ws?token=${getCookie(
 			"jwt"
 		)}&gameId=${gameId}`;
 		ws = new WebSocket(wsUrl);
 
 		ws.onopen = () => {
-			console.log("DEBUG: Connected to game WebSocket", {
-				gameId,
-				isMultiplayer,
-				gameMode,
-			});
 			// Don't allow game to start until both players are ready
 			gameStarted = false;
 			showPressSpace = false; // Hide press space until both players are ready
@@ -742,10 +639,7 @@ export const loadPlayPage = async (): Promise<void> => {
 		ws.onmessage = (event) => {
 			try {
 				const data = JSON.parse(event.data);
-				console.log("DEBUG: Received WebSocket message:", data);
-
 				if (data.type === "waitingForOpponent") {
-					console.log("DEBUG: Waiting for opponent to connect...");
 					// Show waiting message to player
 					const waitingOverlay = document.createElement("div");
 					waitingOverlay.id = "waitingOverlay";
@@ -762,9 +656,6 @@ export const loadPlayPage = async (): Promise<void> => {
 				}
 
 				if (data.type === "gameReady") {
-					console.log("DEBUG: Game ready, both players connected");
-					console.log("DEBUG: Game ready data:", data);
-
 					// Remove waiting overlay if it exists
 					const waitingOverlay =
 						document.getElementById("waitingOverlay");
@@ -777,22 +668,10 @@ export const loadPlayPage = async (): Promise<void> => {
 					leftPlayerId = data.leftPlayerId;
 					rightPlayerId = data.rightPlayerId;
 
-					console.log("DEBUG: gameReady set variables:", {
-						playerSide,
-						leftPlayerId,
-						rightPlayerId,
-						isMultiplayer,
-						gameMode,
-					});
-
 					// Set multiplayer flag if we have both player IDs
 					if (leftPlayerId && rightPlayerId) {
 						isMultiplayer = true;
 						gameMode = "multiplayer"; // Ensure gameMode is set to multiplayer
-						console.log("DEBUG: Confirmed multiplayer mode", {
-							isMultiplayer,
-							gameMode,
-						});
 					}
 
 					// Set player names consistently - left panel = left player, right panel = right player
@@ -1011,18 +890,6 @@ export const loadPlayPage = async (): Promise<void> => {
 					}
 
 					updateScoreDisplay();
-					console.log(
-						"DEBUG: Game ready complete, playerSide:",
-						playerSide
-					);
-					console.log("DEBUG: Final game state after gameReady:", {
-						gameMode,
-						isMultiplayer,
-						leftPlayerName,
-						rightPlayerName,
-						leftPlayerId,
-						rightPlayerId,
-					});
 				} else if (data.type === "paddleUpdate") {
 					if (data.side === "left") {
 						leftY = data.y;
@@ -1042,27 +909,10 @@ export const loadPlayPage = async (): Promise<void> => {
 					rightScore = data.rightScore;
 					winner = data.winner;
 					updateScoreDisplay();
-
-					console.log("DEBUG: scoreUpdate received:", {
-						leftScore,
-						rightScore,
-						winner,
-						isMultiplayer,
-						gameMode,
-						leftPlayerId,
-						rightPlayerId,
-						playerSide,
-					});
-
 					if (winner) {
 						setBannerGlow(winner);
 						showWinnerModal(winner);
 						gameStarted = false;
-						// Save game result to database
-						console.log(
-							"DEBUG: Calling savePvPGameResult from scoreUpdate with winner:",
-							winner
-						);
 						savePvPGameResult().catch((error) => {
 							console.error("Error saving game result:", error);
 						});
@@ -1072,23 +922,9 @@ export const loadPlayPage = async (): Promise<void> => {
 					winner = data.winner;
 					gameStarted = false;
 
-					console.log("DEBUG: opponentLeft received:", {
-						winner,
-						isMultiplayer,
-						gameMode,
-						leftPlayerId,
-						rightPlayerId,
-						playerSide,
-					});
-
 					if (winner) {
 						setBannerGlow(winner);
 						showWinnerModal(winner);
-						// Save game result to database
-						console.log(
-							"DEBUG: Calling savePvPGameResult from opponentLeft with winner:",
-							winner
-						);
 						savePvPGameResult().catch((error) => {
 							console.error("Error saving game result:", error);
 						});
@@ -1106,8 +942,6 @@ export const loadPlayPage = async (): Promise<void> => {
 		};
 
 		ws.onclose = (event) => {
-			console.log("DEBUG: WebSocket connection closed", event);
-
 			// Remove waiting overlay if it exists
 			const waitingOverlay = document.getElementById("waitingOverlay");
 			if (waitingOverlay) {
@@ -1303,12 +1137,6 @@ export const loadPlayPage = async (): Promise<void> => {
 			leftY = Math.max(0, Math.min(fieldHeight - paddleHeight, leftY));
 
 			if (gameMode === "ai") {
-				console.log("DEBUG: AI mode activated", {
-					gameMode,
-					isMultiplayer,
-					leftPlayerId,
-					rightPlayerId,
-				});
 				// AI opponent logic
 				const now = Date.now();
 				if (now - lastBotUpdate >= 1000) {
@@ -1393,11 +1221,6 @@ export const loadPlayPage = async (): Promise<void> => {
 			rightScore++;
 			updateScoreDisplay();
 
-			console.log("DEBUG: Right player scored, new score:", {
-				leftScore,
-				rightScore,
-			});
-
 			if (rightScore >= 5) {
 				winner = "right";
 				setBannerGlow("right");
@@ -1406,10 +1229,6 @@ export const loadPlayPage = async (): Promise<void> => {
 				}
 				showWinnerModal("right");
 				gameStarted = false;
-				console.log(
-					"DEBUG: Right player won locally, calling savePvPGameResult"
-				);
-
 				// Call save function for local wins too
 				if (isMultiplayer) {
 					savePvPGameResult().catch((error) => {
@@ -1421,7 +1240,6 @@ export const loadPlayPage = async (): Promise<void> => {
 			}
 
 			if (isMultiplayer && ws && playerSide === "left") {
-				console.log("DEBUG: Sending scoreUpdate to WebSocket");
 				ws.send(
 					JSON.stringify({
 						type: "scoreUpdate",
@@ -1437,12 +1255,6 @@ export const loadPlayPage = async (): Promise<void> => {
 		if (ballX + ballWidth > fieldWidth && !winner) {
 			leftScore++;
 			updateScoreDisplay();
-
-			console.log("DEBUG: Left player scored, new score:", {
-				leftScore,
-				rightScore,
-			});
-
 			if (leftScore >= 5) {
 				winner = "left";
 				setBannerGlow("left");
@@ -1451,10 +1263,6 @@ export const loadPlayPage = async (): Promise<void> => {
 				}
 				showWinnerModal("left");
 				gameStarted = false;
-				console.log(
-					"DEBUG: Left player won locally, calling savePvPGameResult"
-				);
-
 				// Call save function for local wins too
 				if (isMultiplayer) {
 					savePvPGameResult().catch((error) => {

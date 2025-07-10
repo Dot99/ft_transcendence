@@ -100,30 +100,16 @@ export default async function (fastify) {
 
 			// If gameId is provided, add to game room
 			if (gameId) {
-				console.log(
-					"DEBUG: User",
-					userId,
-					"connecting to game",
-					gameId
-				);
-
 				// For multiplayer games, validate the gameId
 				if (gameId.startsWith("game_")) {
 					const isValid = await isValidGameId(gameId);
 					if (!isValid) {
-						console.log(
-							"DEBUG: Invalid game ID",
-							gameId,
-							"for user",
-							userId
-						);
 						connection.close(4001, "Invalid game ID");
 						return;
 					}
 				}
 
 				if (!gameRooms.has(gameId)) {
-					console.log("DEBUG: Creating new game room for", gameId);
 					gameRooms.set(gameId, {
 						player1: null,
 						player2: null,
@@ -143,11 +129,6 @@ export default async function (fastify) {
 				}
 
 				const room = gameRooms.get(gameId);
-				console.log("DEBUG: Current room state:", {
-					player1: room.player1 ? room.player1.userId : null,
-					player2: room.player2 ? room.player2.userId : null,
-				});
-
 				// Get user info from database
 				const userResult = await getUserById(userId);
 				const username = userResult.success
@@ -157,19 +138,9 @@ export default async function (fastify) {
 				// Check if user is already in the room (reconnection)
 				let isReconnection = false;
 				if (room.player1 && room.player1.userId === userId) {
-					console.log(
-						"DEBUG: User",
-						userId,
-						"reconnecting as player1"
-					);
 					room.player1.connection = connection;
 					isReconnection = true;
 				} else if (room.player2 && room.player2.userId === userId) {
-					console.log(
-						"DEBUG: User",
-						userId,
-						"reconnecting as player2"
-					);
 					room.player2.connection = connection;
 					isReconnection = true;
 				}
@@ -177,11 +148,6 @@ export default async function (fastify) {
 				// If not reconnection, add as new player
 				if (!isReconnection) {
 					if (!room.player1) {
-						console.log(
-							"DEBUG: Adding user",
-							userId,
-							"as player1 (left)"
-						);
 						room.player1 = {
 							connection,
 							userId,
@@ -189,11 +155,6 @@ export default async function (fastify) {
 							username,
 						};
 					} else if (!room.player2) {
-						console.log(
-							"DEBUG: Adding user",
-							userId,
-							"as player2 (right)"
-						);
 						room.player2 = {
 							connection,
 							userId,
@@ -201,11 +162,6 @@ export default async function (fastify) {
 							username,
 						};
 					} else {
-						console.log(
-							"DEBUG: Game room",
-							gameId,
-							"is full, rejecting connection"
-						);
 						connection.close(4000, "Game room is full");
 						return;
 					}
@@ -213,10 +169,6 @@ export default async function (fastify) {
 
 				// Only notify players when both are connected
 				if (room.player1 && room.player2) {
-					console.log(
-						"DEBUG: Both players connected, sending gameReady messages"
-					);
-
 					// Send individual messages to each player with their correct side and player names
 					const readyMessageLeft = JSON.stringify({
 						type: "gameReady",
@@ -257,9 +209,6 @@ export default async function (fastify) {
 						);
 					}
 				} else {
-					console.log(
-						"DEBUG: Waiting for second player to connect..."
-					);
 					// Send a waiting message to the connected player
 					const waitingMessage = JSON.stringify({
 						type: "waitingForOpponent",
@@ -390,10 +339,6 @@ export default async function (fastify) {
 									gameId,
 									"en"
 								);
-								console.log(
-									"Tournament result processed:",
-									result
-								);
 							} catch (error) {
 								console.error(
 									"Error processing tournament result:",
@@ -439,10 +384,6 @@ export default async function (fastify) {
 										gameData,
 										gameId,
 										"en"
-									);
-									console.log(
-										"Tournament result processed (give up):",
-										result
 									);
 								} catch (error) {
 									console.error(
@@ -536,10 +477,6 @@ export default async function (fastify) {
 								gameData,
 								gameId,
 								"en"
-							);
-							console.log(
-								"Tournament result processed (disconnect):",
-								result
 							);
 						} catch (error) {
 							console.error(

@@ -361,8 +361,6 @@ async function loadUserStatsAndMatches(userId: number): Promise<void> {
 
 	// Load tournaments - check for both current tournament and active tournaments
 	try {
-		console.log("Fetching tournament and matches data...");
-
 		// Always try to load past tournaments first
 		await loadPastTournaments(userId, null);
 
@@ -626,7 +624,6 @@ async function loadUpComingMatchesById(
 
 		const tournament = await tournamentRes.json();
 		const data = await matchesRes.json();
-		console.log("Upcoming matches data:", data);
 
 		const container = getElement<HTMLDivElement>("upcomingMatches");
 		container.innerHTML = "";

@@ -386,7 +386,6 @@ async function inviteToGame(): Promise<void> {
 
 		if (response.ok) {
 			const data = await response.json();
-			console.log("DEBUG: Invitation creation response:", data);
 			showMessage(
 				"Game invitation sent! Waiting for opponent to accept...",
 				"success"
@@ -394,15 +393,6 @@ async function inviteToGame(): Promise<void> {
 
 			// Store the invitation data for when the invitee accepts
 			if (data.invitation && data.invitation.match_id) {
-				console.log(
-					"DEBUG: Storing gameData for inviter (waiting for acceptance):",
-					{
-						type: "friend_invite",
-						opponentUsername: selectedFriendName,
-						gameId: data.invitation.match_id,
-						isInviter: true,
-					}
-				);
 				// Store game data in window for when the invitation is accepted
 				(window as any).pendingGameData = {
 					type: "friend_invite",
@@ -410,11 +400,6 @@ async function inviteToGame(): Promise<void> {
 					gameId: data.invitation.match_id,
 					isInviter: true,
 				};
-
-				// Don't navigate to play page immediately - wait for acceptance
-				console.log(
-					"DEBUG: Inviter waiting for invitee to accept invitation"
-				);
 			} else {
 				console.warn(
 					"DEBUG: No match_id found in invitation response",
@@ -629,13 +614,9 @@ async function respondToInvitation(
 
 			if (accept) {
 				const data = await response.json();
-				console.log("DEBUG: Invitation response data:", data);
-
 				// Extract game ID from response - try different possible field names
 				const actualGameId =
 					data.gameId || data.game_id || data.id || gameId;
-				console.log("DEBUG: Using game ID:", actualGameId);
-
 				// Store game data in window and navigate to play page
 				(window as any).gameData = {
 					type: "friend_invite",
