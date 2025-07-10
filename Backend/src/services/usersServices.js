@@ -407,22 +407,36 @@ export function acceptFriendRequest(userId, friendId, lang = "en") {
 
 export function deleteFriend(userId, friendId, lang = "en") {
 	return new Promise((resolve, reject) => {
-		db.run(
-			"DELETE FROM friends WHERE user_id = ? AND friend_id = ?",
-			[userId, friendId],
-			function (err) {
-				if (err) {
-					return reject(err);
+		db.serialize(() => {
+			// Delete both directions of the friendship
+			db.run(
+				"DELETE FROM friends WHERE user_id = ? AND friend_id = ?",
+				[userId, friendId],
+				function (err) {
+					if (err) {
+						return reject(err);
+					}
+					// Delete the reverse direction
+					db.run(
+						"DELETE FROM friends WHERE user_id = ? AND friend_id = ?",
+						[friendId, userId],
+						function (err2) {
+							if (err2) {
+								return reject(err2);
+							}
+							// Check if at least one deletion occurred
+							if (this.changes === 0) {
+								return resolve({
+									success: false,
+									message: messages[lang].failRemoveFriend,
+								});
+							}
+							resolve({ success: true });
+						}
+					);
 				}
-				if (this.changes === 0) {
-					return resolve({
-						success: false,
-						message: messages[lang].failRemoveFriend,
-					});
-				}
-				resolve({ success: true });
-			}
-		);
+			);
+		});
 	});
 }
 
