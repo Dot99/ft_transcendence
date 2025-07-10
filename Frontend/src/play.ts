@@ -279,10 +279,12 @@ export const loadPlayPage = async (): Promise<void> => {
 			delete (window as any).gameData;
 		} else if (gameData.type === "tournament") {
 			gameMode = "tournament";
+			isMultiplayer = true; // Ensure tournament is always multiplayer
 			opponentUsername = gameData.opponentUsername;
 			gameIdFromData = gameData.gameId;
-			console.log("DEBUG: Set to tournament mode", {
+			console.log("DEBUG: Set to tournament mode (multiplayer)", {
 				gameMode,
+				isMultiplayer,
 				opponentUsername,
 				gameIdFromData,
 			});
@@ -1409,7 +1411,7 @@ export const loadPlayPage = async (): Promise<void> => {
 				);
 
 				// Call save function for local wins too
-				if (isMultiplayer || gameMode === "tournament") {
+				if (isMultiplayer) {
 					savePvPGameResult().catch((error) => {
 						console.error("Error saving game result:", error);
 					});
@@ -1454,7 +1456,7 @@ export const loadPlayPage = async (): Promise<void> => {
 				);
 
 				// Call save function for local wins too
-				if (isMultiplayer || gameMode === "tournament") {
+				if (isMultiplayer) {
 					savePvPGameResult().catch((error) => {
 						console.error("Error saving game result:", error);
 					});
