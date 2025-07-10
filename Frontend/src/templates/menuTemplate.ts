@@ -91,53 +91,54 @@ export const menuTemplate = `
         </div>
         <!-- Tournament Popup Modal -->
         <div id="tournamentModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
-            <div class="bg-[#001B26] border-4 border-[#4CF190] rounded-xl p-8 w-full max-w-md flex flex-col items-center shadow-2xl relative">
+            <div class="bg-[#001B26] border-4 border-[#4CF190] rounded-xl p-8 w-full max-w-4xl flex flex-col items-center shadow-2xl relative max-h-[80vh] overflow-y-auto">
                 <button id="closeTournamentModal" class="absolute top-3 right-4 text-[#4CF190] text-2xl font-bold hover:text-white focus:outline-none">&times;</button>
                 <h2 class="text-2xl font-bold text-[#4CF190] mb-6">Tournaments</h2>
-                <button id="createTournament" class="w-full mb-4 bg-[#4CF190] text-[#001B26] text-lg font-semibold px-6 py-3 rounded-md border-4 border-[#001B26] shadow-[3px_3px_0_0_#001B26] hover:bg-[#34c47c] active:scale-95 transition-all duration-75">
-                    Create New Tournament
-                </button>
-                <button id="joinTournament" class="w-full bg-[#4CF190] text-[#001B26] text-lg font-semibold px-6 py-3 rounded-md border-4 border-[#001B26] shadow-[3px_3px_0_0_#001B26] hover:bg-[#34c47c] active:scale-95 transition-all duration-75">
-                    Join Tournament
-                </button>
-            </div>
-        </div>
-        <!-- Create Tournament Modal -->
-        <div id="createTournamentModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
-            <div class="bg-[#001B26] border-4 border-[#4CF190] rounded-xl p-8 w-full max-w-md flex flex-col items-center shadow-2xl relative">
-                <button id="closeCreateTournamentModal" class="absolute top-3 right-4 text-[#4CF190] text-2xl font-bold hover:text-white focus:outline-none">&times;</button>
-                <h2 class="text-2xl font-bold text-[#4CF190] mb-6">Create Tournament</h2>
-                <form id="createTournamentForm" class="w-full flex flex-col gap-4">
-                    <label class="flex flex-col gap-1">
-                        <span class="text-white font-semibold">Tournament Name</span>
-                        <input type="text" id="tournamentName" required maxlength="32" class="px-3 py-2 rounded bg-[#01222c] border-2 border-[#4CF190] text-white focus:outline-none" />
-                    </label>
-                    <div class="flex flex-col gap-1">
-                        <span class="text-white font-semibold mb-1">Number of Players</span>
-                        <div id="playerCountBtns" class="flex gap-4">
-                            <button type="button" data-value="4" class="player-count-btn bg-[#4CF190] text-[#001B26] font-bold px-4 py-2 rounded border-2 border-[#001B26] shadow ring-2 ring-[#4CF190]">4</button>
-                            <button type="button" data-value="8" class="player-count-btn bg-gray-600 text-white font-bold px-4 py-2 rounded border-2 border-gray-700 shadow">8</button>
-                        </div>
-                        <input type="hidden" id="tournamentPlayers" name="tournamentPlayers" value="4" />
-                    </div>
-                    <label class="flex flex-col gap-1">
-                        <span class="text-white font-semibold">Start Date</span>
-                        <input type="date" id="tournamentDate" required class="px-3 py-2 rounded bg-gray-600 border-2 border-[#4CF190] text-white focus:outline-none" />
-                    </label>
-                    <button type="submit" class="w-full mt-2 bg-[#4CF190] text-[#001B26] text-lg font-semibold px-6 py-3 rounded-md border-4 border-[#001B26] shadow-[3px_3px_0_0_#001B26] hover:bg-[#34c47c] active:scale-95 transition-all duration-75">
-                        Create
+                
+                <!-- Tournament Tabs -->
+                <div class="flex w-full mb-6 border-b-2 border-[#4CF190]">
+                    <button id="joinTournamentTab" class="flex-1 px-4 py-2 font-semibold text-[#4CF190] bg-[#002B36] border-r border-[#4CF190] rounded-tl-lg hover:bg-[#003544] transition-all duration-200">
+                        Join Tournament
                     </button>
-                </form>
-            </div>
-        </div>
-        <!-- Join Tournament Modal -->
-        <div id="joinTournamentModal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 hidden">
-            <div class="bg-[#001B26] border-4 border-[#4CF190] rounded-xl p-8 w-full max-w-lg flex flex-col items-center shadow-2xl relative">
-                <button id="closeJoinTournamentModal" class="absolute top-3 right-4 text-[#4CF190] text-2xl font-bold hover:text-white focus:outline-none">&times;</button>
-                <h2 class="text-2xl font-bold text-[#4CF190] mb-6">Join a Tournament</h2>
-                <ul id="tournamentList" class="w-full flex flex-col gap-4">
-                    <!-- Tournament items will be injected here -->
-                </ul>
+                    <button id="createTournamentTab" class="flex-1 px-4 py-2 font-semibold text-gray-400 hover:text-[#4CF190] bg-[#001B26] rounded-tr-lg hover:bg-[#002B36] transition-all duration-200">
+                        Create New
+                    </button>
+                </div>
+                
+                <!-- Join Tournament Content -->
+                <div id="joinTournamentContent" class="w-full">
+                    <div class="mb-4 text-center">
+                        <p class="text-[#4CF190] text-sm mb-2">Available Tournaments</p>
+                    </div>
+                    <ul id="tournamentList" class="w-full flex flex-col gap-4 max-h-96 overflow-y-auto">
+                        <!-- Tournament items will be injected here -->
+                    </ul>
+                </div>
+                
+                <!-- Create Tournament Content -->
+                <div id="createTournamentContent" class="w-full hidden">
+                    <form id="createTournamentForm" class="w-full flex flex-col gap-4">
+                        <label class="flex flex-col gap-1">
+                            <span class="text-white font-semibold">Tournament Name</span>
+                            <input type="text" id="tournamentName" required maxlength="32" class="px-3 py-2 rounded bg-[#01222c] border-2 border-[#4CF190] text-white focus:outline-none" />
+                        </label>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-white font-semibold mb-1">Number of Players</span>
+                            <div id="playerCountBtns" class="flex gap-4 justify-center">
+                                <button type="button" data-value="4" class="player-count-btn bg-[#4CF190] text-[#001B26] font-bold px-4 py-2 rounded border-2 border-[#001B26] shadow ring-2 ring-[#4CF190]">4</button>
+                                <button type="button" data-value="8" class="player-count-btn bg-gray-600 text-white font-bold px-4 py-2 rounded border-2 border-gray-700 shadow">8</button>
+                            </div>
+                            <input type="hidden" id="tournamentPlayers" name="tournamentPlayers" value="4" />
+                        </div>
+                        <label class="flex flex-col gap-1">
+                            <span class="text-white font-semibold">Start Date</span>
+                            <input type="date" id="tournamentDate" required class="px-3 py-2 rounded bg-gray-600 border-2 border-[#4CF190] text-white focus:outline-none" />
+                        </label>
+                        <button type="submit" class="w-full mt-2 bg-[#4CF190] text-[#001B26] text-lg font-semibold px-6 py-3 rounded-md border-4 border-[#001B26] shadow-[3px_3px_0_0_#001B26] hover:bg-[#34c47c] active:scale-95 transition-all duration-75">
+                            Create Tournament
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>

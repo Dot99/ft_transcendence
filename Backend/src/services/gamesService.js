@@ -147,56 +147,51 @@ export function joinTournament(
 	lang = "en"
 ) {
 	return new Promise((resolve, reject) => {
+		// First check if user is already in any active tournament
 		db.get(
-			`SELECT * FROM tournaments WHERE tournament_id = ? AND name = ?`,
-			[tournamentId, tournamentName],
-			(err, row) => {
+			`SELECT tp.tournament_id, t.name, t.status 
+			 FROM tournament_players tp 
+			 JOIN tournaments t ON tp.tournament_id = t.tournament_id 
+			 WHERE tp.player_id = ? AND t.status IN ('upcoming', 'ongoing')`,
+			[userId],
+			(err, activeTournament) => {
 				if (err) {
-					console.error("Error fetching tournament:", err);
+					console.error("Error checking active tournaments:", err);
 					return reject({ success: false, error: err });
 				}
 
-				if (!row) {
+				if (activeTournament) {
 					return resolve({
 						success: false,
-						message: messages[lang].tournamentNotFound,
-					});
-				} else if (row.max_players <= row.PLAYER_COUNT) {
-					return resolve({
-						success: false,
-						message: messages[lang].tournamentFull,
+						message: `You are already participating in tournament "${activeTournament.name}". You can only join one tournament at a time.`,
 					});
 				}
 
+				// Proceed with original join logic
 				db.get(
-					`SELECT * FROM tournament_players WHERE tournament_id = ? AND player_id = ?`,
-					[tournamentId, userId],
-					(err, existingPlayer) => {
+					`SELECT * FROM tournaments WHERE tournament_id = ? AND name = ?`,
+					[tournamentId, tournamentName],
+					(err, row) => {
 						if (err) {
-							console.error(
-								"Error checking existing player:",
-								err
-							);
+							console.error("Error fetching tournament:", err);
 							return reject({ success: false, error: err });
 						}
 
-						if (existingPlayer) {
+						if (!row) {
 							return resolve({
 								success: false,
-								message:
-									messages[lang].alreadyJoined ||
-									"You already joined this tournament.",
+								message: messages[lang].tournamentNotFound,
 							});
 						}
 
-						db.run(
-							`INSERT INTO tournament_players (tournament_id, tournament_name, player_id, current_position, wins, losses)
-                             VALUES (?, ?, ?, 0, 0, 0)`,
-							[tournamentId, tournamentName, userId],
-							function (err) {
+						// First check if the user is already in this tournament
+						db.get(
+							`SELECT * FROM tournament_players WHERE tournament_id = ? AND player_id = ?`,
+							[tournamentId, userId],
+							(err, existingPlayer) => {
 								if (err) {
 									console.error(
-										"Error inserting player:",
+										"Error checking existing player:",
 										err
 									);
 									return reject({
@@ -204,13 +199,32 @@ export function joinTournament(
 										error: err,
 									});
 								}
+
+								if (existingPlayer) {
+									return resolve({
+										success: true,
+										message:
+											messages[lang].alreadyJoined ||
+											"You are already in this tournament.",
+									});
+								}
+
+								// Now check if tournament is full (only for new joiners)
+								if (row.max_players <= row.PLAYER_COUNT) {
+									return resolve({
+										success: false,
+										message: messages[lang].tournamentFull,
+									});
+								}
+
 								db.run(
-									`UPDATE tournaments SET PLAYER_COUNT = PLAYER_COUNT + 1 WHERE tournament_id = ?`,
-									[tournamentId],
-									(err) => {
+									`INSERT INTO tournament_players (tournament_id, tournament_name, player_id, current_position, wins, losses)
+									 VALUES (?, ?, ?, 0, 0, 0)`,
+									[tournamentId, tournamentName, userId],
+									function (err) {
 										if (err) {
 											console.error(
-												"Error updating player count:",
+												"Error inserting player:",
 												err
 											);
 											return reject({
@@ -219,14 +233,28 @@ export function joinTournament(
 											});
 										}
 
-										// Check if tournament is full
-										db.get(
-											`SELECT PLAYER_COUNT, max_players FROM tournaments WHERE tournament_id = ?`,
-											[tournamentId],
-											(err, tournament) => {
+										// Update player's current_tournament in stats
+										db.run(
+											`UPDATE stats SET current_tournament = ? WHERE player_id = ?`,
+											[tournamentId, userId],
+											(err) => {
 												if (err) {
 													console.error(
-														"Error fetching tournament details:",
+														"Error updating current tournament in stats:",
+														err
+													);
+													// Don't fail the whole operation for this
+												}
+											}
+										);
+
+										db.run(
+											`UPDATE tournaments SET PLAYER_COUNT = PLAYER_COUNT + 1 WHERE tournament_id = ?`,
+											[tournamentId],
+											(err) => {
+												if (err) {
+													console.error(
+														"Error updating player count:",
 														err
 													);
 													return reject({
@@ -235,19 +263,57 @@ export function joinTournament(
 													});
 												}
 
-												if (
-													tournament.PLAYER_COUNT ===
-													tournament.max_players
-												) {
-													// Generate matches
-													generateTournamentMatches(
-														tournamentId,
-														tournament.max_players
-													)
-														.then(() => {
-															console.log(
-																"Matches generated successfully"
+												// Check if tournament is full
+												db.get(
+													`SELECT PLAYER_COUNT, max_players FROM tournaments WHERE tournament_id = ?`,
+													[tournamentId],
+													(err, tournament) => {
+														if (err) {
+															console.error(
+																"Error fetching tournament details:",
+																err
 															);
+															return reject({
+																success: false,
+																error: err,
+															});
+														}
+
+														if (
+															tournament.PLAYER_COUNT ===
+															tournament.max_players
+														) {
+															// Generate matches
+															generateTournamentMatches(
+																tournamentId,
+																tournament.max_players
+															)
+																.then(() => {
+																	console.log(
+																		"Matches generated successfully"
+																	);
+																	resolve({
+																		success: true,
+																		message:
+																			messages[
+																				lang
+																			]
+																				.tournamentJoined,
+																	});
+																})
+																.catch(
+																	(err) => {
+																		console.error(
+																			"Error generating matches:",
+																			err
+																		);
+																		reject({
+																			success: false,
+																			error: err,
+																		});
+																	}
+																);
+														} else {
 															resolve({
 																success: true,
 																message:
@@ -256,25 +322,9 @@ export function joinTournament(
 																	]
 																		.tournamentJoined,
 															});
-														})
-														.catch((err) => {
-															console.error(
-																"Error generating matches:",
-																err
-															);
-															reject({
-																success: false,
-																error: err,
-															});
-														});
-												} else {
-													resolve({
-														success: true,
-														message:
-															messages[lang]
-																.tournamentJoined,
-													});
-												}
+														}
+													}
+												);
 											}
 										);
 									}
@@ -1191,6 +1241,8 @@ export function generateNextRound(tournamentId, currentRound, numPlayers) {
 				// Check if this is the final round (only 1 winner expected)
 				if (winners.length === 1) {
 					console.log("DEBUG: Tournament completed - only 1 winner");
+					const championId = winners[0].Winner;
+
 					// Update tournament status to completed
 					db.run(
 						`UPDATE tournaments SET status = 'completed' WHERE tournament_id = ?`,
@@ -1204,6 +1256,41 @@ export function generateNextRound(tournamentId, currentRound, numPlayers) {
 							} else {
 								console.log(
 									"DEBUG: Tournament marked as completed"
+								);
+
+								// Update champion's tournaments_won using helper function
+								ensureStatsAndUpdateTournamentWins(championId)
+									.then((result) => {
+										console.log(
+											"DEBUG: Champion stats updated successfully:",
+											result
+										);
+									})
+									.catch((err) => {
+										console.error(
+											"DEBUG: Failed to update champion stats:",
+											err
+										);
+									});
+
+								// Clear current_tournament for all other players in this tournament
+								db.run(
+									`UPDATE stats SET current_tournament = NULL WHERE player_id IN (
+										SELECT player_id FROM tournament_players WHERE tournament_id = ? AND player_id != ?
+									)`,
+									[tournamentId, championId],
+									(err) => {
+										if (err) {
+											console.error(
+												"DEBUG: Error clearing current_tournament for other players:",
+												err
+											);
+										} else {
+											console.log(
+												"DEBUG: Cleared current_tournament for other players"
+											);
+										}
+									}
 								);
 							}
 						}
@@ -1409,6 +1496,52 @@ export function updateMatchAndRound(
 						console.log(
 							"DEBUG: Match updated successfully, changes:",
 							this.changes
+						);
+
+						// Update tournament_players wins/losses
+						const loserId =
+							existingMatch.player1 === winnerId
+								? existingMatch.player2
+								: existingMatch.player1;
+
+						// Update winner's wins
+						db.run(
+							`UPDATE tournament_players SET wins = wins + 1 WHERE tournament_id = ? AND player_id = ?`,
+							[tournamentId, winnerId],
+							(err) => {
+								if (err) {
+									console.error(
+										"DEBUG: Error updating winner's wins:",
+										err
+									);
+									// Don't fail the whole operation
+								} else {
+									console.log(
+										"DEBUG: Updated winner's wins for player:",
+										winnerId
+									);
+								}
+							}
+						);
+
+						// Update loser's losses
+						db.run(
+							`UPDATE tournament_players SET losses = losses + 1 WHERE tournament_id = ? AND player_id = ?`,
+							[tournamentId, loserId],
+							(err) => {
+								if (err) {
+									console.error(
+										"DEBUG: Error updating loser's losses:",
+										err
+									);
+									// Don't fail the whole operation
+								} else {
+									console.log(
+										"DEBUG: Updated loser's losses for player:",
+										loserId
+									);
+								}
+							}
 						);
 
 						if (this.changes === 0) {
@@ -1660,23 +1793,140 @@ export function updateMatchAndRound(
 																	}
 																);
 														} else {
+															// Tournament is completed - handle final logic
+															const tournamentCompleted =
+																nextRound >
+																Math.log2(
+																	tournament.max_players
+																);
 															console.log(
-																"DEBUG: Tournament completed or no next round needed"
+																"DEBUG: Tournament completed or no next round needed",
+																{
+																	tournamentCompleted,
+																}
 															);
+
+															// Declare finalMatch at the appropriate scope for later use
+															let finalMatch =
+																null;
+
+															if (
+																tournamentCompleted
+															) {
+																// Find the champion (winner of the final match)
+																finalMatch =
+																	completedMatches.find(
+																		(
+																			match
+																		) =>
+																			match.Winner
+																	);
+																if (
+																	finalMatch &&
+																	finalMatch.Winner
+																) {
+																	console.log(
+																		"DEBUG: Tournament champion found:",
+																		finalMatch.Winner
+																	);
+
+																	// Update tournament status to completed
+																	db.run(
+																		`UPDATE tournaments SET status = 'completed', end_date = CURRENT_TIMESTAMP WHERE tournament_id = ?`,
+																		[
+																			tournamentId,
+																		],
+																		(
+																			err
+																		) => {
+																			if (
+																				err
+																			) {
+																				console.error(
+																					"Error updating tournament status:",
+																					err
+																				);
+																			} else {
+																				console.log(
+																					"DEBUG: Tournament marked as completed"
+																				);
+																			}
+																		}
+																	);
+
+																	// Update champion's tournaments_won using helper function
+																	ensureStatsAndUpdateTournamentWins(
+																		finalMatch.Winner
+																	)
+																		.then(
+																			(
+																				result
+																			) => {
+																				console.log(
+																					"DEBUG: Champion stats updated successfully:",
+																					result
+																				);
+																			}
+																		)
+																		.catch(
+																			(
+																				err
+																			) => {
+																				console.error(
+																					"DEBUG: Failed to update champion stats:",
+																					err
+																				);
+																			}
+																		);
+
+																	// Clear current_tournament for all participants
+																	db.run(
+																		`UPDATE stats SET current_tournament = NULL WHERE current_tournament = ?`,
+																		[
+																			tournamentId,
+																		],
+																		(
+																			err
+																		) => {
+																			if (
+																				err
+																			) {
+																				console.error(
+																					"Error clearing current_tournament:",
+																					err
+																				);
+																			} else {
+																				console.log(
+																					"DEBUG: Cleared current_tournament for all participants"
+																				);
+																			}
+																		}
+																	);
+																}
+															}
+
 															resolve({
 																success: true,
 																matchUpdated: true,
 																roundAdvanced: true,
 																nextRoundGenerated: false,
-																message: `Match result updated successfully. Tournament round updated to ${nextRound}.`,
+																tournamentCompleted,
+																champion:
+																	tournamentCompleted &&
+																	finalMatch
+																		? finalMatch.Winner
+																		: null,
+																message:
+																	tournamentCompleted
+																		? `Tournament completed! Champion: ${
+																				finalMatch?.Winner ||
+																				"Unknown"
+																		  }`
+																		: `Match result updated successfully. Tournament round updated to ${nextRound}.`,
 																debugInfo: {
 																	currentRound,
 																	nextRound,
-																	tournamentCompleted:
-																		nextRound >
-																		Math.log2(
-																			tournament.max_players
-																		),
+																	tournamentCompleted,
 																},
 															});
 														}
@@ -2096,13 +2346,34 @@ export function processGameResult(gameData, gameId, lang = "en") {
 											historyResult
 										);
 
+										// Prepare detailed result message
+										let resultMessage =
+											"Tournament match result updated successfully";
+										if (
+											tournamentResult.tournamentCompleted
+										) {
+											resultMessage = `Tournament completed! Champion: ${
+												tournamentResult.champion ||
+												"Unknown"
+											}`;
+										} else if (
+											tournamentResult.roundAdvanced
+										) {
+											resultMessage = `Round completed and advanced to next round`;
+										}
+
 										resolve({
 											success: true,
 											type: "tournament",
 											tournamentResult,
 											historyResult,
-											message:
-												"Tournament match result updated successfully",
+											message: resultMessage,
+											tournamentCompleted:
+												tournamentResult.tournamentCompleted ||
+												false,
+											champion:
+												tournamentResult.champion ||
+												null,
 											debugInfo: {
 												matchId,
 												tournamentId,
@@ -2112,6 +2383,12 @@ export function processGameResult(gameData, gameId, lang = "en") {
 													player1_score,
 													player2_score,
 												},
+												roundAdvanced:
+													tournamentResult.roundAdvanced ||
+													false,
+												nextRoundGenerated:
+													tournamentResult.nextRoundGenerated ||
+													false,
 											},
 										});
 									} catch (historyError) {
@@ -2131,6 +2408,12 @@ export function processGameResult(gameData, gameId, lang = "en") {
 											message:
 												"Tournament match updated but history save failed",
 											warning: "History not saved",
+											tournamentCompleted:
+												tournamentResult.tournamentCompleted ||
+												false,
+											champion:
+												tournamentResult.champion ||
+												null,
 										});
 									}
 								} else {
@@ -2596,6 +2879,236 @@ export function debugResetTournamentReadiness(tournamentId) {
 						message: "Tournament readiness reset successfully",
 					});
 				}
+			}
+		);
+	});
+}
+
+/**
+ * Get active tournaments for a user
+ * @param {number} userId - The user ID
+ * @param {string} lang - The language for error messages
+ * @returns {Promise<Object>} - The result of the operation
+ */
+export function getActiveTournamentsForUser(userId, lang = "en") {
+	return new Promise((resolve, reject) => {
+		// Get tournaments where user is participating and tournament is not completed
+		db.all(
+			`SELECT t.*, tp.current_position, tp.wins, tp.losses 
+			 FROM tournaments t 
+			 JOIN tournament_players tp ON t.tournament_id = tp.tournament_id 
+			 WHERE tp.player_id = ? AND (t.status != 'completed' OR t.status IS NULL)
+			 ORDER BY t.start_date DESC`,
+			[userId],
+			(err, rows) => {
+				if (err) {
+					return reject({ success: false, error: err });
+				}
+				resolve({
+					success: true,
+					tournaments: rows || [],
+					message:
+						rows && rows.length > 0
+							? "Active tournaments found"
+							: "No active tournaments",
+				});
+			}
+		);
+	});
+}
+
+/**
+ * Ensure a player has a stats record and update tournaments_won
+ * @param {number} playerId - The player ID
+ * @returns {Promise<Object>} - Result of the operation
+ */
+function ensureStatsAndUpdateTournamentWins(playerId) {
+	return new Promise((resolve, reject) => {
+		console.log(
+			`DEBUG: Ensuring stats record and updating tournament wins for player ${playerId}`
+		);
+
+		// First ensure the player has a stats record
+		db.run(
+			`INSERT OR IGNORE INTO stats (player_id, tournaments_won) VALUES (?, 0)`,
+			[playerId],
+			(err) => {
+				if (err) {
+					console.error(
+						`DEBUG: Error ensuring stats record for player ${playerId}:`,
+						err
+					);
+					return reject(err);
+				}
+
+				// Now update tournaments_won
+				db.run(
+					`UPDATE stats SET tournaments_won = tournaments_won + 1, current_tournament = NULL WHERE player_id = ?`,
+					[playerId],
+					function (err) {
+						if (err) {
+							console.error(
+								`DEBUG: Error updating tournaments_won for player ${playerId}:`,
+								err
+							);
+							return reject(err);
+						}
+
+						console.log(
+							`DEBUG: Updated tournaments_won for player ${playerId}. Rows affected: ${this.changes}`
+						);
+
+						// Verify the update
+						db.get(
+							`SELECT tournaments_won, total_matches, matches_won FROM stats WHERE player_id = ?`,
+							[playerId],
+							(err, row) => {
+								if (err) {
+									console.error(
+										`DEBUG: Error verifying tournaments_won update for player ${playerId}:`,
+										err
+									);
+									return reject(err);
+								}
+
+								console.log(
+									`DEBUG: Player ${playerId} stats after tournament win:`,
+									row
+								);
+								resolve({
+									success: true,
+									playerId,
+									tournaments_won: row?.tournaments_won || 0,
+									stats: row,
+								});
+							}
+						);
+					}
+				);
+			}
+		);
+	});
+}
+
+/**
+ * Process tournament match completion with comprehensive logging
+ * @param {number} matchId - Match ID
+ * @param {number} winnerId - Winner ID
+ * @param {number} loserId - Loser ID
+ * @param {number} player1Score - Player 1 score
+ * @param {number} player2Score - Player 2 score
+ * @param {number} tournamentId - Tournament ID
+ * @returns {Promise<Object>} - Result of the operation
+ */
+function processTournamentMatchCompletion(
+	matchId,
+	winnerId,
+	loserId,
+	player1Score,
+	player2Score,
+	tournamentId
+) {
+	return new Promise((resolve, reject) => {
+		console.log(`DEBUG: Processing tournament match completion:`, {
+			matchId,
+			winnerId,
+			loserId,
+			player1Score,
+			player2Score,
+			tournamentId,
+		});
+
+		// Update match result
+		db.run(
+			`UPDATE tournament_matches 
+			 SET Winner = ?, player1_score = ?, player2_score = ?, match_state = 'completed' 
+			 WHERE match_id = ?`,
+			[winnerId, player1Score, player2Score, matchId],
+			function (err) {
+				if (err) {
+					console.error(
+						"DEBUG: Error updating tournament match:",
+						err
+					);
+					return reject({ success: false, error: err });
+				}
+
+				console.log(
+					`DEBUG: Tournament match ${matchId} updated successfully. Rows affected: ${this.changes}`
+				);
+
+				// Update tournament_players wins/losses
+				const updatePromises = [
+					new Promise((resolve, reject) => {
+						db.run(
+							`UPDATE tournament_players SET wins = wins + 1 WHERE tournament_id = ? AND player_id = ?`,
+							[tournamentId, winnerId],
+							function (err) {
+								if (err) {
+									console.error(
+										`DEBUG: Error updating winner's wins for player ${winnerId}:`,
+										err
+									);
+									reject(err);
+								} else {
+									console.log(
+										`DEBUG: Updated winner's wins for player ${winnerId}. Rows affected: ${this.changes}`
+									);
+									resolve();
+								}
+							}
+						);
+					}),
+					new Promise((resolve, reject) => {
+						db.run(
+							`UPDATE tournament_players SET losses = losses + 1 WHERE tournament_id = ? AND player_id = ?`,
+							[tournamentId, loserId],
+							function (err) {
+								if (err) {
+									console.error(
+										`DEBUG: Error updating loser's losses for player ${loserId}:`,
+										err
+									);
+									reject(err);
+								} else {
+									console.log(
+										`DEBUG: Updated loser's losses for player ${loserId}. Rows affected: ${this.changes}`
+									);
+									resolve();
+								}
+							}
+						);
+					}),
+				];
+
+				Promise.all(updatePromises)
+					.then(() => {
+						console.log(
+							`DEBUG: Tournament match ${matchId} completion processed successfully`
+						);
+						resolve({
+							success: true,
+							matchId,
+							winnerId,
+							loserId,
+							scores: { player1Score, player2Score },
+						});
+					})
+					.catch((updateErr) => {
+						console.error(
+							"DEBUG: Error updating tournament players stats:",
+							updateErr
+						);
+						// Don't fail the whole operation for this
+						resolve({
+							success: true,
+							matchId,
+							winnerId,
+							loserId,
+							scores: { player1Score, player2Score },
+							warning: "Player stats update failed",
+						});
+					});
 			}
 		);
 	});

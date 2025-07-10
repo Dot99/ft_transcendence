@@ -359,14 +359,31 @@ async function loadUserStatsAndMatches(userId: number): Promise<void> {
 		console.error("Error loading recent matches:", error);
 	}
 
-	// Load tournaments
+	// Load tournaments - check for both current tournament and active tournaments
 	try {
-		await loadPastTournaments(userId, 0);
+		console.log("Fetching tournament and matches data...");
+
+		// Always try to load past tournaments first
+		await loadPastTournaments(userId, null);
+
+		// Then check for active tournaments
+		if (stats && stats.current_tournament) {
+			await loadUpComingMatchesById(stats.current_tournament, userId);
+		} else {
+			// Clear current tournament display if no active tournament
+			const currentTournamentContainer = document.getElementById(
+				"currentTournamentContainer"
+			);
+			if (currentTournamentContainer) {
+				currentTournamentContainer.innerHTML = `
+					<div class="text-gray-400 text-center p-4">
+						${t("no_active_tournament") || "No active tournament"}
+					</div>
+				`;
+			}
+		}
 	} catch (error) {
-		console.error(
-			"Error loading tournament data (this is expected if tournaments are not implemented):",
-			error
-		);
+		console.error("Error loading tournament data:", error);
 	}
 }
 
@@ -473,7 +490,7 @@ async function loadRecentMatches(userId: number): Promise<void> {
 
 async function loadPastTournaments(
 	userId: number,
-	currentTournamentId: number
+	currentTournamentId: number | null
 ): Promise<void> {
 	try {
 		const res = await fetch(
@@ -531,6 +548,26 @@ async function loadPastTournaments(
 			const player = positionData.players?.find(
 				(p: any) => p.player_id === userId
 			);
+
+			// Get tournament player stats (wins/losses)
+			const tournamentStatsRes = await fetch(
+				`${API_BASE_URL}/tournaments/${t.tournament_id}/players`,
+				{
+					headers: {
+						"Accept-Language": getLang(),
+						Authorization: `Bearer ${getCookie("jwt")}`,
+					},
+				}
+			);
+
+			let playerStats = null;
+			if (tournamentStatsRes.ok) {
+				const statsData = await tournamentStatsRes.json();
+				playerStats = statsData.players?.find(
+					(p: any) => p.player_id === userId
+				);
+			}
+
 			const div = document.createElement("div");
 			div.className = "p-2 border border-green-500 rounded";
 			div.innerHTML = `
@@ -538,9 +575,20 @@ async function loadPastTournaments(
 					<span class="text-green-300 font-semibold">${t.tournament_name}</span>
 					<span class="text-sm text-gray-400">${date}</span>
 				</div>
-				<div class="text-sm text-yellow-400">Position: ${
-					player?.current_position ?? "-"
-				}</div>`;
+				<div class="flex justify-between items-center mt-2">
+					<div class="text-sm text-yellow-400">Position: ${
+						player?.current_position ?? "-"
+					}</div>
+					${
+						playerStats
+							? `
+						<div class="text-sm text-blue-400">
+							W: ${playerStats.wins || 0} / L: ${playerStats.losses || 0}
+						</div>
+					`
+							: ""
+					}
+				</div>`;
 
 			container.appendChild(div);
 		}
@@ -578,10 +626,10 @@ async function loadUpComingMatchesById(
 
 		const tournament = await tournamentRes.json();
 		const data = await matchesRes.json();
+		console.log("Upcoming matches data:", data);
 
 		const container = getElement<HTMLDivElement>("upcomingMatches");
 		container.innerHTML = "";
-
 		if (!data.matches || data.matches.length === 0) {
 			container.innerHTML =
 				'<div class="text-gray-400 text-center p-4">No upcoming matches</div>';

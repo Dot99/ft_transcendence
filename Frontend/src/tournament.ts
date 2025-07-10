@@ -14,6 +14,9 @@ function getElement<T extends HTMLElement>(id: string): T {
 export const loadTournamentPage = async (
 	tournament_id: string
 ): Promise<void> => {
+	// Reset notification flag for this tournament
+	tournamentCompletionNotified = false;
+
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = tournamentTemplate;
 
@@ -31,6 +34,9 @@ export const loadTournamentPage = async (
   </div>
 `;
 	if (tournament_id) {
+		// Display tournament information at the top
+		await displayTournamentInfo(tournament_id);
+
 		renderBracket(tournament_id);
 
 		// Check if current user can start games (has upcoming match)
@@ -57,10 +63,15 @@ export const loadTournamentPage = async (
 				});
 			}
 		}
+		const backBtn = document.getElementById("backBtn");
+		if (backBtn) {
+			backBtn.onclick = () => loadMenuPage();
+		}
 
 		// Start auto-refresh to show tournament progression
 		startBracketAutoRefresh(tournament_id);
 	}
+	// Add back button functionality - goes to menu instead of play
 };
 
 // Utility function to group an array of objects by a key
@@ -92,6 +103,71 @@ let chartPoints: any[] = [];
 // Add a global flag to track if missing matches have already been fetched
 let missingMatchesFetched = false;
 
+// Variable to track if tournament completion notification has been shown
+let tournamentCompletionNotified = false;
+
+// Function to check and notify tournament completion
+async function checkAndNotifyTournamentCompletion(tournamentId: string) {
+	try {
+		const res = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}`, {
+			headers: {
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+		});
+
+		if (!res.ok) {
+			return;
+		}
+
+		const data = await res.json();
+		const tournament = data.tournament;
+
+		// If tournament is completed and we haven't notified yet
+		if (
+			tournament.status === "completed" &&
+			!tournamentCompletionNotified
+		) {
+			tournamentCompletionNotified = true;
+
+			// Show completion notification
+			const notification = document.createElement("div");
+			notification.innerHTML = `
+				<div class="fixed top-4 right-4 bg-[#FFD700] text-[#001B26] px-6 py-4 rounded-lg border-2 border-[#4CF190] shadow-2xl z-50 animate-pulse">
+					<div class="flex items-center">
+						<span class="text-2xl mr-2">🏆</span>
+						<div>
+							<div class="font-bold text-lg">Tournament Completed!</div>
+							<div class="text-sm">Check the results below</div>
+						</div>
+						<button id="closeNotification" class="ml-4 text-[#001B26] hover:text-red-600 font-bold text-xl">×</button>
+					</div>
+				</div>
+			`;
+
+			document.body.appendChild(notification);
+
+			// Auto-remove notification after 8 seconds
+			setTimeout(() => {
+				if (notification.parentNode) {
+					notification.parentNode.removeChild(notification);
+				}
+			}, 8000);
+
+			// Manual close button
+			const closeBtn = notification.querySelector("#closeNotification");
+			if (closeBtn) {
+				closeBtn.addEventListener("click", () => {
+					if (notification.parentNode) {
+						notification.parentNode.removeChild(notification);
+					}
+				});
+			}
+		}
+	} catch (error) {
+		console.error("Error checking tournament completion:", error);
+	}
+}
+
 // Atualize o renderBracket para calcular o número de rodadas
 async function renderBracket(tournamentId: string) {
 	const chartContainer = getElement<HTMLDivElement>("bracketContainer");
@@ -119,8 +195,8 @@ async function renderBracket(tournamentId: string) {
 	// Calcular o número total de rodadas
 	totalRounds = Math.log2(maxPlayers);
 
-	// Render initial bracket layout
-	chartContainer.innerHTML = createBracketLayout(maxPlayers);
+	// REMOVE THIS LINE - it's overwriting your template styling:
+	// chartContainer.innerHTML = createBracketLayout(maxPlayers);
 
 	// Fetch matches
 	const res = await fetch(
@@ -129,10 +205,7 @@ async function renderBracket(tournamentId: string) {
 			headers: { Authorization: `Bearer ${getCookie("jwt")}` },
 		}
 	);
-	// if (!res.ok) {
-	// 	console.error("Error searching matches:", await res.text());
-	// 	// return;
-	// }
+
 	let games: any;
 	let matches: Match[] = [];
 	if (res.ok === true) {
@@ -208,23 +281,20 @@ async function createCustomBracket(
 	chartPoints = await generateChartPoints(matches);
 	missingMatchesFetched = false;
 
-	// --- DESIGN MELHORADO E BRACKETS ALINHADOS ---
+	// Create tournament bracket with proper layout and connector lines
 	const roundsCount = sortedRounds.length;
-	const maxMatches = Math.max(
-		...sortedRounds.map((r) => rounds[r].length || 1),
-		1
-	);
+
+	// Create players map once for the entire tournament
+	const playersMap = new Map<string, string>();
+	for (const player of tournament.players || []) {
+		playersMap.set(player.id, player.username || player.name || "Unknown");
+	}
 
 	let bracketHTML = `
-	<div class="overflow-auto min-h-screen max-h-screen bg-gradient-to-br from-gray-900 to-teal-900 rounded-lg border-2 border-green-500 shadow-2xl p-8">
-		<div class="grid" style="grid-template-columns: repeat(${roundsCount}, minmax(220px, 1fr)); gap: 48px;">
+		<div class="relative w-full min-h-screen bg-gradient-to-br from-gray-900 to-teal-900 rounded-lg border-2 border-green-500 shadow-2xl p-8 overflow-x-auto">
+			<div class="flex justify-center items-center min-h-[700px] py-16">
+				<div class="relative flex items-center justify-center" style="gap: 12rem;">
 	`;
-
-	// SVG connectors
-	let connectorsSVG = `<svg class="absolute top-0 left-0 pointer-events-none w-full h-full" style="z-index:0;" xmlns="http://www.w3.org/2000/svg">`;
-
-	const cardHeight = 110;
-	const cardGap = 40;
 
 	for (let roundIndex = 0; roundIndex < roundsCount; roundIndex++) {
 		const round = sortedRounds[roundIndex];
@@ -251,12 +321,48 @@ async function createCustomBracket(
 			Math.pow(2, totalRounds - roundNumber)
 		);
 
+		// Perfect centering logic
+		let verticalGap = "gap-8";
+		let containerClasses = "flex flex-col items-center";
+
+		if (roundsCount === 2) {
+			// 4-player tournament: Semifinals and Final
+			if (roundIndex === 0) {
+				verticalGap = "gap-16"; // Space between semifinal matches
+			} else {
+				containerClasses = "flex items-center justify-center"; // Center final match perfectly
+			}
+		} else if (roundsCount === 3) {
+			// 8-player tournament: Quarterfinals, Semifinals, Final
+			if (roundIndex === 0) {
+				verticalGap = "gap-8"; // Tight spacing for quarterfinals
+			} else if (roundIndex === 1) {
+				verticalGap = "gap-24"; // Wider spacing for semifinals
+			} else {
+				containerClasses = "flex items-center justify-center"; // Center final match perfectly
+			}
+		}
+
+		// Get round styling
+		const roundName = getRoundName(roundNumber, sortedRounds.length);
+		const isSpecialRound =
+			roundName === "Quarterfinals" ||
+			roundName === "Semifinals" ||
+			roundName === "Final";
+
+		const headerClasses = isSpecialRound
+			? "text-[#FFD700] border-[#4CF190] bg-[#001B26]"
+			: "text-[#4CF190] border-[#4CF190] bg-[#001B26]";
+		const textClasses = isSpecialRound
+			? "text-[#FFD700]"
+			: "text-[#4CF190]";
+
 		bracketHTML += `
-		<div class="flex flex-col items-center relative min-w-[220px]">
-			<h3 class="text-green-100 text-lg font-bold mb-6 text-center shadow uppercase tracking-wider py-2 px-6 bg-green-700 rounded-lg border border-green-400 drop-shadow">
-				${getRoundName(roundNumber, roundsCount)}
-			</h3>
-			<div class="flex flex-col items-center gap-[${cardGap}px] relative">
+			<div class="flex flex-col items-center relative">
+				<h3 class="${headerClasses} text-2xl font-bold mb-8 text-center uppercase tracking-wider py-4 px-8 border-2 rounded-xl shadow-2xl">
+					${roundName}
+				</h3>
+				<div class="${containerClasses} ${verticalGap}">
 		`;
 
 		for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
@@ -279,14 +385,6 @@ async function createCustomBracket(
 				match.player2 ||
 				"TBD";
 
-			const playersMap = new Map<string, string>();
-			for (const player of tournament.players || []) {
-				playersMap.set(
-					player.id,
-					player.username || player.name || "Unknown"
-				);
-			}
-
 			const player1 = playersMap?.get(rawPlayer1) || rawPlayer1;
 			const player2 = playersMap?.get(rawPlayer2) || rawPlayer2;
 
@@ -303,68 +401,303 @@ async function createCustomBracket(
 			const displayPlayer2 =
 				isFinalRound && !match.player2 ? "TBD" : player2;
 
-			// Card
+			const player1WinnerClasses = isPlayer1Winner
+				? "bg-[#4CF190] text-[#001B26]"
+				: "";
+			const player2WinnerClasses = isPlayer2Winner
+				? "bg-[#4CF190] text-[#001B26]"
+				: "";
+
 			bracketHTML += `
-			<div class="relative z-10 flex flex-col items-center">
-				<div class="bg-gradient-to-br from-teal-900 to-teal-700 border-2 border-green-400 rounded-xl p-4 w-52 min-h-[${cardHeight}px] flex flex-col justify-center shadow-xl transition hover:scale-105 hover:bg-teal-800 duration-150">
-					<div class="bg-green-200 rounded-md px-3 py-2 mb-2 border-l-4 ${
-						isPlayer1Winner
-							? "border-green-600"
-							: "border-green-400"
-					}">
-						<span class="${
-							isPlayer1Winner
-								? "text-green-700"
-								: "text-green-500"
-						} font-bold text-base">
-							${truncate(displayPlayer1, 15)}${isCompleted ? ` (${player1Score})` : ""}
-						</span>
+				<div class="relative group">
+					<div class="bg-[#001B26] border-[#4CF190] border-2 p-4 w-52 min-h-[120px] flex flex-col justify-center relative transition-all duration-300 cursor-pointer hover:bg-[#002B36] hover:scale-[1.02] rounded-lg shadow-xl">
+						<div class="bg-[#07303c] border-[#4CF190] border-2 px-3 py-2 mb-2 rounded ${player1WinnerClasses} transition-all duration-200">
+							<div class="flex justify-between items-center">
+								<span class="${
+									isPlayer1Winner
+										? "text-[#001B26]"
+										: textClasses
+								} font-bold text-sm">
+									${truncate(displayPlayer1, 12)}
+								</span>
+								${
+									isCompleted
+										? `
+									<span class="${
+										isPlayer1Winner
+											? "text-[#001B26]"
+											: textClasses
+									} font-bold text-lg">
+										${player1Score}
+									</span>
+								`
+										: ""
+								}
+							</div>
+						</div>
+
+						<div class="text-center ${textClasses} text-xs font-bold my-2 tracking-wider">VS</div>
+
+						<div class="bg-[#07303c] border-[#4CF190] border-2 px-3 py-2 mt-2 rounded ${player2WinnerClasses} transition-all duration-200">
+							<div class="flex justify-between items-center">
+								<span class="${
+									isPlayer2Winner
+										? "text-[#001B26]"
+										: textClasses
+								} font-bold text-sm">
+									${truncate(displayPlayer2, 12)}
+								</span>
+								${
+									isCompleted
+										? `
+									<span class="${
+										isPlayer2Winner
+											? "text-[#001B26]"
+											: textClasses
+									} font-bold text-lg">
+										${player2Score}
+									</span>
+								`
+										: ""
+								}
+							</div>
+						</div>
 					</div>
-					<div class="text-center text-green-400 text-xs font-bold my-1 shadow">VS</div>
-					<div class="bg-green-200 rounded-md px-3 py-2 mt-2 border-l-4 ${
-						isPlayer2Winner
-							? "border-green-600"
-							: "border-green-400"
-					}">
-						<span class="${
-							isPlayer2Winner
-								? "text-green-700"
-								: "text-green-500"
-						} font-bold text-base">
-							${truncate(displayPlayer2, 15)}${isCompleted ? ` (${player2Score})` : ""}
-						</span>
-					</div>
+					
+					<!-- Tournament bracket connector lines -->
+					${
+						roundIndex < roundsCount - 1
+							? `
+						<!-- Main horizontal line from match to next round -->
+						<div class="absolute -right-8 top-1/2 w-8 h-0.5 bg-[#4CF190] transform -translate-y-1/2 z-10"></div>
+						
+						${
+							matchIndex % 2 === 0 &&
+							matchIndex + 1 < matchesInRound
+								? `
+							<!-- Vertical connector for match pairs -->
+							<div class="absolute -right-8 top-1/2 w-0.5 transform -translate-y-1/2 bg-[#4CF190] z-10" 
+								 style="height: calc(100% + ${
+										roundIndex === 0
+											? "2rem" // Quarterfinals spacing
+											: roundIndex === 1
+											? "6rem" // Semifinals spacing
+											: "10rem" // Other rounds
+									});"></div>
+							<!-- Horizontal line from vertical connector to next round -->
+							<div class="absolute -right-16 w-8 h-0.5 bg-[#4CF190] z-10" 
+								 style="top: calc(50% + ${
+										roundIndex === 0
+											? "1rem"
+											: roundIndex === 1
+											? "3rem"
+											: "5rem"
+									});"></div>
+						`
+								: matchIndex % 2 === 1
+								? `
+							<!-- Bottom match in pair: horizontal line only -->
+							<div class="absolute -right-16 top-1/2 w-8 h-0.5 bg-[#4CF190] transform -translate-y-1/2 z-10"></div>
+						`
+								: ""
+						}
+					`
+							: ""
+					}
 				</div>
-			</div>
 			`;
-
-			// SVG connectors (draw only if not last round)
-			if (roundIndex < roundsCount - 1) {
-				const fromX = 220 * roundIndex + 220; // right edge of current column
-				const fromY =
-					matchIndex * (cardHeight + cardGap) + cardHeight / 2 + 60;
-				const toX = 220 * (roundIndex + 1);
-				const toY =
-					Math.floor(matchIndex / 2) * (cardHeight + cardGap) +
-					cardHeight / 2 +
-					60;
-
-				connectorsSVG += `
-					<path d="M${fromX},${fromY} C${fromX + 30},${fromY} ${
-					toX - 30
-				},${toY} ${toX},${toY}"
-						stroke="#22c55e" stroke-width="3" fill="none" opacity="0.7"/>
-				`;
-			}
 		}
 
 		bracketHTML += `</div></div>`;
+
+		// Add trophy after final round with retro/pixel art styling
+		if (isFinalRound) {
+			// Find the champion (winner of the final match)
+			const finalMatch = roundMatches.find(
+				(match) => match.match_state === "completed" && match.winner
+			);
+
+			let championName = "TBD";
+			let finalMatchScore = "";
+			if (finalMatch && finalMatch.winner) {
+				const championId = finalMatch.winner;
+				championName = truncate(
+					playersMap?.get(championId) || championId,
+					12
+				);
+
+				// Add score information for the final match
+				if (
+					finalMatch.player1_score !== undefined &&
+					finalMatch.player2_score !== undefined
+				) {
+					const player1Name =
+						playersMap?.get(finalMatch.player1) ||
+						finalMatch.player1;
+					const player2Name =
+						playersMap?.get(finalMatch.player2) ||
+						finalMatch.player2;
+					finalMatchScore = `${truncate(player1Name, 10)} ${
+						finalMatch.player1_score
+					} - ${finalMatch.player2_score} ${truncate(
+						player2Name,
+						10
+					)}`;
+				}
+			}
+
+			const isCompleted =
+				finalMatch && finalMatch.match_state === "completed";
+			const tournamentStatus = tournament.tournament?.status || "unknown";
+
+			bracketHTML += `
+				<div class="flex flex-col items-center justify-center ml-24">
+					<div class="relative">
+						<img src="images/trophy.svg" class="w-40 h-40 filter drop-shadow-lg ${
+							isCompleted ? "brightness-110" : "opacity-50"
+						}" alt="trophy">
+						<div class="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center min-w-max">
+							${
+								isCompleted && tournamentStatus === "completed"
+									? `
+								<div class="bg-[#FFD700] text-[#001B26] px-6 py-3 font-bold text-lg border-2 border-[#4CF190] shadow-lg uppercase tracking-wider rounded-lg animate-pulse mb-2">
+									🏆 TOURNAMENT COMPLETED 🏆
+								</div>
+								<div class="bg-[#4CF190] text-[#001B26] px-4 py-2 font-bold text-lg border-2 border-[#FFD700] shadow-lg rounded-lg mb-2">
+									CHAMPION: ${championName}
+								</div>
+								${
+									finalMatchScore
+										? `
+									<div class="text-[#4CF190] font-semibold text-sm bg-[#001B26] px-3 py-1 rounded border border-[#4CF190] mb-2">
+										Final: ${finalMatchScore}
+									</div>
+								`
+										: ""
+								}
+								<button onclick="window.dispatchEvent(new Event('loadMenuPage'))" class="bg-[#001B26] text-[#4CF190] px-4 py-2 font-bold border-2 border-[#4CF190] rounded hover:bg-[#4CF190] hover:text-[#001B26] transition-all duration-200">
+									Return to Menu
+								</button>
+							`
+									: isCompleted
+									? `
+								<div class="bg-[#FFD700] text-[#001B26] px-6 py-3 font-bold text-lg border-2 border-[#4CF190] shadow-lg uppercase tracking-wider rounded-lg animate-pulse mb-2">
+									CHAMPION
+								</div>
+								<div class="text-[#FFD700] font-bold text-xl tracking-wide">
+									🏆 ${championName} 🏆
+								</div>
+								${
+									finalMatchScore
+										? `
+									<div class="mt-2 text-[#4CF190] font-semibold text-sm">
+										Final: ${finalMatchScore}
+									</div>
+								`
+										: ""
+								}
+							`
+									: `
+								<div class="mt-2 text-[#4CF190] font-semibold text-sm">
+									Awaiting Final Match
+								</div>
+							`
+							}
+						</div>
+					</div>
+				</div>
+			`;
+		}
 	}
 
-	bracketHTML += `</div></div>`;
-	connectorsSVG += `</svg>`;
+	bracketHTML += `</div></div></div>`;
+	chartContainer.innerHTML = bracketHTML;
+}
 
-	chartContainer.innerHTML = `<div class="relative">${bracketHTML}${connectorsSVG}</div>`;
+// Function to display tournament status information
+async function displayTournamentInfo(tournamentId: string) {
+	try {
+		const res = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}`, {
+			headers: {
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+		});
+
+		if (!res.ok) {
+			return;
+		}
+
+		const data = await res.json();
+		const tournament = data.tournament;
+
+		// Check if info container already exists
+		let infoContainer = document.getElementById("tournamentInfo");
+		if (!infoContainer) {
+			// Create tournament info container
+			infoContainer = document.createElement("div");
+			infoContainer.id = "tournamentInfo";
+			infoContainer.className =
+				"fixed top-20 left-1/2 transform -translate-x-1/2 z-40";
+
+			// Insert after the back button
+			const tournamentContainer =
+				document.querySelector("#bracketContainer");
+			if (tournamentContainer && tournamentContainer.parentNode) {
+				tournamentContainer.parentNode.insertBefore(
+					infoContainer,
+					tournamentContainer
+				);
+			}
+		}
+
+		// Determine status color and text
+		let statusClass = "";
+		let statusText = "";
+		let statusIcon = "";
+
+		switch (tournament.status) {
+			case "completed":
+				statusClass = "bg-[#FFD700] text-[#001B26] border-[#4CF190]";
+				statusText = "COMPLETED";
+				statusIcon = "🏆";
+				break;
+			case "ongoing":
+				statusClass = "bg-[#4CF190] text-[#001B26] border-[#FFD700]";
+				statusText = "IN PROGRESS";
+				statusIcon = "⚔️";
+				break;
+			default:
+				// Don't show status for upcoming tournaments - just show tournament info
+				statusClass = "hidden";
+				statusText = "";
+				statusIcon = "";
+				break;
+		}
+
+		infoContainer.innerHTML = `
+			<div class="bg-[#001B26] border-2 border-[#4CF190] rounded-lg px-6 py-3 shadow-2xl">
+				<div class="flex items-center justify-center space-x-4">
+					<div class="text-[#4CF190] font-bold text-xl">${tournament.name}</div>
+					${
+						statusText
+							? `
+						<div class="${statusClass} px-3 py-1 rounded font-bold text-sm border-2">
+							${statusIcon} ${statusText}
+						</div>
+					`
+							: ""
+					}
+					<div class="text-[#4CF190] text-sm">
+						Round ${tournament.current_round || 1} | ${tournament.PLAYER_COUNT}/${
+			tournament.max_players
+		} Players
+					</div>
+				</div>
+			</div>
+		`;
+	} catch (error) {
+		console.error("Error displaying tournament info:", error);
+	}
 }
 
 async function fetchMissingMatches(
@@ -450,62 +783,28 @@ async function generateChartPoints(matches: Match[]) {
 	return chartPoints;
 }
 
-function truncate(name: string, maxLength = 12): string {
+function truncate(name: string, maxLength = 18): string {
+	if (!name || name === "TBD") return name;
 	return name.length > maxLength ? name.slice(0, maxLength - 1) + "…" : name;
 }
 
-function createBracketLayout(maxPlayers: number): string {
-	const totalRounds = Math.log2(maxPlayers); // Número de rodadas
-	let bracketHTML = `
-    <div class="flex items-start justify-center gap-8 p-8 overflow-auto min-h-screen max-h-screen bg-gradient-to-br from-gray-800 to-teal-700 rounded-lg border-2 border-green-500 shadow-xl relative">
-  `;
-
-	for (let roundIndex = 0; roundIndex < totalRounds; roundIndex++) {
-		const matchesInRound = maxPlayers / Math.pow(2, roundIndex + 1); // Número de partidas na rodada
-		const verticalSpacing = Math.max(15, 40 * Math.pow(1.6, roundIndex)); // Espaçamento vertical
-
-		bracketHTML += `
-      <div class="flex flex-col items-center relative min-w-36 flex-shrink-0">
-        <h3 class="text-green-200 text-lg font-bold mb-4 text-center shadow-md uppercase tracking-wide py-2 px-5 bg-green-600 rounded-lg border border-green-400">
-          ${getRoundName(roundIndex + 1, totalRounds)}
-        </h3>
-        
-        <div class="flex flex-col gap-${verticalSpacing}px items-center">
-    `;
-
-		for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
-			bracketHTML += `
-        <div class="bg-gradient-to-br from-teal-700 to-teal-600 border-2 border-green-400 rounded-lg p-5 w-36 min-h-20 flex flex-col justify-center relative shadow-lg transition cursor-pointer backdrop-blur-md hover:scale-105 hover:bg-teal-500">
-          <div class="bg-green-300 rounded-md px-4 py-3 mb-3 border-l-4 border-green-400">
-            <span class="text-green-400 font-bold text-sm">
-              TBD
-            </span>
-          </div>
-          
-          <div class="text-center text-green-300 text-sm font-bold my-3 shadow-md">VS</div>
-          
-          <div class="bg-green-300 rounded-md px-4 py-3 mb-3 border-l-4 border-green-400">
-            <span class="text-green-400 font-bold text-sm">
-              TBD
-            </span>
-          </div>
-        </div>
-      `;
-		}
-
-		bracketHTML += "</div></div>"; // Close matches-container and round-column
+function getRoundName(roundNumber: number, totalRounds: number): string {
+	if (totalRounds === 2) {
+		// 4-player tournament
+		if (roundNumber === 1) return "Semifinals";
+		if (roundNumber === 2) return "Final";
+	} else if (totalRounds === 3) {
+		// 8-player tournament
+		if (roundNumber === 1) return "Quarterfinals";
+		if (roundNumber === 2) return "Semifinals";
+		if (roundNumber === 3) return "Final";
 	}
 
-	bracketHTML += "</div>"; // Close bracket-container
-
-	return bracketHTML;
-}
-
-function getRoundName(roundNumber: number, totalRounds: number): string {
+	// Fallback for other sizes
 	if (roundNumber === totalRounds) return "Final";
-	if (roundNumber === totalRounds - 1) return "Semifinal";
-	if (roundNumber === totalRounds - 2) return "Quartas";
-	return `Ronda ${roundNumber}`;
+	if (roundNumber === totalRounds - 1) return "Semifinals";
+	if (roundNumber === totalRounds - 2) return "Quarterfinals";
+	return `Round ${roundNumber}`;
 }
 
 function expectedMatchesLeft(totalPlayers: number, currentRound: number) {
@@ -747,7 +1046,13 @@ async function checkUserCanStartGames(tournamentId: string): Promise<boolean> {
  */
 async function refreshBracket(tournamentId: string) {
 	try {
+		// Update tournament info at the top
+		await displayTournamentInfo(tournamentId);
+
 		await renderBracket(tournamentId);
+
+		// Check for tournament completion and notify if needed
+		await checkAndNotifyTournamentCompletion(tournamentId);
 
 		// Also update the start button status
 		const canStartGames = await checkUserCanStartGames(tournamentId);

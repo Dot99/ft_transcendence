@@ -16,14 +16,14 @@ export class BotAI {
     private targetY: number = 0;
     private reactionError: number = 0;
     private lastBallX: number = 0;
-    private errorDecay: number = 0.92; // Slower error decay
+    private errorDecay: number = 0.92;
     private lastDecisionTime: number = 0;
     private currentKeyUp: boolean = false;
     private currentKeyDown: boolean = false;
     private lastUpdateTime: number = 0;
     private movementStartTime: number = 0;
     private movementDuration: number = 0;
-    private consecutiveHits: number = 0; // Track performance for dynamic difficulty
+    private consecutiveHits: number = 0;
 
     update(view: BotView) {
         const now = Date.now();

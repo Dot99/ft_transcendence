@@ -146,6 +146,26 @@ export default async function (fastify, opts) {
 			),
 	});
 	/**
+	 * @name getActiveTournamentsByUserId
+	 * @description Get active tournaments by user id
+	 * @route GET /tournaments/users/{id}/active
+	 * @group Games
+	 * @param {string} id - User id
+	 * @returns {Array} 200 - An array of active tournaments
+	 * @returns {Error} 401 - Unauthorized
+	 * @returns {Error} 404 - User not found
+	 * @returns {Error} 500 - Internal server error
+	 * @security JWT
+	 */
+	fastify.get("/tournaments/users/:id/active", {
+		schema: {
+			params: paramsJsonSchema,
+		},
+		preHandler: [fastify.authenticate],
+		handler: async (request, reply) =>
+			await gamesController.getActiveTournamentsForUser(request, reply),
+	});
+	/**
 	 * @name getTournamentById
 	 * @description Get a tournament by id
 	 * @route GET /games/tournaments/{id}
