@@ -102,30 +102,34 @@ async function loadFriends(): Promise<void> {
 			friendDiv.className =
 				"flex items-center border-2 border-[#4CF190] p-4 min-h-[64px] space-x-3 w-full";
 			friendDiv.innerHTML = `
-                <img src="images/floppy_disk.svg" alt="icon" class="w-5 h-5 text-[#4CF190]" />
-                <span class="text-white flex-1 flex items-center gap-2">
-                    ${friend.username}
+                <img src="images/floppy_disk.svg" alt="icon" class="w-5 h-5 text-[#4CF190] flex-shrink-0" />
+                <span class="text-white flex-1 flex items-center gap-2 min-w-0 max-w-[250px]">
+                    <span class="truncate" title="${friend.username}">${
+				friend.username
+			}</span>
                     ${
 						isOnline
-							? '<span title="Online" class="inline-block w-3 h-3 rounded-full bg-green-400"></span>'
+							? '<span title="Online" class="inline-block w-3 h-3 rounded-full bg-green-400 flex-shrink-0"></span>'
 							: ""
 					}
                 </span>
-                <button class="invite-btn text-[#4CF190] border border-[#4CF190] rounded px-3 py-1 hover:bg-[#4CF190] hover:text-[#001B26] transition" data-id="${
-					friend.id
-				}" data-name="${friend.username}">
-                    Invite
-                </button>
-                <button class="remove-btn text-yellow-400 border border-yellow-400 rounded px-3 py-1 hover:bg-yellow-400 hover:text-[#001B26] transition" data-id="${
-					friend.id
-				}">
-                    Remove
-                </button>
-                <button class="block-btn text-red-400 border border-red-400 rounded px-3 py-1 hover:bg-red-400 hover:text-[#001B26] transition" data-id="${
-					friend.id
-				}">
-                    Block
-                </button>
+                <div class="flex gap-2 flex-shrink-0">
+                    <button class="invite-btn text-[#4CF190] border border-[#4CF190] rounded px-3 py-1 hover:bg-[#4CF190] hover:text-[#001B26] transition" data-id="${
+						friend.id
+					}" data-name="${friend.username}">
+                        Invite
+                    </button>
+                    <button class="remove-btn text-yellow-400 border border-yellow-400 rounded px-3 py-1 hover:bg-yellow-400 hover:text-[#001B26] transition" data-id="${
+						friend.id
+					}">
+                        Remove
+                    </button>
+                    <button class="block-btn text-red-400 border border-red-400 rounded px-3 py-1 hover:bg-red-400 hover:text-[#001B26] transition" data-id="${
+						friend.id
+					}">
+                        Block
+                    </button>
+                </div>
             `;
 			friendsList.appendChild(friendDiv);
 		});
