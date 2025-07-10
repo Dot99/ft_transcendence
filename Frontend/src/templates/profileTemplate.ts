@@ -57,6 +57,11 @@ export const profileTemplate = `
                 <div class="absolute bottom-32 right-1.5 flex flex-row-reverse gap-2">
                     <button id="logoutButton" class="menu-button bg-red-800 py-1 px-2 rounded text-black text-[0.65rem] leading-tight flex items-center justify-center h-6 min-w-[70px]">LOGOUT</button>
                     <button id="editProfileBtn" class="menu-button bg-[#4CF190] text-[#001B26] py-1 px-2 rounded text-[0.65rem] leading-tight flex items-center justify-center h-6 min-w-[70px]">EDIT PROFILE</button>
+					<select id="languageSelector" class="bg-[#012733] border border-[#4CF190] text-white rounded px-2 py-1 focus:outline-none text-[0.65rem] h-6">
+                        <option value="en">English</option>
+                        <option value="pt">Português</option>
+                        <option value="zh">中文</option>
+                    </select>
                 </div>
                 <img src="images/arcade.svg" alt="Arcade" class="w-auto h-[140px] scale-x-[-1] absolute -bottom-4 right-0 z-10" />
             </div>
@@ -74,15 +79,6 @@ export const profileTemplate = `
             <div>
                 <label class="block text-[#4CF190] mb-1" for="editPfp">Profile Picture</label>
                 <input id="editPfp" name="pfp" type="text" class="w-full px-3 py-2 rounded bg-[#012733] text-white border border-[#4CF190] focus:outline-none" />
-            </div>
-            <!-- Language Selector -->
-            <div class="mb-2 flex items-center gap-2">
-                <label for="languageSelector" class="text-[#4CF190]">Language</label>
-                <select id="languageSelector" class="bg-[#012733] border border-[#4CF190] text-white rounded px-2 py-1 focus:outline-none">
-                    <option value="en">English</option>
-                    <option value="pt">Português</option>
-                    <option value="zh">中文</option>
-                </select>
             </div>
             <div id="twofaSection">
                 <!-- 2FA toggle will be injected by JS -->

@@ -217,6 +217,20 @@ export const loadProfilePage = (pushState: boolean = true): void => {
 		"click",
 		handleLogout
 	);
+
+	// Setup language selector
+	const langSelector = document.getElementById(
+		"languageSelector"
+	) as HTMLSelectElement | null;
+	if (langSelector) {
+		langSelector.value = getLang();
+		langSelector.onchange = (e) => {
+			const newLang = (e.target as HTMLSelectElement).value;
+			setLang(newLang as "en" | "pt" | "zh");
+			loadProfilePage(false);
+		};
+	}
+
 	loadDashboardData();
 	renderPerformanceChart();
 };
@@ -660,21 +674,6 @@ function showEditProfileModal(user: User, twofaEnabled: boolean): void {
             <span class="text-[#4CF190]">${t("2fa_auth")}</span>
         </label>
     `;
-	const langSelector = document.getElementById(
-		"languageSelector"
-	) as HTMLSelectElement | null;
-	if (langSelector) {
-		langSelector.value = getLang();
-		langSelector.onchange = (e) => {
-			const newLang = (e.target as HTMLSelectElement).value;
-			setLang(newLang as "en" | "pt" | "zh");
-			loadProfilePage(false);
-		};
-		const langLabel = document.querySelector(
-			"label[for='languageSelector']"
-		);
-		if (langLabel) langLabel.textContent = t("language") || "Language";
-	}
 }
 
 function closeEditProfileModal(): void {
