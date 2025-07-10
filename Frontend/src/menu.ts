@@ -61,21 +61,8 @@ function translateMenuStaticTexts() {
 	const tournamentModalTitle = document.querySelector("#tournamentModal h2");
 	if (tournamentModalTitle)
 		tournamentModalTitle.textContent = t("menu_tournaments");
-	const createTournamentBtn = document.getElementById("createTournament");
-	if (createTournamentBtn)
-		createTournamentBtn.textContent = t("menu_create_tournament");
-	const joinTournamentBtn = document.getElementById("joinTournament");
-	if (joinTournamentBtn)
-		joinTournamentBtn.textContent = t("menu_join_tournament");
 
-	// Create Tournament Modal
-	const createTournamentModalTitle = document.querySelector(
-		"#createTournamentModal h2"
-	);
-	if (createTournamentModalTitle)
-		createTournamentModalTitle.textContent = t(
-			"menu_create_tournament_title"
-		);
+	// Tournament form elements (now inside tabs)
 	const tournamentNameLabel = document.querySelector(
 		"#createTournamentForm label span.text-white.font-semibold"
 	);
@@ -95,12 +82,16 @@ function translateMenuStaticTexts() {
 	);
 	if (createBtn) createBtn.textContent = t("menu_create");
 
-	// Join Tournament Modal
-	const joinTournamentModalTitle = document.querySelector(
-		"#joinTournamentModal h2"
+	// Tab labels
+	const joinTournamentTabElement =
+		document.getElementById("joinTournamentTab");
+	if (joinTournamentTabElement)
+		joinTournamentTabElement.textContent = t("menu_join_tournament");
+	const createTournamentTabElement = document.getElementById(
+		"createTournamentTab"
 	);
-	if (joinTournamentModalTitle)
-		joinTournamentModalTitle.textContent = t("menu_join_tournament_title");
+	if (createTournamentTabElement)
+		createTournamentTabElement.textContent = t("menu_create_tournament");
 }
 
 // Fetch username
@@ -383,8 +374,20 @@ export const loadMenuPage = async (): Promise<void> => {
 		"closeTournamentModal"
 	);
 
+	// Tournament tabs
+	const joinTournamentTab = document.getElementById("joinTournamentTab");
+	const createTournamentTab = document.getElementById("createTournamentTab");
+	const joinTournamentContent = document.getElementById(
+		"joinTournamentContent"
+	);
+	const createTournamentContent = document.getElementById(
+		"createTournamentContent"
+	);
+
 	if (btnTournament && tournamentModal && closeTournamentModal) {
-		btnTournament.addEventListener("click", () => {
+		btnTournament.addEventListener("click", async () => {
+			// Load tournaments list by default when opening modal
+			await loadTournamentsList();
 			tournamentModal.classList.remove("hidden");
 		});
 		closeTournamentModal.addEventListener("click", () => {
@@ -392,237 +395,402 @@ export const loadMenuPage = async (): Promise<void> => {
 		});
 	}
 
-	const btnJoinTournament = document.getElementById("joinTournament");
-	const joinTournamentModal = document.getElementById("joinTournamentModal");
-	const closeJoinTournamentModal = document.getElementById(
-		"closeJoinTournamentModal"
-	);
-	const tournamentList = document.getElementById("tournamentList");
-
+	// Tab switching logic
 	if (
-		btnJoinTournament &&
-		joinTournamentModal &&
-		closeJoinTournamentModal &&
-		tournamentList &&
-		tournamentModal
+		joinTournamentTab &&
+		createTournamentTab &&
+		joinTournamentContent &&
+		createTournamentContent
 	) {
-		btnJoinTournament.addEventListener("click", async () => {
-			let tournaments: {
-				tournament_id: number;
-				name: string;
-				PLAYER_COUNT: number;
-				max_players: number;
-				status?: string;
-			}[] = [];
-			try {
-				const res = await fetch(`${API_BASE_URL}/tournaments`, {
+		joinTournamentTab.addEventListener("click", async () => {
+			// Switch to join tab
+			joinTournamentTab.classList.remove("text-gray-400", "bg-[#001B26]");
+			joinTournamentTab.classList.add("text-[#4CF190]", "bg-[#002B36]");
+			createTournamentTab.classList.remove(
+				"text-[#4CF190]",
+				"bg-[#002B36]"
+			);
+			createTournamentTab.classList.add("text-gray-400", "bg-[#001B26]");
+
+			joinTournamentContent.classList.remove("hidden");
+			createTournamentContent.classList.add("hidden");
+
+			// Load tournaments list
+			await loadTournamentsList();
+		});
+
+		createTournamentTab.addEventListener("click", () => {
+			// Switch to create tab
+			createTournamentTab.classList.remove(
+				"text-gray-400",
+				"bg-[#001B26]"
+			);
+			createTournamentTab.classList.add("text-[#4CF190]", "bg-[#002B36]");
+			joinTournamentTab.classList.remove(
+				"text-[#4CF190]",
+				"bg-[#002B36]"
+			);
+			joinTournamentTab.classList.add("text-gray-400", "bg-[#001B26]");
+
+			createTournamentContent.classList.remove("hidden");
+			joinTournamentContent.classList.add("hidden");
+		});
+	}
+
+	// Helper function to check if user has active tournament
+	async function checkUserHasActiveTournament(
+		userId: number
+	): Promise<boolean> {
+		try {
+			const statsRes = await fetch(
+				`${API_BASE_URL}/users/${userId}/stats`,
+				{
 					headers: {
 						Authorization: `Bearer ${getCookie("jwt")}`,
 					},
-					credentials: "include",
-				});
-				if (res.ok) {
-					const data = await res.json();
-					tournaments = data.tournaments.filter(
-						(t: {
-							tournament_id: number;
-							PLAYER_COUNT: number;
-							max_players: number;
-							status?: string;
-						}) =>
-							t.PLAYER_COUNT <= t.max_players &&
-							t.status !== "completed"
-					);
 				}
-			} catch (e) {
-				console.error("Failed to fetch tournaments:", e);
-				tournaments = [];
+			);
+
+			if (statsRes.ok) {
+				const statsData = await statsRes.json();
+				return !!(
+					statsData.stats && statsData.stats.current_tournament
+				);
 			}
-			const userId = getUserIdFromToken();
-			// Populate tournament list
-			tournamentList.innerHTML = tournaments.length
-				? tournaments
-						.map((t) => {
-							const buttonHTML = `
-                <button
-                  class="join-tournament-btn bg-[#4CF190] text-[#001B26] px-4 py-2 rounded font-bold transition hover:bg-[#EFD671]"
-                  data-id="${t.tournament_id}"
-                  data-name="${t.name}"
-                >
-                  Join
-                </button>
-              `;
-							return `
-                <li class="flex justify-between items-center bg-[#01222c] px-6 py-3 rounded border-2 border-[#4CF190]">
-                  <span class="font-semibold">${t.name}</span>
-                  <span class="text-[#4CF190]">${t.PLAYER_COUNT}/${t.max_players} players</span>
-                  ${buttonHTML}
+			return false;
+		} catch (error) {
+			console.error("Error checking user tournament status:", error);
+			return false;
+		}
+	}
+
+	// Function to load tournaments list
+	async function loadTournamentsList() {
+		const tournamentList = document.getElementById("tournamentList");
+		if (!tournamentList) return;
+
+		// First check if user is already in an active tournament
+		const userId = getUserIdFromToken();
+		if (!userId) {
+			tournamentList.innerHTML =
+				'<li class="text-center text-white py-4">Please log in to view tournaments.</li>';
+			return;
+		}
+
+		try {
+			const statsRes = await fetch(
+				`${API_BASE_URL}/users/${userId}/stats`,
+				{
+					headers: {
+						Authorization: `Bearer ${getCookie("jwt")}`,
+					},
+				}
+			);
+
+			let userHasActiveTournament = false;
+			if (statsRes.ok) {
+				const statsData = await statsRes.json();
+				if (statsData.stats && statsData.stats.current_tournament) {
+					userHasActiveTournament = true;
+					// Show a warning message but continue to show tournament list
+					const warningElement = document.createElement("div");
+					warningElement.className =
+						"mb-4 p-3 bg-[#002B36] border border-[#FFD700] rounded text-center";
+					warningElement.innerHTML = `
+						<div class="text-yellow-400 font-semibold mb-1">⚠️ Already in Tournament</div>
+						<div class="text-sm text-gray-300">You are participating in an active tournament. You can view other tournaments but cannot join new ones.</div>
+					`;
+
+					const tournamentListContainer =
+						tournamentList.parentElement;
+					if (tournamentListContainer) {
+						tournamentListContainer.insertBefore(
+							warningElement,
+							tournamentList
+						);
+					}
+				}
+			}
+		} catch (error) {
+			console.error("Error checking user tournament status:", error);
+		}
+
+		let tournaments: {
+			tournament_id: number;
+			name: string;
+			PLAYER_COUNT: number;
+			max_players: number;
+			status?: string;
+		}[] = [];
+		try {
+			const res = await fetch(`${API_BASE_URL}/tournaments`, {
+				headers: {
+					Authorization: `Bearer ${getCookie("jwt")}`,
+				},
+				credentials: "include",
+			});
+			if (res.ok) {
+				const data = await res.json();
+				tournaments = data.tournaments.filter(
+					(t: {
+						tournament_id: number;
+						PLAYER_COUNT: number;
+						max_players: number;
+						status?: string;
+					}) => t.PLAYER_COUNT <= t.max_players
+				);
+			}
+		} catch (e) {
+			console.error("Failed to fetch tournaments:", e);
+			tournaments = [];
+		}
+
+		// Populate tournament list
+		tournamentList.innerHTML = tournaments.length
+			? tournaments
+					.map((t) => {
+						return `
+                <li class="flex justify-between items-center bg-[#01222c] px-6 py-3 rounded border-2 border-[#4CF190]" data-tournament-id="${t.tournament_id}" data-tournament-name="${t.name}">
+                  <div>
+                    <span class="font-semibold">${t.name}</span>
+                    <div class="text-sm tournament-status"></div>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-[#4CF190]">${t.PLAYER_COUNT}/${t.max_players} players</span>
+                    <div class="tournament-button-container"></div>
+                  </div>
                 </li>
               `;
-						})
-						.join("")
-				: `<li class="text-center text-white py-4">No tournaments available.</li>`;
+					})
+					.join("")
+			: `<li class="text-center text-white py-4">No tournaments available.</li>`;
 
-			document
-				.querySelectorAll(".join-tournament-btn")
-				.forEach(async (btn) => {
-					const tournamentId = btn.getAttribute("data-id");
-					const tournamentName = btn.getAttribute("data-name");
+		// Now check each tournament to see if user is already in it and set appropriate button/status
+		tournaments.forEach(async (t) => {
+			const listItem = document.querySelector(
+				`[data-tournament-id="${t.tournament_id}"]`
+			);
+			if (!listItem) return;
 
-					if (!tournamentId || !userId) return;
+			const statusElement = listItem.querySelector(".tournament-status");
+			const buttonContainer = listItem.querySelector(
+				".tournament-button-container"
+			);
 
+			try {
+				// Check if user is already in this tournament
+				const res = await fetch(
+					`${API_BASE_URL}/tournaments/${t.tournament_id}/players`,
+					{
+						headers: {
+							Authorization: `Bearer ${getCookie("jwt")}`,
+						},
+					}
+				);
+
+				let alreadyIn = false;
+				if (res.ok) {
+					const participants = await res.json();
+					const players = participants?.players || [];
+					alreadyIn = players.some(
+						(p: any) => p.player_id === Number(userId)
+					);
+				}
+
+				let buttonHTML = "";
+				let statusText = "";
+
+				if (alreadyIn) {
+					// User is already in the tournament - show "Enter" button regardless of status
+					if (t.status === "completed") {
+						statusText = `<span class="text-yellow-400 font-bold">COMPLETED</span>`;
+						buttonHTML = `
+							<button
+								class="enter-tournament-btn bg-blue-500 text-white px-4 py-2 rounded font-bold transition hover:bg-blue-600"
+								data-id="${t.tournament_id}"
+								data-name="${t.name}"
+							>
+								View Results
+							</button>
+						`;
+					} else {
+						statusText = `<span class="text-green-400 font-bold">JOINED</span>`;
+						buttonHTML = `
+							<button
+								class="enter-tournament-btn bg-[#EFD671] text-[#001B26] px-4 py-2 rounded font-bold transition hover:bg-[#4CF190]"
+								data-id="${t.tournament_id}"
+								data-name="${t.name}"
+							>
+								Enter
+							</button>
+						`;
+					}
+				} else {
+					// User is not in the tournament - check other conditions
+					if (t.status === "completed") {
+						statusText = `<span class="text-yellow-400 font-bold">COMPLETED</span>`;
+						buttonHTML = `
+							<button
+								class="view-tournament-btn bg-blue-500 text-white px-4 py-2 rounded font-bold transition hover:bg-blue-600"
+								data-id="${t.tournament_id}"
+								data-name="${t.name}"
+							>
+								View Results
+							</button>
+						`;
+					} else if (t.PLAYER_COUNT >= t.max_players) {
+						statusText = `<span class="text-red-400 font-bold">FULL</span>`;
+						buttonHTML = `
+							<button
+								class="view-tournament-btn bg-blue-500 text-white px-4 py-2 rounded font-bold transition hover:bg-blue-600"
+								data-id="${t.tournament_id}"
+								data-name="${t.name}"
+							>
+								View
+							</button>
+						`;
+					} else {
+						// Check if user has active tournament to decide button behavior
+						const hasActiveTournament =
+							await checkUserHasActiveTournament(userId);
+
+						if (hasActiveTournament) {
+							statusText = `<span class="text-green-400 font-bold">OPEN</span>`;
+							buttonHTML = `
+								<button
+									class="view-tournament-btn bg-blue-500 text-white px-4 py-2 rounded font-bold transition hover:bg-blue-600"
+									data-id="${t.tournament_id}"
+									data-name="${t.name}"
+									title="You are already in an active tournament"
+								>
+									View
+								</button>
+							`;
+						} else {
+							statusText = `<span class="text-green-400 font-bold">OPEN</span>`;
+							buttonHTML = `
+								<button
+									class="join-tournament-btn bg-[#4CF190] text-[#001B26] px-4 py-2 rounded font-bold transition hover:bg-[#EFD671]"
+									data-id="${t.tournament_id}"
+									data-name="${t.name}"
+								>
+									Join
+								</button>
+							`;
+						}
+					}
+				}
+
+				if (statusElement) statusElement.innerHTML = statusText;
+				if (buttonContainer) buttonContainer.innerHTML = buttonHTML;
+			} catch (err) {
+				console.error("Error checking tournament participants:", err);
+				// Set default button if there's an error
+				if (statusElement)
+					statusElement.innerHTML = `<span class="text-gray-400 font-bold">UNKNOWN</span>`;
+				if (buttonContainer)
+					buttonContainer.innerHTML = `
+					<button class="bg-gray-500 text-white px-4 py-2 rounded font-bold cursor-not-allowed opacity-50" disabled>
+						Error
+					</button>
+				`;
+			}
+		});
+
+		// Wait a bit for all tournament status checks to complete, then add event listeners
+		setTimeout(() => {
+			// Add event listeners for join buttons
+			document.querySelectorAll(".join-tournament-btn").forEach((btn) => {
+				const tournamentId = btn.getAttribute("data-id");
+				const tournamentName = btn.getAttribute("data-name");
+
+				if (!tournamentId || !userId) return;
+
+				btn.addEventListener("click", async () => {
 					try {
-						const res = await fetch(
-							`${API_BASE_URL}/tournaments/${tournamentId}/players`,
+						const joinRes = await fetch(
+							`${API_BASE_URL}/tournaments/join`,
 							{
+								method: "POST",
 								headers: {
+									"Content-Type": "application/json",
 									Authorization: `Bearer ${getCookie("jwt")}`,
 								},
+								credentials: "include",
+								body: JSON.stringify({
+									tournamentName: tournamentName,
+									tournamentId: Number(tournamentId),
+									userId: Number(userId),
+								}),
 							}
 						);
 
-						//   if (!res.ok) throw new Error("Failed to fetch participants");
+						if (!joinRes.ok) {
+							const errorData = await joinRes.json();
+							if (
+								errorData.message &&
+								errorData.message.includes(
+									"already participating"
+								)
+							) {
+								alert(
+									"You can only participate in one tournament at a time. Please finish your current tournament first."
+								);
+							} else {
+								alert(
+									errorData.message ||
+										"Failed to join tournament"
+								);
+							}
+							return;
+						}
 
-						const participants = await res.json();
-
-						// Ensure participants and participants.players are valid
-						const players = participants?.players || [];
-						const alreadyIn = players.some(
-							(p: any) => p.player_id === Number(userId)
-						);
-
-						if (alreadyIn) {
-							// Change button to "Enter"
-							btn.textContent = "Enter";
-							btn.classList.remove("join-tournament-btn");
-							btn.classList.remove("bg-[#4CF190]");
-							btn.classList.add("bg-[#EFD671]");
-
-							btn.addEventListener("click", () => {
-								loadTournamentPage(tournamentId);
-							});
+						const result = await joinRes.json();
+						if (result.success) {
+							if (tournamentModal)
+								tournamentModal.classList.add("hidden");
+							loadTournamentPage(tournamentId);
 						} else {
-							// Add "Join" logic
-							btn.addEventListener("click", async () => {
-								try {
-									const joinRes = await fetch(
-										`${API_BASE_URL}/tournaments/join`,
-										{
-											method: "POST",
-											headers: {
-												"Content-Type":
-													"application/json",
-												Authorization: `Bearer ${getCookie(
-													"jwt"
-												)}`,
-											},
-											credentials: "include",
-											body: JSON.stringify({
-												tournamentName: tournamentName,
-												tournamentId:
-													Number(tournamentId),
-												userId: Number(userId),
-											}),
-										}
-									);
-
-									if (!joinRes.ok)
-										throw new Error(
-											"Failed to join tournament"
-										);
-
-									loadTournamentPage(tournamentId);
-								} catch (err) {
-									console.error("Join failed:", err);
-									alert("Failed to join tournament.");
-								}
-							});
+							alert(
+								result.message || "Failed to join tournament"
+							);
 						}
 					} catch (err) {
-						console.error(
-							"Error checking tournament participants:",
-							err
-						);
+						console.error("Join failed:", err);
+						alert("Failed to join tournament.");
 					}
 				});
+			});
 
-			tournamentModal.classList.add("hidden");
-			joinTournamentModal.classList.remove("hidden");
-		});
+			// Add event listeners for enter tournament buttons
+			document
+				.querySelectorAll(".enter-tournament-btn")
+				.forEach((btn) => {
+					const tournamentId = btn.getAttribute("data-id");
+					if (!tournamentId) return;
 
-		closeJoinTournamentModal.addEventListener("click", () => {
-			joinTournamentModal.classList.add("hidden");
-		});
-	}
-
-	const btnCreateTournament = document.getElementById("createTournament");
-	const createTournamentModal = document.getElementById(
-		"createTournamentModal"
-	);
-	const closeCreateTournamentModal = document.getElementById(
-		"closeCreateTournamentModal"
-	);
-
-	if (
-		btnCreateTournament &&
-		createTournamentModal &&
-		closeCreateTournamentModal &&
-		tournamentModal
-	) {
-		btnCreateTournament.addEventListener("click", () => {
-			tournamentModal.classList.add("hidden");
-			createTournamentModal.classList.remove("hidden");
-		});
-		closeCreateTournamentModal.addEventListener("click", () => {
-			createTournamentModal.classList.add("hidden");
-			// Clean the create tournament form inputs
-			const form = document.getElementById(
-				"createTournamentForm"
-			) as HTMLFormElement | null;
-			if (form) {
-				form.reset();
-				// Reset player count buttons to default
-				const playerCountBtns =
-					form.querySelectorAll<HTMLButtonElement>(
-						".player-count-btn"
-					);
-				playerCountBtns.forEach((b) => {
-					b.classList.remove(
-						"bg-[#4CF190]",
-						"text-[#001B26]",
-						"ring-2",
-						"ring-[#4CF190]"
-					);
-					b.classList.add(
-						"bg-gray-600",
-						"text-white",
-						"border-gray-700"
-					);
-					b.classList.remove("border-[#001B26]");
+					btn.addEventListener("click", () => {
+						if (tournamentModal)
+							tournamentModal.classList.add("hidden");
+						loadTournamentPage(tournamentId);
+					});
 				});
-				const btn4 = form.querySelector<HTMLButtonElement>(
-					'.player-count-btn[data-value="4"]'
-				);
-				if (btn4) {
-					btn4.classList.remove(
-						"bg-gray-600",
-						"text-white",
-						"border-gray-700"
-					);
-					btn4.classList.add(
-						"bg-[#4CF190]",
-						"text-[#001B26]",
-						"border-[#001B26]",
-						"ring-2",
-						"ring-[#4CF190]"
-					);
-				}
-				const playerCountInput =
-					form.querySelector<HTMLInputElement>("#tournamentPlayers");
-				if (playerCountInput) playerCountInput.value = "4";
-			}
-		});
+
+			// Add event listeners for view tournament buttons
+			document.querySelectorAll(".view-tournament-btn").forEach((btn) => {
+				const tournamentId = btn.getAttribute("data-id");
+				if (!tournamentId) return;
+
+				btn.addEventListener("click", () => {
+					if (tournamentModal)
+						tournamentModal.classList.add("hidden");
+					loadTournamentPage(tournamentId);
+				});
+			});
+		}, 500);
 	}
+
+	// Create Tournament Form Logic (now inside the tab)
 	const createTournamentForm = document.getElementById(
 		"createTournamentForm"
 	) as HTMLFormElement | null;
@@ -665,11 +833,59 @@ export const loadMenuPage = async (): Promise<void> => {
 				}
 
 				const created = await res.json();
+				alert("Tournament created successfully!");
 
-				createTournamentModal?.classList.add("hidden");
+				// Reset form and switch back to join tab
 				createTournamentForm.reset();
+
+				// Reset player count buttons to default
+				const playerCountBtns =
+					createTournamentForm.querySelectorAll<HTMLButtonElement>(
+						".player-count-btn"
+					);
+				playerCountBtns.forEach((b) => {
+					b.classList.remove(
+						"bg-[#4CF190]",
+						"text-[#001B26]",
+						"ring-2",
+						"ring-[#4CF190]"
+					);
+					b.classList.add(
+						"bg-gray-600",
+						"text-white",
+						"border-gray-700"
+					);
+					b.classList.remove("border-[#001B26]");
+				});
+				const btn4 =
+					createTournamentForm.querySelector<HTMLButtonElement>(
+						'.player-count-btn[data-value="4"]'
+					);
+				if (btn4) {
+					btn4.classList.remove(
+						"bg-gray-600",
+						"text-white",
+						"border-gray-700"
+					);
+					btn4.classList.add(
+						"bg-[#4CF190]",
+						"text-[#001B26]",
+						"border-[#001B26]",
+						"ring-2",
+						"ring-[#4CF190]"
+					);
+				}
+				const playerCountInput =
+					createTournamentForm.querySelector<HTMLInputElement>(
+						"#tournamentPlayers"
+					);
+				if (playerCountInput) playerCountInput.value = "4";
+
+				// Switch back to join tab and refresh list
+				if (joinTournamentTab) joinTournamentTab.click();
 			} catch (err) {
 				console.error("Error creating tournament", err);
+				alert("Failed to create tournament. Please try again.");
 			}
 		});
 	}

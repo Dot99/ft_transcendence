@@ -709,6 +709,35 @@ const debugResetTournamentReadiness = async (request, reply) => {
 	}
 };
 
+/**
+ * @description Get active tournaments for a user
+ * @param {Object} request - The request object
+ * @param {Object} response - The response object
+ * @returns {Promise<void>}
+ */
+const getActiveTournamentsForUser = async (request, reply) => {
+	try {
+		const userId = request.params.id;
+		const lang = request.headers["accept-language"] || "en";
+		const result = await gameService.getActiveTournamentsForUser(
+			userId,
+			lang
+		);
+
+		reply.send({
+			success: true,
+			tournaments: result.tournaments,
+			message: result.message,
+		});
+	} catch (error) {
+		console.error("Internal Server Error:", error);
+		reply.code(500).send({
+			success: false,
+			error: error.message,
+		});
+	}
+};
+
 export default {
 	getAllGames,
 	getGameById,
@@ -736,4 +765,5 @@ export default {
 	getTournamentStatus,
 	debugSimulateTournamentResult,
 	debugResetTournamentReadiness,
+	getActiveTournamentsForUser,
 };

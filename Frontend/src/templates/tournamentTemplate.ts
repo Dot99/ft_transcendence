@@ -16,8 +16,8 @@ export const tournamentTemplate = `
   <img src="images/arcade.svg" class="fixed bottom-0 left-0 w-72 h-72 z-50" alt="arcade">
 
   <!-- Bracket Container -->
-  <div id="bracketContainer" class="relative z-10 flex justify-center items-center w-full max-w-7xl overflow-x-auto py-24 px-6">
-    <div id="bracketColumns" class="flex flex-row space-x-16 p-8"></div>
+  <div id="bracketContainer" class="relative z-10 w-full min-h-screen flex justify-center items-center overflow-x-auto py-24 px-6">
+    <!-- Tournament bracket will be dynamically generated here -->
   </div>
 </div>
 `;

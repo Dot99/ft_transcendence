@@ -14,6 +14,9 @@ function getElement<T extends HTMLElement>(id: string): T {
 export const loadTournamentPage = async (
 	tournament_id: string
 ): Promise<void> => {
+	// Reset notification flag for this tournament
+	tournamentCompletionNotified = false;
+
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = tournamentTemplate;
 
@@ -31,6 +34,9 @@ export const loadTournamentPage = async (
   </div>
 `;
 	if (tournament_id) {
+		// Display tournament information at the top
+		await displayTournamentInfo(tournament_id);
+
 		renderBracket(tournament_id);
 
 		// Check if current user can start games (has upcoming match)
@@ -96,6 +102,71 @@ let totalRounds: number = 0;
 let chartPoints: any[] = [];
 // Add a global flag to track if missing matches have already been fetched
 let missingMatchesFetched = false;
+
+// Variable to track if tournament completion notification has been shown
+let tournamentCompletionNotified = false;
+
+// Function to check and notify tournament completion
+async function checkAndNotifyTournamentCompletion(tournamentId: string) {
+	try {
+		const res = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}`, {
+			headers: {
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+		});
+
+		if (!res.ok) {
+			return;
+		}
+
+		const data = await res.json();
+		const tournament = data.tournament;
+
+		// If tournament is completed and we haven't notified yet
+		if (
+			tournament.status === "completed" &&
+			!tournamentCompletionNotified
+		) {
+			tournamentCompletionNotified = true;
+
+			// Show completion notification
+			const notification = document.createElement("div");
+			notification.innerHTML = `
+				<div class="fixed top-4 right-4 bg-[#FFD700] text-[#001B26] px-6 py-4 rounded-lg border-2 border-[#4CF190] shadow-2xl z-50 animate-pulse">
+					<div class="flex items-center">
+						<span class="text-2xl mr-2">🏆</span>
+						<div>
+							<div class="font-bold text-lg">Tournament Completed!</div>
+							<div class="text-sm">Check the results below</div>
+						</div>
+						<button id="closeNotification" class="ml-4 text-[#001B26] hover:text-red-600 font-bold text-xl">×</button>
+					</div>
+				</div>
+			`;
+
+			document.body.appendChild(notification);
+
+			// Auto-remove notification after 8 seconds
+			setTimeout(() => {
+				if (notification.parentNode) {
+					notification.parentNode.removeChild(notification);
+				}
+			}, 8000);
+
+			// Manual close button
+			const closeBtn = notification.querySelector("#closeNotification");
+			if (closeBtn) {
+				closeBtn.addEventListener("click", () => {
+					if (notification.parentNode) {
+						notification.parentNode.removeChild(notification);
+					}
+				});
+			}
+		}
+	} catch (error) {
+		console.error("Error checking tournament completion:", error);
+	}
+}
 
 // Atualize o renderBracket para calcular o número de rodadas
 async function renderBracket(tournamentId: string) {
@@ -210,23 +281,20 @@ async function createCustomBracket(
 	chartPoints = await generateChartPoints(matches);
 	missingMatchesFetched = false;
 
-	// --- DESIGN MELHORADO E BRACKETS ALINHADOS ---
+	// Create tournament bracket with proper layout and connector lines
 	const roundsCount = sortedRounds.length;
-	const maxMatches = Math.max(
-		...sortedRounds.map((r) => rounds[r].length || 1),
-		1
-	);
+
+	// Create players map once for the entire tournament
+	const playersMap = new Map<string, string>();
+	for (const player of tournament.players || []) {
+		playersMap.set(player.id, player.username || player.name || "Unknown");
+	}
 
 	let bracketHTML = `
-	<div class="overflow-auto min-h-screen max-h-screen bg-gradient-to-br from-gray-900 to-teal-900 rounded-lg border-2 border-green-500 shadow-2xl p-8">
-		<div class="grid" style="grid-template-columns: repeat(${roundsCount}, minmax(220px, 1fr)); gap: 48px;">
+		<div class="relative w-full min-h-screen bg-gradient-to-br from-gray-900 to-teal-900 rounded-lg border-2 border-green-500 shadow-2xl p-8 overflow-x-auto">
+			<div class="flex justify-center items-center min-h-[700px] py-16">
+				<div class="relative flex items-center justify-center" style="gap: 12rem;">
 	`;
-
-	// SVG connectors
-	let connectorsSVG = `<svg class="absolute top-0 left-0 pointer-events-none w-full h-full" style="z-index:0;" xmlns="http://www.w3.org/2000/svg">`;
-
-	const cardHeight = 110;
-	const cardGap = 40;
 
 	for (let roundIndex = 0; roundIndex < roundsCount; roundIndex++) {
 		const round = sortedRounds[roundIndex];
@@ -253,48 +321,49 @@ async function createCustomBracket(
 			Math.pow(2, totalRounds - roundNumber)
 		);
 
-		bracketHTML += `
-		<div class="flex flex-col items-center relative min-w-[220px]">
-			<h3 class="text-green-100 text-lg font-bold mb-6 text-center shadow uppercase tracking-wider py-2 px-6 bg-green-700 rounded-lg border border-green-400 drop-shadow">
-				${getRoundName(roundNumber, roundsCount)}
-			</h3>
-			<div class="flex flex-col items-center gap-[${cardGap}px] relative">
-		`;
+		// Perfect centering logic
+		let verticalGap = "gap-8";
+		let containerClasses = "flex flex-col items-center";
 
-		// Dynamic spacing based on tournament size and round
-		const baseSpacing = totalRounds <= 2 ? 8 : 4;
-		const verticalSpacing = Math.max(
-			baseSpacing,
-			baseSpacing * Math.pow(1.5, roundIndex)
-		);
+		if (roundsCount === 2) {
+			// 4-player tournament: Semifinals and Final
+			if (roundIndex === 0) {
+				verticalGap = "gap-16"; // Space between semifinal matches
+			} else {
+				containerClasses = "flex items-center justify-center"; // Center final match perfectly
+			}
+		} else if (roundsCount === 3) {
+			// 8-player tournament: Quarterfinals, Semifinals, Final
+			if (roundIndex === 0) {
+				verticalGap = "gap-8"; // Tight spacing for quarterfinals
+			} else if (roundIndex === 1) {
+				verticalGap = "gap-24"; // Wider spacing for semifinals
+			} else {
+				containerClasses = "flex items-center justify-center"; // Center final match perfectly
+			}
+		}
 
-		// Get the round name to check if it should be yellow
+		// Get round styling
 		const roundName = getRoundName(roundNumber, sortedRounds.length);
 		const isSpecialRound =
 			roundName === "Quarterfinals" ||
 			roundName === "Semifinals" ||
 			roundName === "Final";
 
-		// Yellow text for special rounds, but GREEN borders for all
 		const headerClasses = isSpecialRound
-			? "text-[#FFD700] border-[#4CF190]"
-			: "text-[#4CF190] border-[#4CF190]";
+			? "text-[#FFD700] border-[#4CF190] bg-[#001B26]"
+			: "text-[#4CF190] border-[#4CF190] bg-[#001B26]";
 		const textClasses = isSpecialRound
 			? "text-[#FFD700]"
 			: "text-[#4CF190]";
-		const borderClasses = "border-[#4CF190]"; // ALL borders are GREEN
-		const lineClasses = "bg-[#4CF190]"; // ALL connector lines are GREEN
 
 		bracketHTML += `
-  <div class="flex flex-col items-center relative min-w-32 md:min-w-36 flex-shrink-0">
-    <h3 class="${headerClasses} text-sm md:text-lg font-bold mb-2 md:mb-4 text-center uppercase tracking-wide py-1 md:py-2 px-3 md:px-5 bg-[#001B26] border-2">
-      ${roundName}
-    </h3>
-    
-    <div class="flex flex-col items-center" style="gap: ${
-		verticalSpacing * 4
-	}px;">
-`;
+			<div class="flex flex-col items-center relative">
+				<h3 class="${headerClasses} text-2xl font-bold mb-8 text-center uppercase tracking-wider py-4 px-8 border-2 rounded-xl shadow-2xl">
+					${roundName}
+				</h3>
+				<div class="${containerClasses} ${verticalGap}">
+		`;
 
 		for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
 			const match = roundMatches[matchIndex] || {
@@ -316,14 +385,6 @@ async function createCustomBracket(
 				match.player2 ||
 				"TBD";
 
-			const playersMap = new Map<string, string>();
-			for (const player of tournament.players || []) {
-				playersMap.set(
-					player.id,
-					player.username || player.name || "Unknown"
-				);
-			}
-
 			const player1 = playersMap?.get(rawPlayer1) || rawPlayer1;
 			const player2 = playersMap?.get(rawPlayer2) || rawPlayer2;
 
@@ -340,7 +401,6 @@ async function createCustomBracket(
 			const displayPlayer2 =
 				isFinalRound && !match.player2 ? "TBD" : player2;
 
-			// Winners use the appropriate color based on round - using exact same format as your working buttons
 			const player1WinnerClasses = isPlayer1Winner
 				? "bg-[#4CF190] text-[#001B26]"
 				: "";
@@ -349,56 +409,295 @@ async function createCustomBracket(
 				: "";
 
 			bracketHTML += `
-<div class="bg-[#001B26] ${borderClasses} border-2 p-3 md:p-5 w-32 md:w-36 min-h-16 md:min-h-20 flex flex-col justify-center relative transition cursor-pointer hover:bg-[#002B36]">
-  <div class="bg-[#07303c] ${borderClasses} border-2 px-2 md:px-4 py-2 md:py-3 mb-2 md:mb-3 ${player1WinnerClasses}">
-    <span class="${
-		isPlayer1Winner ? "text-[#001B26]" : textClasses
-	} font-bold text-xs md:text-sm">
-        ${truncate(displayPlayer1, 12)}${
-				isCompleted ? ` (${player1Score})` : ""
-			}
-    </span>
-    </div>
+				<div class="relative group">
+					<div class="bg-[#001B26] border-[#4CF190] border-2 p-4 w-52 min-h-[120px] flex flex-col justify-center relative transition-all duration-300 cursor-pointer hover:bg-[#002B36] hover:scale-[1.02] rounded-lg shadow-xl">
+						<div class="bg-[#07303c] border-[#4CF190] border-2 px-3 py-2 mb-2 rounded ${player1WinnerClasses} transition-all duration-200">
+							<div class="flex justify-between items-center">
+								<span class="${
+									isPlayer1Winner
+										? "text-[#001B26]"
+										: textClasses
+								} font-bold text-sm">
+									${truncate(displayPlayer1, 12)}
+								</span>
+								${
+									isCompleted
+										? `
+									<span class="${
+										isPlayer1Winner
+											? "text-[#001B26]"
+											: textClasses
+									} font-bold text-lg">
+										${player1Score}
+									</span>
+								`
+										: ""
+								}
+							</div>
+						</div>
 
-    <div class="text-center ${textClasses} text-xs md:text-sm font-bold my-1 md:my-3">VS</div>
+						<div class="text-center ${textClasses} text-xs font-bold my-2 tracking-wider">VS</div>
 
-    <div class="bg-[#07303c] ${borderClasses} border-2 px-2 md:px-4 py-2 md:py-3 mb-2 md:mb-3 ${player2WinnerClasses}">
-    <span class="${
-		isPlayer2Winner ? "text-[#001B26]" : textClasses
-	} font-bold text-xs md:text-sm">
-        ${truncate(displayPlayer2, 12)}${
-				isCompleted ? ` (${player2Score})` : ""
-			}
-    </span>
-    </div>
-</div>
-`;
-
-			// Only add connector lines if there's a next round AND it's not the last match in round
-			if (
-				roundIndex < sortedRounds.length - 1 &&
-				matchIndex < matchesInRound - 1
-			) {
-				bracketHTML += `
-          <div class="w-0.5 h-4 ${lineClasses} mb-2"></div>
-        `;
-			}
+						<div class="bg-[#07303c] border-[#4CF190] border-2 px-3 py-2 mt-2 rounded ${player2WinnerClasses} transition-all duration-200">
+							<div class="flex justify-between items-center">
+								<span class="${
+									isPlayer2Winner
+										? "text-[#001B26]"
+										: textClasses
+								} font-bold text-sm">
+									${truncate(displayPlayer2, 12)}
+								</span>
+								${
+									isCompleted
+										? `
+									<span class="${
+										isPlayer2Winner
+											? "text-[#001B26]"
+											: textClasses
+									} font-bold text-lg">
+										${player2Score}
+									</span>
+								`
+										: ""
+								}
+							</div>
+						</div>
+					</div>
+					
+					<!-- Tournament bracket connector lines -->
+					${
+						roundIndex < roundsCount - 1
+							? `
+						<!-- Main horizontal line from match to next round -->
+						<div class="absolute -right-8 top-1/2 w-8 h-0.5 bg-[#4CF190] transform -translate-y-1/2 z-10"></div>
+						
+						${
+							matchIndex % 2 === 0 &&
+							matchIndex + 1 < matchesInRound
+								? `
+							<!-- Vertical connector for match pairs -->
+							<div class="absolute -right-8 top-1/2 w-0.5 transform -translate-y-1/2 bg-[#4CF190] z-10" 
+								 style="height: calc(100% + ${
+										roundIndex === 0
+											? "2rem" // Quarterfinals spacing
+											: roundIndex === 1
+											? "6rem" // Semifinals spacing
+											: "10rem" // Other rounds
+									});"></div>
+							<!-- Horizontal line from vertical connector to next round -->
+							<div class="absolute -right-16 w-8 h-0.5 bg-[#4CF190] z-10" 
+								 style="top: calc(50% + ${
+										roundIndex === 0
+											? "1rem"
+											: roundIndex === 1
+											? "3rem"
+											: "5rem"
+									});"></div>
+						`
+								: matchIndex % 2 === 1
+								? `
+							<!-- Bottom match in pair: horizontal line only -->
+							<div class="absolute -right-16 top-1/2 w-8 h-0.5 bg-[#4CF190] transform -translate-y-1/2 z-10"></div>
+						`
+								: ""
+						}
+					`
+							: ""
+					}
+				</div>
+			`;
 		}
 
-		bracketHTML += "</div></div>";
+		bracketHTML += `</div></div>`;
 
-		// Add SMALLER trophy after the final round
+		// Add trophy after final round with retro/pixel art styling
 		if (isFinalRound) {
+			// Find the champion (winner of the final match)
+			const finalMatch = roundMatches.find(
+				(match) => match.match_state === "completed" && match.winner
+			);
+
+			let championName = "TBD";
+			let finalMatchScore = "";
+			if (finalMatch && finalMatch.winner) {
+				const championId = finalMatch.winner;
+				championName = truncate(
+					playersMap?.get(championId) || championId,
+					12
+				);
+
+				// Add score information for the final match
+				if (
+					finalMatch.player1_score !== undefined &&
+					finalMatch.player2_score !== undefined
+				) {
+					const player1Name =
+						playersMap?.get(finalMatch.player1) ||
+						finalMatch.player1;
+					const player2Name =
+						playersMap?.get(finalMatch.player2) ||
+						finalMatch.player2;
+					finalMatchScore = `${truncate(player1Name, 10)} ${
+						finalMatch.player1_score
+					} - ${finalMatch.player2_score} ${truncate(
+						player2Name,
+						10
+					)}`;
+				}
+			}
+
+			const isCompleted =
+				finalMatch && finalMatch.match_state === "completed";
+			const tournamentStatus = tournament.tournament?.status || "unknown";
+
 			bracketHTML += `
-        <div class="flex items-center justify-center ml-8">
-          <img src="images/trophy.svg" class="w-24 h-24" alt="trophy">
-        </div>
-      `;
+				<div class="flex flex-col items-center justify-center ml-24">
+					<div class="relative">
+						<img src="images/trophy.svg" class="w-40 h-40 filter drop-shadow-lg ${
+							isCompleted ? "brightness-110" : "opacity-50"
+						}" alt="trophy">
+						<div class="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center min-w-max">
+							${
+								isCompleted && tournamentStatus === "completed"
+									? `
+								<div class="bg-[#FFD700] text-[#001B26] px-6 py-3 font-bold text-lg border-2 border-[#4CF190] shadow-lg uppercase tracking-wider rounded-lg animate-pulse mb-2">
+									🏆 TOURNAMENT COMPLETED 🏆
+								</div>
+								<div class="bg-[#4CF190] text-[#001B26] px-4 py-2 font-bold text-lg border-2 border-[#FFD700] shadow-lg rounded-lg mb-2">
+									CHAMPION: ${championName}
+								</div>
+								${
+									finalMatchScore
+										? `
+									<div class="text-[#4CF190] font-semibold text-sm bg-[#001B26] px-3 py-1 rounded border border-[#4CF190] mb-2">
+										Final: ${finalMatchScore}
+									</div>
+								`
+										: ""
+								}
+								<button onclick="window.dispatchEvent(new Event('loadMenuPage'))" class="bg-[#001B26] text-[#4CF190] px-4 py-2 font-bold border-2 border-[#4CF190] rounded hover:bg-[#4CF190] hover:text-[#001B26] transition-all duration-200">
+									Return to Menu
+								</button>
+							`
+									: isCompleted
+									? `
+								<div class="bg-[#FFD700] text-[#001B26] px-6 py-3 font-bold text-lg border-2 border-[#4CF190] shadow-lg uppercase tracking-wider rounded-lg animate-pulse mb-2">
+									CHAMPION
+								</div>
+								<div class="text-[#FFD700] font-bold text-xl tracking-wide">
+									🏆 ${championName} 🏆
+								</div>
+								${
+									finalMatchScore
+										? `
+									<div class="mt-2 text-[#4CF190] font-semibold text-sm">
+										Final: ${finalMatchScore}
+									</div>
+								`
+										: ""
+								}
+							`
+									: `
+								<div class="mt-2 text-[#4CF190] font-semibold text-sm">
+									Awaiting Final Match
+								</div>
+							`
+							}
+						</div>
+					</div>
+				</div>
+			`;
 		}
 	}
 
-	bracketHTML += "</div>";
+	bracketHTML += `</div></div></div>`;
 	chartContainer.innerHTML = bracketHTML;
+}
+
+// Function to display tournament status information
+async function displayTournamentInfo(tournamentId: string) {
+	try {
+		const res = await fetch(`${API_BASE_URL}/tournaments/${tournamentId}`, {
+			headers: {
+				Authorization: `Bearer ${getCookie("jwt")}`,
+			},
+		});
+
+		if (!res.ok) {
+			return;
+		}
+
+		const data = await res.json();
+		const tournament = data.tournament;
+
+		// Check if info container already exists
+		let infoContainer = document.getElementById("tournamentInfo");
+		if (!infoContainer) {
+			// Create tournament info container
+			infoContainer = document.createElement("div");
+			infoContainer.id = "tournamentInfo";
+			infoContainer.className =
+				"fixed top-20 left-1/2 transform -translate-x-1/2 z-40";
+
+			// Insert after the back button
+			const tournamentContainer =
+				document.querySelector("#bracketContainer");
+			if (tournamentContainer && tournamentContainer.parentNode) {
+				tournamentContainer.parentNode.insertBefore(
+					infoContainer,
+					tournamentContainer
+				);
+			}
+		}
+
+		// Determine status color and text
+		let statusClass = "";
+		let statusText = "";
+		let statusIcon = "";
+
+		switch (tournament.status) {
+			case "completed":
+				statusClass = "bg-[#FFD700] text-[#001B26] border-[#4CF190]";
+				statusText = "COMPLETED";
+				statusIcon = "🏆";
+				break;
+			case "ongoing":
+				statusClass = "bg-[#4CF190] text-[#001B26] border-[#FFD700]";
+				statusText = "IN PROGRESS";
+				statusIcon = "⚔️";
+				break;
+			default:
+				// Don't show status for upcoming tournaments - just show tournament info
+				statusClass = "hidden";
+				statusText = "";
+				statusIcon = "";
+				break;
+		}
+
+		infoContainer.innerHTML = `
+			<div class="bg-[#001B26] border-2 border-[#4CF190] rounded-lg px-6 py-3 shadow-2xl">
+				<div class="flex items-center justify-center space-x-4">
+					<div class="text-[#4CF190] font-bold text-xl">${tournament.name}</div>
+					${
+						statusText
+							? `
+						<div class="${statusClass} px-3 py-1 rounded font-bold text-sm border-2">
+							${statusIcon} ${statusText}
+						</div>
+					`
+							: ""
+					}
+					<div class="text-[#4CF190] text-sm">
+						Round ${tournament.current_round || 1} | ${tournament.PLAYER_COUNT}/${
+			tournament.max_players
+		} Players
+					</div>
+				</div>
+			</div>
+		`;
+	} catch (error) {
+		console.error("Error displaying tournament info:", error);
+	}
 }
 
 async function fetchMissingMatches(
@@ -484,7 +783,8 @@ async function generateChartPoints(matches: Match[]) {
 	return chartPoints;
 }
 
-function truncate(name: string, maxLength = 12): string {
+function truncate(name: string, maxLength = 18): string {
+	if (!name || name === "TBD") return name;
 	return name.length > maxLength ? name.slice(0, maxLength - 1) + "…" : name;
 }
 
@@ -746,7 +1046,13 @@ async function checkUserCanStartGames(tournamentId: string): Promise<boolean> {
  */
 async function refreshBracket(tournamentId: string) {
 	try {
+		// Update tournament info at the top
+		await displayTournamentInfo(tournamentId);
+
 		await renderBracket(tournamentId);
+
+		// Check for tournament completion and notify if needed
+		await checkAndNotifyTournamentCompletion(tournamentId);
 
 		// Also update the start button status
 		const canStartGames = await checkUserCanStartGames(tournamentId);
