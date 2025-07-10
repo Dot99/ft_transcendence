@@ -54,24 +54,6 @@ export const friendsTemplate = `
   <div id="friendAdded" class="fixed bottom-32 left-1/2 transform -translate-x-1/2 bg-[#4CF190] text-[#001B26] px-6 py-3 rounded shadow-lg text-lg font-bold hidden z-50 transition-all" style="min-width: 250px; text-align: center;">
     Friend request sent!
   </div>
-
-  <!-- Game Invitation Sent Notification -->
-  <div id="friendInvite" class="fixed bottom-32 left-1/2 transform -translate-x-1/2 bg-[#4CF190] text-[#001B26] px-6 py-3 rounded shadow-lg text-lg font-bold hidden z-50 transition-all" style="min-width: 250px; text-align: center;">
-    Game invitation sent!
-  </div>
-
-  <!-- Invite Modal -->
-  <div id="inviteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-[#001B26] p-6 rounded-xl border-2 border-[#4CF190] max-w-md w-full">
-      <div class="text-2xl text-[#4CF190] font-bold mb-4">
-        Invite <span id="inviteFriendName"></span> to play?
-      </div>
-      <div class="flex justify-end space-x-4">
-        <button id="cancelInviteBtn" class="menu-button px-6 py-2">CANCEL</button>
-        <button id="inviteBtn" class="menu-button px-6 py-2">INVITE</button>
-      </div>
-    </div>
-  </div>
   <img src="images/computer.svg" class="fixed bottom-14 right-28 w-64 animate-[float_3s_ease-in-out_infinite] z-10" alt="paddle">
   <!-- Blocked Users Panel Trigger & Panel -->
   <div class="absolute top-32 right-8 flex flex-col items-end z-10">

@@ -114,11 +114,6 @@ async function loadFriends(): Promise<void> {
 					}
                 </span>
                 <div class="flex gap-2 flex-shrink-0">
-                    <button class="invite-btn text-[#4CF190] border border-[#4CF190] rounded px-3 py-1 hover:bg-[#4CF190] hover:text-[#001B26] transition" data-id="${
-						friend.id
-					}" data-name="${friend.username}">
-                        Invite
-                    </button>
                     <button class="remove-btn text-yellow-400 border border-yellow-400 rounded px-3 py-1 hover:bg-yellow-400 hover:text-[#001B26] transition" data-id="${
 						friend.id
 					}">
