@@ -57,10 +57,15 @@ export const loadTournamentPage = async (
 				});
 			}
 		}
+		const backBtn = document.getElementById("backBtn");
+		if (backBtn) {
+			backBtn.onclick = () => loadMenuPage();
+		}
 
 		// Start auto-refresh to show tournament progression
 		startBracketAutoRefresh(tournament_id);
 	}
+	// Add back button functionality - goes to menu instead of play
 };
 
 // Utility function to group an array of objects by a key
@@ -119,8 +124,8 @@ async function renderBracket(tournamentId: string) {
 	// Calcular o número total de rodadas
 	totalRounds = Math.log2(maxPlayers);
 
-	// Render initial bracket layout
-	chartContainer.innerHTML = createBracketLayout(maxPlayers);
+	// REMOVE THIS LINE - it's overwriting your template styling:
+	// chartContainer.innerHTML = createBracketLayout(maxPlayers);
 
 	// Fetch matches
 	const res = await fetch(
@@ -129,10 +134,7 @@ async function renderBracket(tournamentId: string) {
 			headers: { Authorization: `Bearer ${getCookie("jwt")}` },
 		}
 	);
-	// if (!res.ok) {
-	// 	console.error("Error searching matches:", await res.text());
-	// 	// return;
-	// }
+
 	let games: any;
 	let matches: Match[] = [];
 	if (res.ok === true) {
@@ -259,6 +261,41 @@ async function createCustomBracket(
 			<div class="flex flex-col items-center gap-[${cardGap}px] relative">
 		`;
 
+		// Dynamic spacing based on tournament size and round
+		const baseSpacing = totalRounds <= 2 ? 8 : 4;
+		const verticalSpacing = Math.max(
+			baseSpacing,
+			baseSpacing * Math.pow(1.5, roundIndex)
+		);
+
+		// Get the round name to check if it should be yellow
+		const roundName = getRoundName(roundNumber, sortedRounds.length);
+		const isSpecialRound =
+			roundName === "Quarterfinals" ||
+			roundName === "Semifinals" ||
+			roundName === "Final";
+
+		// Yellow text for special rounds, but GREEN borders for all
+		const headerClasses = isSpecialRound
+			? "text-[#FFD700] border-[#4CF190]"
+			: "text-[#4CF190] border-[#4CF190]";
+		const textClasses = isSpecialRound
+			? "text-[#FFD700]"
+			: "text-[#4CF190]";
+		const borderClasses = "border-[#4CF190]"; // ALL borders are GREEN
+		const lineClasses = "bg-[#4CF190]"; // ALL connector lines are GREEN
+
+		bracketHTML += `
+  <div class="flex flex-col items-center relative min-w-32 md:min-w-36 flex-shrink-0">
+    <h3 class="${headerClasses} text-sm md:text-lg font-bold mb-2 md:mb-4 text-center uppercase tracking-wide py-1 md:py-2 px-3 md:px-5 bg-[#001B26] border-2">
+      ${roundName}
+    </h3>
+    
+    <div class="flex flex-col items-center" style="gap: ${
+		verticalSpacing * 4
+	}px;">
+`;
+
 		for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
 			const match = roundMatches[matchIndex] || {
 				player1: "",
@@ -303,68 +340,65 @@ async function createCustomBracket(
 			const displayPlayer2 =
 				isFinalRound && !match.player2 ? "TBD" : player2;
 
-			// Card
+			// Winners use the appropriate color based on round - using exact same format as your working buttons
+			const player1WinnerClasses = isPlayer1Winner
+				? "bg-[#4CF190] text-[#001B26]"
+				: "";
+			const player2WinnerClasses = isPlayer2Winner
+				? "bg-[#4CF190] text-[#001B26]"
+				: "";
+
 			bracketHTML += `
-			<div class="relative z-10 flex flex-col items-center">
-				<div class="bg-gradient-to-br from-teal-900 to-teal-700 border-2 border-green-400 rounded-xl p-4 w-52 min-h-[${cardHeight}px] flex flex-col justify-center shadow-xl transition hover:scale-105 hover:bg-teal-800 duration-150">
-					<div class="bg-green-200 rounded-md px-3 py-2 mb-2 border-l-4 ${
-						isPlayer1Winner
-							? "border-green-600"
-							: "border-green-400"
-					}">
-						<span class="${
-							isPlayer1Winner
-								? "text-green-700"
-								: "text-green-500"
-						} font-bold text-base">
-							${truncate(displayPlayer1, 15)}${isCompleted ? ` (${player1Score})` : ""}
-						</span>
-					</div>
-					<div class="text-center text-green-400 text-xs font-bold my-1 shadow">VS</div>
-					<div class="bg-green-200 rounded-md px-3 py-2 mt-2 border-l-4 ${
-						isPlayer2Winner
-							? "border-green-600"
-							: "border-green-400"
-					}">
-						<span class="${
-							isPlayer2Winner
-								? "text-green-700"
-								: "text-green-500"
-						} font-bold text-base">
-							${truncate(displayPlayer2, 15)}${isCompleted ? ` (${player2Score})` : ""}
-						</span>
-					</div>
-				</div>
-			</div>
-			`;
+<div class="bg-[#001B26] ${borderClasses} border-2 p-3 md:p-5 w-32 md:w-36 min-h-16 md:min-h-20 flex flex-col justify-center relative transition cursor-pointer hover:bg-[#002B36]">
+  <div class="bg-[#07303c] ${borderClasses} border-2 px-2 md:px-4 py-2 md:py-3 mb-2 md:mb-3 ${player1WinnerClasses}">
+    <span class="${
+		isPlayer1Winner ? "text-[#001B26]" : textClasses
+	} font-bold text-xs md:text-sm">
+        ${truncate(displayPlayer1, 12)}${
+				isCompleted ? ` (${player1Score})` : ""
+			}
+    </span>
+    </div>
 
-			// SVG connectors (draw only if not last round)
-			if (roundIndex < roundsCount - 1) {
-				const fromX = 220 * roundIndex + 220; // right edge of current column
-				const fromY =
-					matchIndex * (cardHeight + cardGap) + cardHeight / 2 + 60;
-				const toX = 220 * (roundIndex + 1);
-				const toY =
-					Math.floor(matchIndex / 2) * (cardHeight + cardGap) +
-					cardHeight / 2 +
-					60;
+    <div class="text-center ${textClasses} text-xs md:text-sm font-bold my-1 md:my-3">VS</div>
 
-				connectorsSVG += `
-					<path d="M${fromX},${fromY} C${fromX + 30},${fromY} ${
-					toX - 30
-				},${toY} ${toX},${toY}"
-						stroke="#22c55e" stroke-width="3" fill="none" opacity="0.7"/>
-				`;
+    <div class="bg-[#07303c] ${borderClasses} border-2 px-2 md:px-4 py-2 md:py-3 mb-2 md:mb-3 ${player2WinnerClasses}">
+    <span class="${
+		isPlayer2Winner ? "text-[#001B26]" : textClasses
+	} font-bold text-xs md:text-sm">
+        ${truncate(displayPlayer2, 12)}${
+				isCompleted ? ` (${player2Score})` : ""
+			}
+    </span>
+    </div>
+</div>
+`;
+
+			// Only add connector lines if there's a next round AND it's not the last match in round
+			if (
+				roundIndex < sortedRounds.length - 1 &&
+				matchIndex < matchesInRound - 1
+			) {
+				bracketHTML += `
+          <div class="w-0.5 h-4 ${lineClasses} mb-2"></div>
+        `;
 			}
 		}
 
-		bracketHTML += `</div></div>`;
+		bracketHTML += "</div></div>";
+
+		// Add SMALLER trophy after the final round
+		if (isFinalRound) {
+			bracketHTML += `
+        <div class="flex items-center justify-center ml-8">
+          <img src="images/trophy.svg" class="w-24 h-24" alt="trophy">
+        </div>
+      `;
+		}
 	}
 
-	bracketHTML += `</div></div>`;
-	connectorsSVG += `</svg>`;
-
-	chartContainer.innerHTML = `<div class="relative">${bracketHTML}${connectorsSVG}</div>`;
+	bracketHTML += "</div>";
+	chartContainer.innerHTML = bracketHTML;
 }
 
 async function fetchMissingMatches(
@@ -454,58 +488,23 @@ function truncate(name: string, maxLength = 12): string {
 	return name.length > maxLength ? name.slice(0, maxLength - 1) + "…" : name;
 }
 
-function createBracketLayout(maxPlayers: number): string {
-	const totalRounds = Math.log2(maxPlayers); // Número de rodadas
-	let bracketHTML = `
-    <div class="flex items-start justify-center gap-8 p-8 overflow-auto min-h-screen max-h-screen bg-gradient-to-br from-gray-800 to-teal-700 rounded-lg border-2 border-green-500 shadow-xl relative">
-  `;
-
-	for (let roundIndex = 0; roundIndex < totalRounds; roundIndex++) {
-		const matchesInRound = maxPlayers / Math.pow(2, roundIndex + 1); // Número de partidas na rodada
-		const verticalSpacing = Math.max(15, 40 * Math.pow(1.6, roundIndex)); // Espaçamento vertical
-
-		bracketHTML += `
-      <div class="flex flex-col items-center relative min-w-36 flex-shrink-0">
-        <h3 class="text-green-200 text-lg font-bold mb-4 text-center shadow-md uppercase tracking-wide py-2 px-5 bg-green-600 rounded-lg border border-green-400">
-          ${getRoundName(roundIndex + 1, totalRounds)}
-        </h3>
-        
-        <div class="flex flex-col gap-${verticalSpacing}px items-center">
-    `;
-
-		for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
-			bracketHTML += `
-        <div class="bg-gradient-to-br from-teal-700 to-teal-600 border-2 border-green-400 rounded-lg p-5 w-36 min-h-20 flex flex-col justify-center relative shadow-lg transition cursor-pointer backdrop-blur-md hover:scale-105 hover:bg-teal-500">
-          <div class="bg-green-300 rounded-md px-4 py-3 mb-3 border-l-4 border-green-400">
-            <span class="text-green-400 font-bold text-sm">
-              TBD
-            </span>
-          </div>
-          
-          <div class="text-center text-green-300 text-sm font-bold my-3 shadow-md">VS</div>
-          
-          <div class="bg-green-300 rounded-md px-4 py-3 mb-3 border-l-4 border-green-400">
-            <span class="text-green-400 font-bold text-sm">
-              TBD
-            </span>
-          </div>
-        </div>
-      `;
-		}
-
-		bracketHTML += "</div></div>"; // Close matches-container and round-column
+function getRoundName(roundNumber: number, totalRounds: number): string {
+	if (totalRounds === 2) {
+		// 4-player tournament
+		if (roundNumber === 1) return "Semifinals";
+		if (roundNumber === 2) return "Final";
+	} else if (totalRounds === 3) {
+		// 8-player tournament
+		if (roundNumber === 1) return "Quarterfinals";
+		if (roundNumber === 2) return "Semifinals";
+		if (roundNumber === 3) return "Final";
 	}
 
-	bracketHTML += "</div>"; // Close bracket-container
-
-	return bracketHTML;
-}
-
-function getRoundName(roundNumber: number, totalRounds: number): string {
+	// Fallback for other sizes
 	if (roundNumber === totalRounds) return "Final";
-	if (roundNumber === totalRounds - 1) return "Semifinal";
-	if (roundNumber === totalRounds - 2) return "Quartas";
-	return `Ronda ${roundNumber}`;
+	if (roundNumber === totalRounds - 1) return "Semifinals";
+	if (roundNumber === totalRounds - 2) return "Quarterfinals";
+	return `Round ${roundNumber}`;
 }
 
 function expectedMatchesLeft(totalPlayers: number, currentRound: number) {
