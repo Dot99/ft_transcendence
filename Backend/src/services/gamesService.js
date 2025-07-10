@@ -617,12 +617,20 @@ export function createGameInvitation(inviterId, inviteeId, lang = "en") {
 
 						// Create the game invitation
 						const gameId = uuidv4();
+						console.log(
+							"DEBUG: Creating game invitation with gameId:",
+							gameId
+						);
 						db.run(
 							`INSERT INTO game_invitations (inviter_id, invitee_id, match_id) 
                VALUES (?, ?, ?)`,
 							[inviterId, inviteeId, gameId],
 							function (err) {
 								if (err) {
+									console.error(
+										"DEBUG: Error creating game invitation:",
+										err
+									);
 									return reject({
 										success: false,
 										error: err.message,
@@ -650,6 +658,7 @@ export function createGameInvitation(inviterId, inviteeId, lang = "en") {
 												inviter_id: inviterId,
 												invitee_id: inviteeId,
 												match_id: gameId,
+												game_id: gameId, // Add game_id for frontend compatibility
 												status: "pending",
 												inviter_username:
 													inviter.username,
@@ -666,6 +675,20 @@ export function createGameInvitation(inviterId, inviteeId, lang = "en") {
 												messages[lang].invitationSent ||
 												"Game invitation sent!",
 										});
+										console.log(
+											"DEBUG: Created invitation response:",
+											{
+												success: true,
+												invitation: {
+													id: this.lastID,
+													match_id: gameId,
+												},
+												message:
+													messages[lang]
+														.invitationSent ||
+													"Game invitation sent!",
+											}
+										);
 									}
 								);
 							}
@@ -713,6 +736,9 @@ export function respondToGameInvitation(
 					});
 				}
 
+				console.log("DEBUG: Found invitation:", invitation);
+				console.log("DEBUG: Invitation match_id:", invitation.match_id);
+
 				const newStatus = accept ? "accepted" : "declined";
 
 				// Update the invitation status
@@ -741,7 +767,9 @@ export function respondToGameInvitation(
 								  "Game invitation declined",
 						};
 
-						// If invitation was accepted, notify the inviter to join the game
+						console.log("DEBUG: Responding with result:", result);
+
+						// If invitation was accepted, notify both players to join the game
 						if (accept) {
 							// Get the invitee's username to send in the notification
 							db.get(
@@ -749,6 +777,7 @@ export function respondToGameInvitation(
 								[userId],
 								(err, invitee) => {
 									if (!err && invitee) {
+										// Send notification to inviter
 										sendGameInvitationNotification(
 											invitation.inviter_id,
 											{
@@ -756,9 +785,21 @@ export function respondToGameInvitation(
 												gameId: invitation.match_id,
 												inviteeUsername:
 													invitee.username,
+												inviterUsername:
+													invitation.inviter_username,
 												message: `${invitee.username} accepted your game invitation!`,
 											}
 										);
+
+										// Send notification to invitee as well
+										sendGameInvitationNotification(userId, {
+											type: "invitationAccepted",
+											gameId: invitation.match_id,
+											inviteeUsername: invitee.username,
+											inviterUsername:
+												invitation.inviter_username,
+											message: `Game invitation accepted! Starting game...`,
+										});
 									}
 								}
 							);

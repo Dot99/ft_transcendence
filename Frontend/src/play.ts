@@ -253,7 +253,14 @@ export const loadPlayPage = async (): Promise<void> => {
 	let opponentUsername: string | null = null;
 	let gameIdFromData: string | null = null;
 
+	console.log("DEBUG: Play page initialization", {
+		gameData,
+		currentGameMode: gameMode,
+		currentIsMultiplayer: isMultiplayer,
+	});
+
 	if (gameData) {
+		console.log("DEBUG: gameData found", gameData);
 		if (
 			gameData.type === "matchmaking" ||
 			gameData.type === "friend_invite"
@@ -262,12 +269,23 @@ export const loadPlayPage = async (): Promise<void> => {
 			isMultiplayer = true;
 			opponentUsername = gameData.opponentUsername;
 			gameIdFromData = gameData.gameId;
+			console.log("DEBUG: Set to multiplayer mode", {
+				gameMode,
+				isMultiplayer,
+				opponentUsername,
+				gameIdFromData,
+			});
 			// Clear the data after use
 			delete (window as any).gameData;
 		} else if (gameData.type === "tournament") {
 			gameMode = "tournament";
 			opponentUsername = gameData.opponentUsername;
 			gameIdFromData = gameData.gameId;
+			console.log("DEBUG: Set to tournament mode", {
+				gameMode,
+				opponentUsername,
+				gameIdFromData,
+			});
 			// Clear the data after use
 			delete (window as any).gameData;
 		}
@@ -290,12 +308,42 @@ export const loadPlayPage = async (): Promise<void> => {
 		if (botUsername) {
 			botUsername.textContent = rightPlayerName;
 		}
+		console.log("DEBUG: Set right player name to Bot (AI mode)");
+	} else if (gameMode === "multiplayer") {
+		// In multiplayer mode, set placeholder names that will be updated by WebSocket
+		if (opponentUsername) {
+			rightPlayerName = opponentUsername;
+			const botUsername = getElementSafe<HTMLElement>("bot-username");
+			if (botUsername) {
+				botUsername.textContent = rightPlayerName;
+			}
+			console.log("DEBUG: Set right player name to opponent", {
+				rightPlayerName,
+				opponentUsername,
+			});
+		} else {
+			// Set placeholder name for multiplayer
+			rightPlayerName = "Opponent";
+			const botUsername = getElementSafe<HTMLElement>("bot-username");
+			if (botUsername) {
+				botUsername.textContent = rightPlayerName;
+			}
+			console.log(
+				"DEBUG: Set right player name to placeholder (multiplayer mode)"
+			);
+		}
 	}
 
 	// Load current user's customization first
 	await loadCurrentUserCustomization();
 
 	if (opponentUsername && gameIdFromData) {
+		console.log("DEBUG: Connecting to game with opponent", {
+			opponentUsername,
+			gameIdFromData,
+			gameMode,
+			isMultiplayer,
+		});
 		gameId = gameIdFromData;
 		opponentDisplayName = opponentUsername;
 		// For tournaments, we need to set isMultiplayer to true
@@ -304,9 +352,39 @@ export const loadPlayPage = async (): Promise<void> => {
 		}
 		connectToGame();
 	} else if (gameIdFromData) {
+		console.log("DEBUG: Connecting to game without opponent username", {
+			gameIdFromData,
+			gameMode,
+			isMultiplayer,
+		});
 		gameId = gameIdFromData;
 		isMultiplayer = true;
 		connectToGame();
+	} else if (gameMode === "multiplayer" && opponentUsername) {
+		// Multiplayer mode but no gameId - this shouldn't happen, log error and fall back to AI
+		console.error("DEBUG: Multiplayer mode detected but no gameId found!", {
+			gameMode,
+			isMultiplayer,
+			opponentUsername,
+			gameIdFromData,
+		});
+		// Fall back to AI mode
+		gameMode = "ai";
+		isMultiplayer = false;
+		rightPlayerName = "Bot";
+		const botUsername = getElementSafe<HTMLElement>("bot-username");
+		if (botUsername) {
+			botUsername.textContent = rightPlayerName;
+		}
+		console.log("DEBUG: Fell back to AI mode due to missing gameId");
+	} else {
+		console.log(
+			"DEBUG: No game data found, staying in single player mode",
+			{
+				gameMode,
+				isMultiplayer,
+			}
+		);
 	}
 
 	function setBannerGlow(winnerSide: "left" | "right" | null) {
@@ -638,13 +716,22 @@ export const loadPlayPage = async (): Promise<void> => {
 
 	function connectToGame() {
 		if (!gameId) return;
+		console.log("DEBUG: connectToGame called", {
+			gameId,
+			isMultiplayer,
+			gameMode,
+		});
 		const wsUrl = `${WS_BASE_URL}/api/ws?token=${getCookie(
 			"jwt"
 		)}&gameId=${gameId}`;
 		ws = new WebSocket(wsUrl);
 
 		ws.onopen = () => {
-			console.log("DEBUG: Connected to game WebSocket");
+			console.log("DEBUG: Connected to game WebSocket", {
+				gameId,
+				isMultiplayer,
+				gameMode,
+			});
 			// Don't allow game to start until both players are ready
 			gameStarted = false;
 			showPressSpace = false; // Hide press space until both players are ready
@@ -674,6 +761,8 @@ export const loadPlayPage = async (): Promise<void> => {
 
 				if (data.type === "gameReady") {
 					console.log("DEBUG: Game ready, both players connected");
+					console.log("DEBUG: Game ready data:", data);
+
 					// Remove waiting overlay if it exists
 					const waitingOverlay =
 						document.getElementById("waitingOverlay");
@@ -691,12 +780,17 @@ export const loadPlayPage = async (): Promise<void> => {
 						leftPlayerId,
 						rightPlayerId,
 						isMultiplayer,
+						gameMode,
 					});
 
 					// Set multiplayer flag if we have both player IDs
 					if (leftPlayerId && rightPlayerId) {
 						isMultiplayer = true;
-						console.log("DEBUG: isMultiplayer set to true");
+						gameMode = "multiplayer"; // Ensure gameMode is set to multiplayer
+						console.log("DEBUG: Confirmed multiplayer mode", {
+							isMultiplayer,
+							gameMode,
+						});
 					}
 
 					// Set player names consistently - left panel = left player, right panel = right player
@@ -919,6 +1013,14 @@ export const loadPlayPage = async (): Promise<void> => {
 						"DEBUG: Game ready complete, playerSide:",
 						playerSide
 					);
+					console.log("DEBUG: Final game state after gameReady:", {
+						gameMode,
+						isMultiplayer,
+						leftPlayerName,
+						rightPlayerName,
+						leftPlayerId,
+						rightPlayerId,
+					});
 				} else if (data.type === "paddleUpdate") {
 					if (data.side === "left") {
 						leftY = data.y;
@@ -1199,6 +1301,12 @@ export const loadPlayPage = async (): Promise<void> => {
 			leftY = Math.max(0, Math.min(fieldHeight - paddleHeight, leftY));
 
 			if (gameMode === "ai") {
+				console.log("DEBUG: AI mode activated", {
+					gameMode,
+					isMultiplayer,
+					leftPlayerId,
+					rightPlayerId,
+				});
 				// AI opponent logic
 				const now = Date.now();
 				if (now - lastBotUpdate >= 1000) {
