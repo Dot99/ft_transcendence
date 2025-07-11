@@ -2196,6 +2196,11 @@ export function processGameResult(gameData, gameId, lang = "en") {
 						if (invitation) {
 							// This is a friend game
 							try {
+								const result = await completeFriendGame(
+									gameId,
+									gameData,
+									lang
+								);
 								resolve(result);
 							} catch (error) {
 								console.error(
@@ -2207,6 +2212,10 @@ export function processGameResult(gameData, gameId, lang = "en") {
 						} else {
 							// Regular game - just save to match history
 							try {
+								const result = await saveGameResult(
+									gameData,
+									lang
+								);
 								resolve({
 									success: true,
 									type: "regular",
