@@ -1221,7 +1221,7 @@ export const loadPlayPage = async (): Promise<void> => {
 			rightScore++;
 			updateScoreDisplay();
 
-			if (rightScore >= 5) {
+			if (rightScore >= 3) {
 				winner = "right";
 				setBannerGlow("right");
 				if (!isMultiplayer) {
@@ -1255,7 +1255,7 @@ export const loadPlayPage = async (): Promise<void> => {
 		if (ballX + ballWidth > fieldWidth && !winner) {
 			leftScore++;
 			updateScoreDisplay();
-			if (leftScore >= 5) {
+			if (leftScore >= 3) {
 				winner = "left";
 				setBannerGlow("left");
 				if (playerUsername && playerUsername !== "Player") {
