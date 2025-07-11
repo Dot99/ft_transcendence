@@ -185,7 +185,6 @@ export const loadPlayPage = async (): Promise<void> => {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${getCookie("jwt")}`,
-					"Content-Type": "application/json",
 				},
 			});
 		} catch (e) {
@@ -1017,7 +1016,6 @@ export const loadPlayPage = async (): Promise<void> => {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${getCookie("jwt")}`,
-					"Content-Type": "application/json",
 				},
 			});
 		} catch (e) {
