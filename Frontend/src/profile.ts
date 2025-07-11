@@ -423,10 +423,20 @@ async function loadRecentMatches(userId: number): Promise<void> {
 			}
 
 			let winner = "-";
-			if (match.player1_score > match.player2_score) {
-				winner = p1.user.username;
-			} else if (match.player2_score > match.player1_score) {
-				winner = p2.user.username;
+			// First check if there's a winner field (for cases like giving up)
+			if (match.winner) {
+				if (match.winner === match.player1) {
+					winner = p1.user.username;
+				} else if (match.winner === match.player2) {
+					winner = p2.user.username;
+				}
+			} else {
+				// Fall back to score comparison
+				if (match.player1_score > match.player2_score) {
+					winner = p1.user.username;
+				} else if (match.player2_score > match.player1_score) {
+					winner = p2.user.username;
+				}
 			}
 
 			const div = document.createElement("div");
