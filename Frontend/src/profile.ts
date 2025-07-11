@@ -40,7 +40,6 @@ interface Match {
 interface Tournament {
 	tournament_id: number;
 	tournament_name: string;
-	tournament_date: string;
 }
 
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -144,7 +143,7 @@ function translateMenuStaticTexts() {
 	if (statsPerTournamentTitle)
 		statsPerTournamentTitle.textContent = t("stats_per_tournament");
 
-	// Recent Matches, Past Tournaments, Upcoming Matches
+	// Recent Matches, Past Tournaments
 	const recentMatchesTitle = document.getElementById("recentMatchesTitle");
 	if (recentMatchesTitle)
 		recentMatchesTitle.textContent = t("recent_matches");
@@ -153,11 +152,6 @@ function translateMenuStaticTexts() {
 	);
 	if (pastTournamentsTitle)
 		pastTournamentsTitle.textContent = t("tournament_past");
-	const upcomingMatchesTitle = document.getElementById(
-		"upcomingMatchesTitle"
-	);
-	if (upcomingMatchesTitle)
-		upcomingMatchesTitle.textContent = t("upcoming_matches");
 	// === END TRANSLATE STATIC TEXTS ===
 }
 
@@ -359,27 +353,9 @@ async function loadUserStatsAndMatches(userId: number): Promise<void> {
 		console.error("Error loading recent matches:", error);
 	}
 
-	// Load tournaments - check for both current tournament and active tournaments
+	// Load tournaments - only load past tournaments
 	try {
-		// Always try to load past tournaments first
 		await loadPastTournaments(userId, null);
-
-		// Then check for active tournaments
-		if (stats && stats.current_tournament) {
-			await loadUpComingMatchesById(stats.current_tournament, userId);
-		} else {
-			// Clear current tournament display if no active tournament
-			const currentTournamentContainer = document.getElementById(
-				"currentTournamentContainer"
-			);
-			if (currentTournamentContainer) {
-				currentTournamentContainer.innerHTML = `
-					<div class="text-gray-400 text-center p-4">
-						${t("no_active_tournament") || "No active tournament"}
-					</div>
-				`;
-			}
-		}
 	} catch (error) {
 		console.error("Error loading tournament data:", error);
 	}
@@ -445,15 +421,6 @@ async function loadRecentMatches(userId: number): Promise<void> {
 			if (!p2.user) {
 				p2.user = { username: "Unknown Player" };
 			}
-			const date = new Date(match.match_date)
-				.toLocaleString("pt-PT", {
-					day: "2-digit",
-					month: "2-digit",
-					year: "numeric",
-					hour: "2-digit",
-					minute: "2-digit",
-				})
-				.replace(",", "");
 
 			let winner = "-";
 			if (match.player1_score > match.player2_score) {
@@ -467,7 +434,6 @@ async function loadRecentMatches(userId: number): Promise<void> {
 				"match-entry flex justify-between items-center p-2 border-b border-green-500";
 			div.innerHTML = `
 				<div>
-					<div class="font-bold text-green-400">${date}</div>
 					<div class="text-sm text-gray-400">${p1.user.username} vs ${p2.user.username}</div>
 				</div>
 				<div class="text-right">
@@ -533,15 +499,6 @@ async function loadPastTournaments(
 				}
 			);
 			const positionData = await positionRes.json();
-			const date = new Date(t.tournament_date)
-				.toLocaleString("pt-PT", {
-					day: "2-digit",
-					month: "2-digit",
-					year: "numeric",
-					hour: "2-digit",
-					minute: "2-digit",
-				})
-				.replace(",", "");
 
 			const player = positionData.players?.find(
 				(p: any) => p.player_id === userId
@@ -571,12 +528,8 @@ async function loadPastTournaments(
 			div.innerHTML = `
 				<div class="flex justify-between items-center">
 					<span class="text-green-300 font-semibold">${t.tournament_name}</span>
-					<span class="text-sm text-gray-400">${date}</span>
 				</div>
 				<div class="flex justify-between items-center mt-2">
-					<div class="text-sm text-yellow-400">Position: ${
-						player?.current_position ?? "-"
-					}</div>
 					${
 						playerStats
 							? `
@@ -595,84 +548,6 @@ async function loadPastTournaments(
 		const container = getElement<HTMLDivElement>("tournamentTableBody");
 		container.innerHTML =
 			'<div class="text-red-400 text-center p-4">Error loading tournaments</div>';
-	}
-}
-
-async function loadUpComingMatchesById(
-	tournamentId: number,
-	userId: number
-): Promise<void> {
-	try {
-		const [tournamentRes, matchesRes] = await Promise.all([
-			fetch(`${API_BASE_URL}/tournaments/${tournamentId}`, {
-				headers: {
-					"Accept-Language": getLang(),
-					Authorization: `Bearer ${getCookie("jwt")}`,
-				},
-			}),
-			fetch(`${API_BASE_URL}/tournaments/${tournamentId}/matches`, {
-				headers: {
-					"Accept-Language": getLang(),
-					Authorization: `Bearer ${getCookie("jwt")}`,
-				},
-			}),
-		]);
-
-		if (!tournamentRes.ok || !matchesRes.ok) {
-			throw new Error("Failed to fetch tournament or matches data");
-		}
-
-		const tournament = await tournamentRes.json();
-		const data = await matchesRes.json();
-
-		const container = getElement<HTMLDivElement>("upcomingMatches");
-		container.innerHTML = "";
-		if (!data.matches || data.matches.length === 0) {
-			container.innerHTML =
-				'<div class="text-gray-400 text-center p-4">No upcoming matches</div>';
-			return;
-		}
-
-		for (const match of data.matches as Match[]) {
-			const opponentId = getOpponentId(match, userId);
-			const opponentData = await fetch(
-				`${API_BASE_URL}/users/${opponentId}`,
-				{
-					headers: {
-						"Accept-Language": getLang(),
-						Authorization: `Bearer ${getCookie("jwt")}`,
-					},
-				}
-			).then((res) => res.json());
-			if (!opponentData.user) {
-				opponentData.user = { username: "Unknown Player" };
-			}
-			const date = new Date(match.scheduled_date)
-				.toLocaleString("pt-PT", {
-					day: "2-digit",
-					month: "2-digit",
-					year: "numeric",
-					hour: "2-digit",
-					minute: "2-digit",
-				})
-				.replace(",", "");
-
-			const div = document.createElement("div");
-			div.className = "p-2 border border-green-500 rounded";
-			div.innerHTML = `
-			<div class="flex justify-between items-center">
-				<span class="text-green-300 font-semibold">${tournament.tournament.name}</span>
-				<span class="text-sm text-gray-400">${date}</span>
-			</div>
-			<div class="text-sm text-yellow-400">Opponent: ${opponentData.user.username}</div>`;
-
-			container.appendChild(div);
-		}
-	} catch (error) {
-		console.error("Error loading upcoming matches:", error);
-		const container = getElement<HTMLDivElement>("upcomingMatches");
-		container.innerHTML =
-			'<div class="text-red-400 text-center p-4">Error loading upcoming matches</div>';
 	}
 }
 

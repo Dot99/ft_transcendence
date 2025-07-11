@@ -175,7 +175,10 @@ export const profileTemplate = `
                     <!-- Match entries populated by JS -->
                 </div>
             </div>
+        </div>
 
+        <!-- RIGHT column -->
+        <div class="space-y-6">
             <!-- Past Tournaments -->
             <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6">
                 <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold">
@@ -183,19 +186,6 @@ export const profileTemplate = `
                 </div>
                 <div id="tournamentTableBody" class="space-y-2 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-[#4CF190] scrollbar-track-[rgba(76,241,144,0.1)]">
                     <!-- Past tournaments populated by JS -->
-                </div>
-            </div>
-        </div>
-
-        <!-- RIGHT column -->
-        <div class="space-y-6">
-            <!-- Upcoming Matches -->
-            <div class="bg-[#001B26] border-2 border-[#4CF190] rounded-xl p-6">
-                <div class="bg-[#4CF190] text-[#001B26] py-2 px-4 mb-4 font-bold">
-                    <h2 id="upcomingMatchesTitle" class="text-xl font-bold">Upcoming Matches</h2>
-                </div>
-                <div id="upcomingMatches" class="space-y-2 max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-[#4CF190] scrollbar-track-[rgba(76,241,144,0.1)]">
-                    <!-- Upcoming matches populated by JS -->
                 </div>
             </div>
         </div>

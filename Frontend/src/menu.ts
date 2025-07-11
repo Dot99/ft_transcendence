@@ -73,10 +73,6 @@ function translateMenuStaticTexts() {
 		?.parentElement?.querySelector("span.text-white.font-semibold.mb-1");
 	if (numberOfPlayersLabel)
 		numberOfPlayersLabel.textContent = t("menu_number_of_players");
-	const startDateLabel = document
-		.querySelector("input#tournamentDate")
-		?.parentElement?.querySelector("span.text-white.font-semibold");
-	if (startDateLabel) startDateLabel.textContent = t("menu_start_date");
 	const createBtn = document.querySelector(
 		"#createTournamentForm button[type='submit']"
 	);
@@ -805,14 +801,10 @@ export const loadMenuPage = async (): Promise<void> => {
 			const playersInput = document.getElementById(
 				"tournamentPlayers"
 			) as HTMLInputElement;
-			const dateInput = document.getElementById(
-				"tournamentDate"
-			) as HTMLInputElement;
 
 			const tournamentData = {
 				name: nameInput.value.trim(),
 				maxPlayers: parseInt(playersInput.value),
-				startDate: dateInput.value,
 			};
 
 			try {

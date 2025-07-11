@@ -130,10 +130,6 @@ export const menuTemplate = `
                             </div>
                             <input type="hidden" id="tournamentPlayers" name="tournamentPlayers" value="4" />
                         </div>
-                        <label class="flex flex-col gap-1">
-                            <span class="text-white font-semibold">Start Date</span>
-                            <input type="date" id="tournamentDate" required class="px-3 py-2 rounded bg-gray-600 border-2 border-[#4CF190] text-white focus:outline-none" />
-                        </label>
                         <button type="submit" class="w-full mt-2 bg-[#4CF190] text-[#001B26] text-lg font-semibold px-6 py-3 rounded-md border-4 border-[#001B26] shadow-[3px_3px_0_0_#001B26] hover:bg-[#34c47c] active:scale-95 transition-all duration-75">
                             Create Tournament
                         </button>

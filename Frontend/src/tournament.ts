@@ -286,14 +286,21 @@ async function createCustomBracket(
 
 	// Create players map once for the entire tournament
 	const playersMap = new Map<string, string>();
-	for (const player of tournament.players || []) {
-		playersMap.set(player.id, player.username || player.name || "Unknown");
+	console.log("playersMap initialized with size:", playersMap.size);
+	for (const player of tournament.tournament.players || []) {
+		// Ensure both the key and value are strings for consistent lookup
+		const playerId = String(player.id);
+		const playerName = player.username || player.name || "Unknown";
+		playersMap.set(playerId, playerName);
+		console.log("Added to playersMap:", playerId, "->", playerName);
 	}
+	console.log("Final playersMap size:", playersMap.size);
+	console.log("PlayersMap entries:", Array.from(playersMap.entries()));
 
 	let bracketHTML = `
 		<div class="relative w-full min-h-screen bg-gradient-to-br from-gray-900 to-teal-900 rounded-lg border-2 border-green-500 shadow-2xl p-8 overflow-x-auto">
 			<div class="flex justify-center items-center min-h-[700px] py-16">
-				<div class="relative flex items-center justify-center" style="gap: 12rem;">
+				<div class="relative flex items-center justify-center" style="gap: 8rem;">
 	`;
 
 	for (let roundIndex = 0; roundIndex < roundsCount; roundIndex++) {
@@ -321,7 +328,7 @@ async function createCustomBracket(
 			Math.pow(2, totalRounds - roundNumber)
 		);
 
-		// Perfect centering logic
+		// Perfect centering logic with normal spacing
 		let verticalGap = "gap-8";
 		let containerClasses = "flex flex-col items-center";
 
@@ -385,8 +392,9 @@ async function createCustomBracket(
 				match.player2 ||
 				"TBD";
 
-			const player1 = playersMap?.get(rawPlayer1) || rawPlayer1;
-			const player2 = playersMap?.get(rawPlayer2) || rawPlayer2;
+			// Convert player IDs to strings for consistent map lookup
+			const player1 = playersMap?.get(String(rawPlayer1)) || rawPlayer1;
+			const player2 = playersMap?.get(String(rawPlayer2)) || rawPlayer2;
 
 			const isCompleted = match.match_state === "completed";
 			const winnerId = match.winner;
@@ -418,7 +426,7 @@ async function createCustomBracket(
 										? "text-[#001B26]"
 										: textClasses
 								} font-bold text-sm">
-									${truncate(displayPlayer1, 12)}
+									${truncate(displayPlayer1, 8)}
 								</span>
 								${
 									isCompleted
@@ -445,7 +453,7 @@ async function createCustomBracket(
 										? "text-[#001B26]"
 										: textClasses
 								} font-bold text-sm">
-									${truncate(displayPlayer2, 12)}
+									${truncate(displayPlayer2, 8)}
 								</span>
 								${
 									isCompleted
@@ -463,47 +471,6 @@ async function createCustomBracket(
 							</div>
 						</div>
 					</div>
-					
-					<!-- Tournament bracket connector lines -->
-					${
-						roundIndex < roundsCount - 1
-							? `
-						<!-- Main horizontal line from match to next round -->
-						<div class="absolute -right-8 top-1/2 w-8 h-0.5 bg-[#4CF190] transform -translate-y-1/2 z-10"></div>
-						
-						${
-							matchIndex % 2 === 0 &&
-							matchIndex + 1 < matchesInRound
-								? `
-							<!-- Vertical connector for match pairs -->
-							<div class="absolute -right-8 top-1/2 w-0.5 transform -translate-y-1/2 bg-[#4CF190] z-10" 
-								 style="height: calc(100% + ${
-										roundIndex === 0
-											? "2rem" // Quarterfinals spacing
-											: roundIndex === 1
-											? "6rem" // Semifinals spacing
-											: "10rem" // Other rounds
-									});"></div>
-							<!-- Horizontal line from vertical connector to next round -->
-							<div class="absolute -right-16 w-8 h-0.5 bg-[#4CF190] z-10" 
-								 style="top: calc(50% + ${
-										roundIndex === 0
-											? "1rem"
-											: roundIndex === 1
-											? "3rem"
-											: "5rem"
-									});"></div>
-						`
-								: matchIndex % 2 === 1
-								? `
-							<!-- Bottom match in pair: horizontal line only -->
-							<div class="absolute -right-16 top-1/2 w-8 h-0.5 bg-[#4CF190] transform -translate-y-1/2 z-10"></div>
-						`
-								: ""
-						}
-					`
-							: ""
-					}
 				</div>
 			`;
 		}
@@ -512,19 +479,150 @@ async function createCustomBracket(
 
 		// Add trophy after final round with retro/pixel art styling
 		if (isFinalRound) {
-			// Find the champion (winner of the final match)
-			const finalMatch = roundMatches.find(
-				(match) => match.match_state === "completed" && match.winner
-			);
-
+			// Find the champion (winner of the final match) - try multiple strategies
+			let finalMatch = null;
 			let championName = "TBD";
 			let finalMatchScore = "";
-			if (finalMatch && finalMatch.winner) {
-				const championId = finalMatch.winner;
-				championName = truncate(
-					playersMap?.get(championId) || championId,
-					12
+
+			// Strategy 1: Look for completed match in current round
+			finalMatch = roundMatches.find(
+				(match) => match.match_state === "completed"
+			);
+
+			// Strategy 2: If no match in current round, search all matches for the latest completed one
+			if (!finalMatch && matches.length > 0) {
+				const completedMatches = matches.filter(
+					(match) => match.match_state === "completed"
 				);
+				if (completedMatches.length > 0) {
+					finalMatch = completedMatches.reduce((latest, current) =>
+						current.round_number > latest.round_number
+							? current
+							: latest
+					);
+				}
+			}
+
+			// Strategy 3: For completed tournaments, use tournament status to find winner
+			if (!finalMatch && tournament.tournament?.status === "completed") {
+				// If tournament is completed but no final match found, check all completed matches
+				const allCompletedMatches = matches.filter(
+					(match) => match.match_state === "completed"
+				);
+				if (allCompletedMatches.length > 0) {
+					// Get the match from the highest round
+					const highestRound = Math.max(
+						...allCompletedMatches.map((m) => m.round_number)
+					);
+					finalMatch = allCompletedMatches.find(
+						(m) => m.round_number === highestRound
+					);
+				}
+			}
+
+			// Strategy 4: If still no match but tournament is completed, create a synthetic final match
+			if (
+				!finalMatch &&
+				tournament.tournament?.status === "completed" &&
+				matches.length > 0
+			) {
+				// Find the most recent completed match as a fallback
+				const sortedMatches = matches
+					.filter((m) => m.match_state === "completed")
+					.sort((a, b) => b.round_number - a.round_number);
+				if (sortedMatches.length > 0) {
+					finalMatch = sortedMatches[0];
+				}
+			}
+
+			// If there's a final match, determine the winner
+			if (finalMatch) {
+				let winnerId = finalMatch.winner;
+				console.log(
+					"Initial winnerId from finalMatch:",
+					winnerId,
+					"type:",
+					typeof winnerId
+				);
+
+				// If winner is not set but match is completed, determine winner from scores
+				if (
+					!winnerId &&
+					finalMatch.match_state === "completed" &&
+					finalMatch.player1_score !== undefined &&
+					finalMatch.player2_score !== undefined
+				) {
+					if (finalMatch.player1_score > finalMatch.player2_score) {
+						winnerId = finalMatch.player1;
+					} else if (
+						finalMatch.player2_score > finalMatch.player1_score
+					) {
+						winnerId = finalMatch.player2;
+					}
+					console.log("WinnerId determined from scores:", winnerId);
+				}
+
+				if (winnerId) {
+					// Convert winnerId to string to ensure proper map lookup
+					const winnerIdStr = String(winnerId);
+					console.log(
+						"Looking up winnerIdStr:",
+						winnerIdStr,
+						"in playersMap"
+					);
+					console.log(
+						"PlayersMap has key:",
+						playersMap.has(winnerIdStr)
+					);
+					console.log(
+						"Available keys in playersMap:",
+						Array.from(playersMap.keys())
+					);
+
+					let mappedName = playersMap.get(winnerIdStr);
+					console.log("Mapped name from playersMap:", mappedName);
+
+					// If mapping failed, try to fetch user data directly
+					if (!mappedName || mappedName === winnerIdStr) {
+						console.log(
+							"Mapping failed, trying to fetch user data for ID:",
+							winnerIdStr
+						);
+						try {
+							const userRes = await fetch(
+								`${API_BASE_URL}/users/${winnerIdStr}`,
+								{
+									headers: {
+										Authorization: `Bearer ${getCookie(
+											"jwt"
+										)}`,
+									},
+								}
+							);
+							if (userRes.ok) {
+								const userData = await userRes.json();
+								mappedName =
+									userData.user?.username ||
+									userData.user?.name ||
+									winnerIdStr;
+								console.log(
+									"Fetched username from API:",
+									mappedName
+								);
+							}
+						} catch (error) {
+							console.error("Error fetching user data:", error);
+						}
+					}
+
+					championName = mappedName || winnerIdStr;
+					console.log(
+						"Final championName:",
+						championName,
+						"from winnerId:",
+						winnerIdStr
+					);
+				}
 
 				// Add score information for the final match
 				if (
@@ -532,74 +630,164 @@ async function createCustomBracket(
 					finalMatch.player2_score !== undefined
 				) {
 					const player1Name =
-						playersMap?.get(finalMatch.player1) ||
+						playersMap?.get(String(finalMatch.player1)) ||
 						finalMatch.player1;
 					const player2Name =
-						playersMap?.get(finalMatch.player2) ||
+						playersMap?.get(String(finalMatch.player2)) ||
 						finalMatch.player2;
-					finalMatchScore = `${truncate(player1Name, 10)} ${
+					finalMatchScore = `${truncate(player1Name, 12)} ${
 						finalMatch.player1_score
 					} - ${finalMatch.player2_score} ${truncate(
 						player2Name,
-						10
+						12
 					)}`;
 				}
 			}
 
+			// Alternative strategy: If tournament is completed but we still don't have a champion,
+			// check if there's a player who won all their matches in the final round
+			if (
+				championName === "TBD" &&
+				tournament.tournament?.status === "completed"
+			) {
+				const finalRoundMatches = matches.filter(
+					(m) => m.round_number === roundsCount
+				);
+				if (finalRoundMatches.length > 0) {
+					for (const match of finalRoundMatches) {
+						if (match.match_state === "completed") {
+							let winnerId = match.winner;
+							if (
+								!winnerId &&
+								match.player1_score !== undefined &&
+								match.player2_score !== undefined
+							) {
+								if (match.player1_score > match.player2_score) {
+									winnerId = match.player1;
+								} else if (
+									match.player2_score > match.player1_score
+								) {
+									winnerId = match.player2;
+								}
+							}
+							if (winnerId) {
+								// Convert winnerId to string to ensure proper map lookup
+								const winnerIdStr = String(winnerId);
+								let mappedName = playersMap.get(winnerIdStr);
+
+								// If mapping failed, try to fetch user data directly
+								if (!mappedName || mappedName === winnerIdStr) {
+									try {
+										const userRes = await fetch(
+											`${API_BASE_URL}/users/${winnerIdStr}`,
+											{
+												headers: {
+													Authorization: `Bearer ${getCookie(
+														"jwt"
+													)}`,
+												},
+											}
+										);
+										if (userRes.ok) {
+											const userData =
+												await userRes.json();
+											mappedName =
+												userData.user?.username ||
+												userData.user?.name ||
+												winnerIdStr;
+										}
+									} catch (error) {
+										console.error(
+											"Error fetching user data in alternative strategy:",
+											error
+										);
+									}
+								}
+
+								championName = mappedName || winnerIdStr;
+								console.log(
+									"Champion found via alternative strategy:",
+									championName,
+									"from winnerId:",
+									winnerIdStr
+								);
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			// Determine if tournament is completed
 			const isCompleted =
 				finalMatch && finalMatch.match_state === "completed";
 			const tournamentStatus = tournament.tournament?.status || "unknown";
 
+			// Debug logging
+			console.log("Tournament bracket debug:", {
+				isFinalRound,
+				isCompleted,
+				championName,
+				tournamentStatus,
+				finalMatch: finalMatch
+					? {
+							winner: finalMatch.winner,
+							match_state: finalMatch.match_state,
+							player1: finalMatch.player1,
+							player2: finalMatch.player2,
+							player1_score: finalMatch.player1_score,
+							player2_score: finalMatch.player2_score,
+							round_number: finalMatch.round_number,
+					  }
+					: null,
+				totalMatches: matches.length,
+				roundMatches: roundMatches.length,
+				playersMapSize: playersMap?.size || 0,
+				roundsCount,
+				allCompletedMatches: matches
+					.filter((m) => m.match_state === "completed")
+					.map((m) => ({
+						round: m.round_number,
+						winner: m.winner,
+						player1: m.player1,
+						player2: m.player2,
+						scores: `${m.player1_score}-${m.player2_score}`,
+					})),
+				conditionCheck: {
+					championNotTBD: championName !== "TBD",
+					tournamentCompleted: tournamentStatus === "completed",
+					willShowWinner:
+						championName !== "TBD" ||
+						tournamentStatus === "completed",
+				},
+			});
+
 			bracketHTML += `
-				<div class="flex flex-col items-center justify-center ml-24">
-					<div class="relative">
-						<img src="images/trophy.svg" class="w-40 h-40 filter drop-shadow-lg ${
-							isCompleted ? "brightness-110" : "opacity-50"
+				<div class="flex flex-col items-center justify-center ml-8">
+					<!-- WINNER Label -->
+					<div class="mb-4 px-4 py-2 bg-[#001B26] border-2 border-[#4CF190] rounded-lg shadow-xl">
+						<span class="text-[#4CF190] font-bold text-lg tracking-wider uppercase">🏆 WINNER 🏆</span>
+					</div>
+					
+					<div class="flex flex-col items-center">
+						<img src="images/trophy.svg" class="w-24 h-24 filter drop-shadow-lg ${
+							isCompleted
+								? "brightness-110"
+								: "opacity-50 grayscale"
 						}" alt="trophy">
-						<div class="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center min-w-max">
+						
+						<div class="mt-4 text-center">
 							${
-								isCompleted && tournamentStatus === "completed"
+								championName !== "TBD" ||
+								tournamentStatus === "completed"
 									? `
-								<div class="bg-[#FFD700] text-[#001B26] px-6 py-3 font-bold text-lg border-2 border-[#4CF190] shadow-lg uppercase tracking-wider rounded-lg animate-pulse mb-2">
-									🏆 TOURNAMENT COMPLETED 🏆
+								<div class="bg-[#4CF190] text-[#001B26] px-4 py-2 font-bold text-base border-2 border-[#FFD700] shadow-lg rounded-lg">
+									${championName !== "TBD" ? championName : "Winner"}
 								</div>
-								<div class="bg-[#4CF190] text-[#001B26] px-4 py-2 font-bold text-lg border-2 border-[#FFD700] shadow-lg rounded-lg mb-2">
-									CHAMPION: ${championName}
-								</div>
-								${
-									finalMatchScore
-										? `
-									<div class="text-[#4CF190] font-semibold text-sm bg-[#001B26] px-3 py-1 rounded border border-[#4CF190] mb-2">
-										Final: ${finalMatchScore}
-									</div>
-								`
-										: ""
-								}
-								<button onclick="window.dispatchEvent(new Event('loadMenuPage'))" class="bg-[#001B26] text-[#4CF190] px-4 py-2 font-bold border-2 border-[#4CF190] rounded hover:bg-[#4CF190] hover:text-[#001B26] transition-all duration-200">
-									Return to Menu
-								</button>
-							`
-									: isCompleted
-									? `
-								<div class="bg-[#FFD700] text-[#001B26] px-6 py-3 font-bold text-lg border-2 border-[#4CF190] shadow-lg uppercase tracking-wider rounded-lg animate-pulse mb-2">
-									CHAMPION
-								</div>
-								<div class="text-[#FFD700] font-bold text-xl tracking-wide">
-									🏆 ${championName} 🏆
-								</div>
-								${
-									finalMatchScore
-										? `
-									<div class="mt-2 text-[#4CF190] font-semibold text-sm">
-										Final: ${finalMatchScore}
-									</div>
-								`
-										: ""
-								}
 							`
 									: `
-								<div class="mt-2 text-[#4CF190] font-semibold text-sm">
-									Awaiting Final Match
+								<div class="mt-2 text-[#4CF190] font-medium text-sm">
+									Awaiting Final
 								</div>
 							`
 							}
@@ -783,7 +971,7 @@ async function generateChartPoints(matches: Match[]) {
 	return chartPoints;
 }
 
-function truncate(name: string, maxLength = 18): string {
+function truncate(name: string, maxLength = 15): string {
 	if (!name || name === "TBD") return name;
 	return name.length > maxLength ? name.slice(0, maxLength - 1) + "…" : name;
 }

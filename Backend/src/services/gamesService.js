@@ -121,11 +121,11 @@ export function getTournaments(lang = "en") {
 
 export function createTournament(tournamentData, lang = "en") {
 	return new Promise((resolve, reject) => {
-		const { name, maxPlayers, startDate } = tournamentData;
+		const { name, maxPlayers } = tournamentData;
 		db.run(
-			`INSERT INTO tournaments (name, start_date, max_players)
-       VALUES (?, ?, ?)`,
-			[name, startDate, maxPlayers],
+			`INSERT INTO tournaments (name, max_players)
+       VALUES (?, ?)`,
+			[name, maxPlayers],
 			function (err) {
 				if (err) {
 					return reject({ success: false, error: err });
