@@ -30,6 +30,8 @@ const getElementSafe = <T extends HTMLElement>(id: string): T | null => {
 	return element;
 };
 
+let animationFrameId: number | null = null;
+
 export const loadPlayPage = async (): Promise<void> => {
 	// Cleanup any previous tournament auto-refresh
 	cleanupTournamentPage();
@@ -1027,7 +1029,10 @@ export const loadPlayPage = async (): Promise<void> => {
 			ws.close();
 			ws = null;
 		}
-
+		if (animationFrameId !== null) {
+			cancelAnimationFrame(animationFrameId);
+			animationFrameId = null;
+		}
 		// Clean up game state
 		isMultiplayer = false;
 		gameId = null;
@@ -1272,7 +1277,6 @@ export const loadPlayPage = async (): Promise<void> => {
 			}
 
 			if (isMultiplayer && ws && playerSide === "left") {
-				console.log("DEBUG: Sending scoreUpdate to WebSocket");
 				ws.send(
 					JSON.stringify({
 						type: "scoreUpdate",
@@ -1395,11 +1399,11 @@ export const loadPlayPage = async (): Promise<void> => {
 	}
 
 	function loop() {
-		if (!paused) {
+		if (!paused && gameStarted && !winner) {
 			update();
 		}
 		draw();
-		requestAnimationFrame(loop);
+		animationFrameId = requestAnimationFrame(loop);
 	}
 
 	// Keyboard controls and start game on spacebar
@@ -1436,6 +1440,10 @@ export const loadPlayPage = async (): Promise<void> => {
 	// Check PvP
 	if (opponentUsername) {
 		opponentDisplayName = opponentUsername;
+	}
+	if (animationFrameId !== null) {
+		cancelAnimationFrame(animationFrameId);
+		animationFrameId = null;
 	}
 	loop();
 };
