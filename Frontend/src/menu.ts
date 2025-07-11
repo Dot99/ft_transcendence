@@ -488,14 +488,21 @@ export const loadMenuPage = async (): Promise<void> => {
 				const statsData = await statsRes.json();
 				if (statsData.stats && statsData.stats.current_tournament) {
 					userHasActiveTournament = true;
+					// Remove any existing warning
+					const prevWarning =
+						tournamentList.parentElement?.querySelector(
+							".already-in-tournament-warning"
+						);
+					if (prevWarning) prevWarning.remove();
+
 					// Show a warning message but continue to show tournament list
 					const warningElement = document.createElement("div");
 					warningElement.className =
-						"mb-4 p-3 bg-[#002B36] border border-[#FFD700] rounded text-center";
+						"already-in-tournament-warning mb-4 p-3 bg-[#002B36] border border-[#FFD700] rounded text-center";
 					warningElement.innerHTML = `
-						<div class="text-yellow-400 font-semibold mb-1">⚠️ Already in Tournament</div>
-						<div class="text-sm text-gray-300">You are participating in an active tournament. You can view other tournaments but cannot join new ones.</div>
-					`;
+        <div class="text-yellow-400 font-semibold mb-1">⚠️ Already in Tournament</div>
+        <div class="text-sm text-gray-300">You are participating in an active tournament. You can view other tournaments but cannot join new ones.</div>
+    `;
 
 					const tournamentListContainer =
 						tournamentList.parentElement;
