@@ -335,7 +335,10 @@ async function loadUserStatsAndMatches(userId: number): Promise<void> {
 			getElement<HTMLDivElement>("matchesLost").textContent =
 				stats.matches_lost?.toString() ?? "0";
 			getElement<HTMLDivElement>("avgScore").textContent =
-				stats.average_score?.toString() ?? "0";
+				stats.average_score !== undefined &&
+				stats.average_score !== null
+					? Math.trunc(stats.average_score * 1000) / 1000 + ""
+					: "0";
 			getElement<HTMLDivElement>("winStreak").textContent =
 				stats.win_streak_max?.toString() ?? "0";
 			getElement<HTMLDivElement>("tournaments").textContent =
