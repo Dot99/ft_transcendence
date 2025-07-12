@@ -11,7 +11,7 @@ services:
             - /app/node_modules
         command: sh -c "npm run serve"
         environment:
-            - BACKEND_URL=http://c1r9s1.42porto.com:3000
+            - BACKEND_URL=https://c1r9s1.42porto.com:3000
         depends_on:
             - backend
         networks:
@@ -28,6 +28,7 @@ services:
             - ./Frontend/dist:/app/Frontend/dist
             - /app/node_modules
             - ./Backend/db/data.db:/db/data.db
+            - ./Backend/certs:/app/certs
         env_file: Backend/.env
         networks:
             - ft_transcendence-network

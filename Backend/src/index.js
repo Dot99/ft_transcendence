@@ -9,21 +9,26 @@ import { dirname, join } from "path"; // Import dirname and join from path to ha
 import dotenv from "dotenv"; // Load environment variables from .env file
 import authMiddleware from "./middleware/authMiddleware.js";
 import fastifyStatic from "@fastify/static";
+import { readFileSync } from "fs";
 
 dotenv.config();
 
 const fastify = Fastify({
 	logger: false,
+	https: {
+		key: readFileSync("/app/certs/key.pem"),
+		cert: readFileSync("/app/certs/cert.pem"),
+	},
 });
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 await fastify.register(cors, {
 	origin: [
-		"http://c1r9s1.42porto.com:3001",
+		"https://c1r9s1.42porto.com:3001",
 		process.env.FRONTEND_URL,
-		/^http:\/\/10\.11\.9\.\d+:3001$/,
-		/^http:\/\/10\.11\.9\.\d+$/,
+		/^https:\/\/10\.11\.9\.\d+:3001$/,
+		/^https:\/\/10\.11\.9\.\d+$/,
 		true, // Allow all origins for local development
 	],
 	methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS"],

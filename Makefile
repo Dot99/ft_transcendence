@@ -65,13 +65,6 @@ re :
 # Deploy for network access
 network: fclean
 	@echo "$(GREEN)🚀 Starting ft_transcendence for network access...$(NC)"
-	@echo "$(BLUE)📱 Your application will be accessible at:$(NC)"
-	@echo "   $(YELLOW)http://$(LOCAL_IP):3001$(NC) (Frontend)"
-	@echo "   $(YELLOW)http://$(LOCAL_IP):3000$(NC) (Backend API)"
-	@echo ""
-	@echo "$(BLUE)🌐 Other devices on your network can access:$(NC)"
-	@echo "   $(YELLOW)http://$(LOCAL_IP):3001$(NC)"
-	@echo ""
 	@touch $(BACKEND_DIR)/db/data.db && chmod 777 $(BACKEND_DIR)/db/data.db
 	@docker image prune -f
 	@docker compose down --remove-orphans
