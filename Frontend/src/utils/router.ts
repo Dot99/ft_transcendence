@@ -15,6 +15,18 @@ import { loadTermsPage } from "../terms.js";
 import { loadFriendsPage } from "../friends.js";
 import { loadPlayPage } from "../play.js";
 import { loadTournamentPage } from "../tournament.js";
+import { isAuthenticated } from "../utils/auth.js";
+
+// Helper function to check authentication for protected routes
+const requireAuth = (pageLoader: () => void): void => {
+	if (!isAuthenticated()) {
+		// User is not authenticated, redirect to login
+		history.replaceState(null, "", "/");
+		loadHomePage();
+		return;
+	}
+	pageLoader();
+};
 
 // Routes configuration - call functions directly instead of dispatching events
 const routes: Routes = {
@@ -22,29 +34,31 @@ const routes: Routes = {
 		loadHomePage();
 	},
 	"/profile": () => {
-		loadProfilePage();
+		requireAuth(() => loadProfilePage());
 	},
 	"/terms": () => {
 		loadTermsPage();
 	},
 	"/menu": () => {
-		loadMenuPage();
+		requireAuth(() => loadMenuPage());
 	},
 	"/friends": () => {
-		loadFriendsPage();
+		requireAuth(() => loadFriendsPage());
 	},
 	"/play": () => {
-		loadPlayPage();
+		requireAuth(() => loadPlayPage());
 	},
 	"/tournament": () => {
-		// Handle tournament with stored ID
-		const tournamentId = (window as any).currentTournamentId;
-		if (tournamentId) {
-			loadTournamentPage(tournamentId);
-		} else {
-			// If no tournament ID, redirect to menu
-			loadMenuPage();
-		}
+		requireAuth(() => {
+			// Handle tournament with stored ID
+			const tournamentId = (window as any).currentTournamentId;
+			if (tournamentId) {
+				loadTournamentPage(tournamentId);
+			} else {
+				// If no tournament ID, redirect to menu
+				loadMenuPage();
+			}
+		});
 	},
 };
 
