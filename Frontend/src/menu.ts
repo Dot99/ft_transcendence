@@ -235,7 +235,6 @@ export const loadMenuPage = async (): Promise<void> => {
           )`;
 			}
 		} catch (err) {
-			console.error("Erro ao buscar customizações:", err);
 			const paddle = getElement<HTMLDivElement>("previewPaddle");
 
 			const ball = getElement<HTMLDivElement>("previewBall");
