@@ -9,6 +9,7 @@ import {
 	unsubscribeGameInvitations,
 } from "./utils/ws.js";
 import { API_BASE_URL } from "./config.js";
+import { navigateTo } from "./utils/router.js";
 let onlineUserIds: number[] = [];
 
 interface Friend {
@@ -33,6 +34,12 @@ export async function loadFriendsPage(): Promise<void> {
 	const app = document.getElementById("app");
 	if (!app) return;
 	app.innerHTML = friendsTemplate;
+
+	// Update the current URL without triggering navigation if needed
+	if (window.location.pathname !== "/friends") {
+		history.replaceState(null, "", "/friends");
+	}
+
 	document
 		.getElementById("addFriendBtn")
 		?.addEventListener("click", addFriend);
@@ -626,7 +633,7 @@ async function respondToInvitation(
 				};
 
 				// Navigate to play page
-				window.dispatchEvent(new Event("loadPlayPage"));
+				navigateTo("/play");
 			} else {
 				showMessage("Invitation declined", "success");
 			}

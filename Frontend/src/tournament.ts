@@ -3,6 +3,7 @@ import { getCookie, getUserIdFromToken } from "./utils/auth.js";
 import { API_BASE_URL } from "./config.js";
 import { loadMenuPage } from "./menu.js";
 import { t } from "./locales/localeMiddleware.js";
+import { navigateTo } from "./utils/router.js";
 declare const JSC: any;
 
 function getElement<T extends HTMLElement>(id: string): T {
@@ -19,6 +20,11 @@ export const loadTournamentPage = async (
 
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = tournamentTemplate;
+
+	// Update the current URL without triggering navigation if needed
+	if (window.location.pathname !== "/tournament") {
+		history.replaceState(null, "", "/tournament");
+	}
 
 	const res = await fetch(`${API_BASE_URL}/tournaments/${tournament_id}`, {
 		headers: {
@@ -1188,7 +1194,7 @@ function startTournamentMatch(gameId: string, opponentUsername: string) {
 	};
 
 	// Load the play page
-	window.dispatchEvent(new Event("loadPlayPage"));
+	navigateTo("/play");
 }
 
 /**

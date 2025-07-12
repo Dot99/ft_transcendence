@@ -6,6 +6,7 @@ import { loadFriendsPage } from "./friends.js";
 import { loadMenuPage } from "./menu.js";
 import { stopOnlineWebSocket } from "./utils/ws.js";
 import { API_BASE_URL } from "./config.js";
+import { navigateTo } from "./utils/router.js";
 
 interface User {
 	username: string;
@@ -164,7 +165,7 @@ const handleDeleteAccount = (): void => {
 const handleLogout = (): void => {
 	deleteCookie("jwt");
 	stopOnlineWebSocket();
-	loadHomePage();
+	navigateTo("/");
 };
 
 const handleFriendsClick = (): void => {
@@ -179,11 +180,16 @@ export const loadProfilePage = (pushState: boolean = true): void => {
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = profileTemplate;
 
+	// Update the current URL without triggering navigation if needed
+	if (window.location.pathname !== "/profile") {
+		history.replaceState(null, "", "/profile");
+	}
+
 	const homeBtn = document.getElementById("homeBtn");
 	if (homeBtn) {
 		const homeText = homeBtn.querySelector("span.text-base");
 		if (homeText) homeText.textContent = t("home");
-		homeBtn.onclick = () => loadMenuPage();
+		homeBtn.onclick = () => navigateTo("/menu");
 	}
 	getElement<HTMLButtonElement>("deleteAccountBtn").addEventListener(
 		"click",
@@ -235,7 +241,7 @@ async function loadDashboardData(): Promise<void> {
 		const userId = getUserIdFromToken();
 		if (!userId) {
 			console.error("No user ID found, redirecting to home");
-			loadHomePage();
+			navigateTo("/");
 			return;
 		}
 		await loadUserProfileData(userId);

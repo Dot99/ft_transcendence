@@ -17,6 +17,7 @@ import { loadMenuPage } from "./menu.js";
 import { startOnlineWebSocket } from "./utils/ws.js";
 import { API_BASE_URL } from "./config.js";
 import { cleanupTournamentPage } from "./tournament.js";
+import { navigateTo } from "./utils/router.js";
 
 // DOM Elements
 const getElement = <T extends HTMLElement>(id: string): T => {
@@ -49,12 +50,20 @@ export const loadHomePage = (): void => {
 
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = homeTemplate;
+
+	// Update the current URL without triggering navigation if needed
+	if (window.location.pathname !== "/") {
+		history.replaceState(null, "", "/");
+	}
+
 	const langSelector = document.getElementById(
 		"langSelector"
 	) as HTMLSelectElement;
 	langSelector.value = getLang();
 	langSelector.onchange = () => {
 		setLang(langSelector.value as any);
+		// Update the current URL without triggering navigation
+		history.replaceState(null, "", "/");
 		loadHomePage();
 	};
 
@@ -209,7 +218,7 @@ const openTwoFAModal = (userId: string): void => {
 			// Close modal
 			modal.style.display = "none";
 			// Return to login page
-			loadHomePage();
+			navigateTo("/");
 		};
 	}
 };
@@ -219,7 +228,7 @@ export const loadNotFoundPage = (): void => {
 	app.innerHTML = forohforTemplate;
 	getElement<HTMLButtonElement>("goHomeButton").addEventListener(
 		"click",
-		loadHomePage
+		() => navigateTo("/")
 	);
 	const username =
 		getElement<HTMLInputElement>("loginUsernameInput").value.trim();

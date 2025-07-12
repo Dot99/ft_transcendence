@@ -8,6 +8,7 @@ import { loadPlayPage } from "./play.js";
 import { stopOnlineWebSocket } from "./utils/ws.js";
 import { getLang, t } from "./locales/localeMiddleware.js";
 import { loadTournamentPage, cleanupTournamentPage } from "./tournament.js";
+import { navigateTo } from "./utils/router.js";
 
 // Extend window type for game customization refresh
 declare global {
@@ -127,6 +128,12 @@ export const loadMenuPage = async (): Promise<void> => {
 
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = menuTemplate;
+
+	// Update the current URL without triggering navigation if needed
+	if (window.location.pathname !== "/menu") {
+		history.replaceState(null, "", "/menu");
+	}
+
 	applyGameCustomizations();
 	translateMenuStaticTexts();
 
@@ -165,13 +172,13 @@ export const loadMenuPage = async (): Promise<void> => {
 	getElement<HTMLButtonElement>("gotoProfile").addEventListener(
 		"click",
 		() => {
-			window.dispatchEvent(new Event("loadProfilePage"));
+			navigateTo("/profile");
 		}
 	);
 	getElement<HTMLButtonElement>("logoutBtn").addEventListener("click", () => {
 		deleteCookie("jwt");
 		stopOnlineWebSocket();
-		loadHomePage();
+		navigateTo("/");
 	});
 
 	const DEFAULTS = {
@@ -934,7 +941,7 @@ export const loadMenuPage = async (): Promise<void> => {
 	if (pongTitle) {
 		pongTitle.style.cursor = "pointer";
 		pongTitle.addEventListener("click", () => {
-			window.dispatchEvent(new Event("loadHomePage"));
+			navigateTo("/");
 		});
 	}
 	// Player vs AI button logic
@@ -943,7 +950,7 @@ export const loadMenuPage = async (): Promise<void> => {
 		btnPvAI.addEventListener("click", () => {
 			// Clear any previous game data and set AI mode
 			delete (window as any).gameData;
-			window.dispatchEvent(new Event("loadPlayPage"));
+			navigateTo("/play");
 		});
 	}
 
@@ -1034,7 +1041,7 @@ export const loadMenuPage = async (): Promise<void> => {
 							opponentUsername: status.opponentUsername,
 							gameId: status.gameId,
 						};
-						window.dispatchEvent(new Event("loadPlayPage"));
+						navigateTo("/play");
 						return;
 					}
 				}

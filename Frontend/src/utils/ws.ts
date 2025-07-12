@@ -1,5 +1,6 @@
 import { getCookie } from "./auth.js";
 import { WS_BASE_URL } from "../config.js";
+import { navigateTo } from "./router.js";
 
 let ws: WebSocket | null = null;
 let onlineUserIds: number[] = [];
@@ -92,7 +93,7 @@ export function startOnlineWebSocket() {
 				showAcceptedNotification(data.message);
 				// Dispatch event to navigate to play page
 				setTimeout(() => {
-					window.dispatchEvent(new Event("loadPlayPage"));
+					navigateTo("/play");
 				}, 1500);
 			}
 		} catch (error) {

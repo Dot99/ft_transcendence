@@ -1,5 +1,6 @@
 import { termsTemplate } from "./templates/termsTemplate.js";
 import { t } from "./locales/localeMiddleware.js"; // Import your translation function
+import { navigateTo } from "./utils/router.js";
 
 const getElement = <T extends HTMLElement>(id: string): T => {
 	const el = document.getElementById(id);
@@ -11,14 +12,18 @@ export const loadTermsPage = (): void => {
 	const app = document.getElementById("app");
 	if (!app) return;
 	app.innerHTML = termsTemplate;
+
+	// Update the current URL without triggering navigation if needed
+	if (window.location.pathname !== "/terms") {
+		history.replaceState(null, "", "/terms");
+	}
+
 	translateTermsPage();
 	// Attach the Go Back button event handler here
 	const btn = document.getElementById("goBackBtn");
 	if (btn) {
 		btn.onclick = function () {
-			import("./index.js").then((module) => {
-				module.loadHomePage();
-			});
+			navigateTo("/");
 		};
 	}
 };

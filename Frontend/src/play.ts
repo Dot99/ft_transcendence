@@ -3,6 +3,7 @@ import { getCookie, getUserIdFromToken } from "./utils/auth.js";
 import { WS_BASE_URL, API_BASE_URL } from "./config.js";
 import { BotAI } from "./botAI.js";
 import { cleanupTournamentPage } from "./tournament.js";
+import { navigateTo } from "./utils/router.js";
 
 const botAI = new BotAI();
 let resetTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
@@ -38,6 +39,11 @@ export const loadPlayPage = async (): Promise<void> => {
 
 	const app = getElement<HTMLElement>("app");
 	app.innerHTML = playTemplate;
+
+	// Update the current URL without triggering navigation if needed
+	if (window.location.pathname !== "/play") {
+		history.replaceState(null, "", "/play");
+	}
 
 	// Wait for DOM to be ready
 	await new Promise((resolve) => setTimeout(resolve, 100));
@@ -201,7 +207,7 @@ export const loadPlayPage = async (): Promise<void> => {
 
 		// Clean up any remaining window data
 		delete (window as any).gameData;
-		window.dispatchEvent(new Event("loadMenuPage"));
+		navigateTo("/menu");
 	});
 
 	const canvas = getElement<HTMLCanvasElement>("pong-canvas");
@@ -952,10 +958,10 @@ export const loadPlayPage = async (): Promise<void> => {
 			// Check if this was an error closure
 			if (event.code === 4000) {
 				alert("Game room is full. Please try again.");
-				window.dispatchEvent(new Event("loadMenuPage"));
+				navigateTo("/menu");
 			} else if (event.code === 4001) {
 				alert("Invalid game session. Please try again.");
-				window.dispatchEvent(new Event("loadMenuPage"));
+				navigateTo("/menu");
 			}
 		};
 
@@ -966,7 +972,7 @@ export const loadPlayPage = async (): Promise<void> => {
 	// Button actions
 	winnerModal.querySelector("#menuBtn")?.addEventListener("click", () => {
 		hideWinnerModal();
-		window.dispatchEvent(new Event("loadMenuPage"));
+		navigateTo("/menu");
 	});
 
 	const giveUpBtn = getElement<HTMLButtonElement>("giveUpBtn");
@@ -1043,7 +1049,7 @@ export const loadPlayPage = async (): Promise<void> => {
 
 		// Clean up any remaining window data
 		delete (window as any).gameData;
-		window.dispatchEvent(new Event("loadMenuPage"));
+		navigateTo("/menu");
 	});
 
 	function resetBall(auto = true) {
