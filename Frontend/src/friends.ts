@@ -79,6 +79,11 @@ export async function loadFriendsPage(): Promise<void> {
 	window.addEventListener("beforeunload", () => {
 		unsubscribeGameInvitations(handleInvitation);
 	});
+
+	// Add back to menu button event listener
+	document
+		.getElementById("backToMenuBtn")
+		?.addEventListener("click", () => navigateTo("/menu"));
 }
 
 async function loadFriends(): Promise<void> {

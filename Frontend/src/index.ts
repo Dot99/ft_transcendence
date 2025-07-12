@@ -123,7 +123,7 @@ export const loadHomePage = (): void => {
 		"click",
 		(e) => {
 			e.preventDefault();
-			loadTermsPage();
+			navigateTo("/terms");
 		}
 	);
 
@@ -136,14 +136,21 @@ export const loadHomePage = (): void => {
 		"input",
 		toggleLoginPopupButtons
 	);
-	if (!isAuthenticated()) {
-		return;
+
+	// If user is already authenticated, redirect to menu
+	if (isAuthenticated()) {
+		if (isTwoFactorEnabled()) {
+			const userId = getUserIdFromToken();
+			openTwoFAModal(String(userId));
+			return;
+		} else {
+			// User is authenticated and no 2FA needed, go to menu
+			navigateTo("/menu");
+			return;
+		}
 	}
-	if (isTwoFactorEnabled()) {
-		const userId = getUserIdFromToken();
-		openTwoFAModal(String(userId));
-		return;
-	}
+
+	// If not authenticated, show the login form (which is already loaded)
 };
 
 const toggleLoginPopupButtons = (): void => {
@@ -197,7 +204,7 @@ const openTwoFAModal = (userId: string): void => {
 				modal.style.display = "none";
 				startOnlineWebSocket();
 				startSession();
-				loadMenuPage();
+				navigateTo("/menu");
 			} else {
 				const data = await res.json();
 				errorMsg.textContent = data.error || "Invalid code";
@@ -247,12 +254,11 @@ function handlePostAuth() {
 		loadHomePage();
 		setTimeout(() => {
 			openTwoFAModal(String(userId));
-		}, 0);
-		openTwoFAModal(String(userId));
+		}, 100);
 	} else {
 		startOnlineWebSocket();
 		startSession();
-		loadMenuPage();
+		navigateTo("/menu");
 	}
 }
 (window as any).handlePostAuth = handlePostAuth;
@@ -279,7 +285,12 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	if (!isAuth) {
-		loadHomePage();
+		// If user is not authenticated, always go to home page
+		if (window.location.pathname !== "/") {
+			navigateTo("/");
+		} else {
+			loadHomePage();
+		}
 	} else {
 		handlePostAuth();
 	}

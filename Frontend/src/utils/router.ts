@@ -7,35 +7,44 @@ interface Routes {
 	[key: string]: RouteHandler;
 }
 
-// Routes configuration
+// Import the page load functions directly
+import { loadHomePage } from "../index.js";
+import { loadMenuPage } from "../menu.js";
+import { loadProfilePage } from "../profile.js";
+import { loadTermsPage } from "../terms.js";
+import { loadFriendsPage } from "../friends.js";
+import { loadPlayPage } from "../play.js";
+import { loadTournamentPage } from "../tournament.js";
+
+// Routes configuration - call functions directly instead of dispatching events
 const routes: Routes = {
 	"/": () => {
-		const event = new CustomEvent("loadHomePage");
-		window.dispatchEvent(event);
+		loadHomePage();
 	},
 	"/profile": () => {
-		const event = new CustomEvent("loadProfilePage");
-		window.dispatchEvent(event);
+		loadProfilePage();
 	},
 	"/terms": () => {
-		const event = new CustomEvent("loadTermsPage");
-		window.dispatchEvent(event);
+		loadTermsPage();
 	},
 	"/menu": () => {
-		const event = new CustomEvent("loadMenuPage");
-		window.dispatchEvent(event);
+		loadMenuPage();
 	},
 	"/friends": () => {
-		const event = new CustomEvent("loadFriendsPage");
-		window.dispatchEvent(event);
+		loadFriendsPage();
 	},
 	"/play": () => {
-		const event = new CustomEvent("loadPlayPage");
-		window.dispatchEvent(event);
+		loadPlayPage();
 	},
 	"/tournament": () => {
-		const event = new CustomEvent("loadTournamentPage");
-		window.dispatchEvent(event);
+		// Handle tournament with stored ID
+		const tournamentId = (window as any).currentTournamentId;
+		if (tournamentId) {
+			loadTournamentPage(tournamentId);
+		} else {
+			// If no tournament ID, redirect to menu
+			loadMenuPage();
+		}
 	},
 };
 
@@ -56,16 +65,12 @@ window.addEventListener("popstate", () => {
 });
 
 // Initial route load only if not already handled
-if (!document.readyState || document.readyState === "loading") {
-	document.addEventListener("DOMContentLoaded", () => {
-		// Only load route if we're not already on a handled page
-		if (!window.location.pathname || window.location.pathname === "/") {
-			loadRoute(window.location.pathname);
-		}
-	});
-} else {
-	// Document is already loaded, check current route
-	if (!window.location.pathname || window.location.pathname === "/") {
-		loadRoute(window.location.pathname);
+// Note: The main DOMContentLoaded handler is in index.ts for authentication
+// This only handles cases where the router is imported after DOM is loaded
+if (document.readyState === "complete") {
+	// Document is already loaded, but only auto-load if no auth system took over
+	const currentPath = window.location.pathname;
+	if (currentPath !== "/" && !document.querySelector("#app")?.innerHTML) {
+		loadRoute(currentPath);
 	}
 }

@@ -2,8 +2,6 @@ import { loadHomePage } from "./index.js";
 import { profileTemplate } from "./templates/profileTemplate.js";
 import { deleteCookie, getCookie, getUserIdFromToken } from "./utils/auth.js";
 import { getLang, setLang, t } from "./locales/localeMiddleware.js";
-import { loadFriendsPage } from "./friends.js";
-import { loadMenuPage } from "./menu.js";
 import { stopOnlineWebSocket } from "./utils/ws.js";
 import { API_BASE_URL } from "./config.js";
 import { navigateTo } from "./utils/router.js";
@@ -76,7 +74,7 @@ function translateMenuStaticTexts() {
 	const friendsBtn = document.getElementById("friendsBtn");
 	if (friendsBtn) {
 		friendsBtn.textContent = t("friends");
-		friendsBtn.onclick = () => loadFriendsPage();
+		friendsBtn.onclick = () => navigateTo("/friends");
 	}
 
 	// Top-right buttons
@@ -169,7 +167,7 @@ const handleLogout = (): void => {
 };
 
 const handleFriendsClick = (): void => {
-	loadFriendsPage();
+	navigateTo("/friends");
 };
 
 const handleCancelDelete = (): void => {
@@ -724,7 +722,7 @@ function attachProfileEventListeners(user: User, twofaEnabled: boolean) {
 				);
 				if (disableRes.ok) {
 					closeEditProfileModal();
-					loadProfilePage();
+					navigateTo("/profile");
 				} else {
 					alert("Failed to disable 2FA.");
 				}
@@ -732,7 +730,7 @@ function attachProfileEventListeners(user: User, twofaEnabled: boolean) {
 			// If no 2FA change occurred
 			else {
 				closeEditProfileModal();
-				loadProfilePage();
+				navigateTo("/profile");
 			}
 		} else {
 			let errorMsg = "Failed to update profile.";

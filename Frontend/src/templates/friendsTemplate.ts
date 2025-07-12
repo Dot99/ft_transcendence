@@ -1,7 +1,7 @@
 export const friendsTemplate = `
 <div class="fixed inset-0 min-h-screen min-w-screen bg-[url(./images/background.png)] bg-cover bg-center text-white">
   <!-- Back to Menu Button -->
-  <button id="backToMenuBtn" onclick="loadMenuPage()" class="absolute top-8 left-8 flex items-center gap-2 px-5 py-3 rounded border-2 border-[#4CF190] text-[#4CF190] bg-[#001B26] hover:bg-[#4CF190] hover:text-[#001B26] transition-all font-bold z-20">
+  <button id="backToMenuBtn" class="absolute top-8 left-8 flex items-center gap-2 px-5 py-3 rounded border-2 border-[#4CF190] text-[#4CF190] bg-[#001B26] hover:bg-[#4CF190] hover:text-[#001B26] transition-all font-bold z-20">
     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
     </svg>

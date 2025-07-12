@@ -759,7 +759,9 @@ export const loadMenuPage = async (): Promise<void> => {
 						if (result.success) {
 							if (tournamentModal)
 								tournamentModal.classList.add("hidden");
-							loadTournamentPage(tournamentId);
+							// Store tournament ID and navigate
+							(window as any).currentTournamentId = tournamentId;
+							navigateTo("/tournament");
 						} else {
 							alert(
 								result.message || "Failed to join tournament"
@@ -782,7 +784,9 @@ export const loadMenuPage = async (): Promise<void> => {
 					btn.addEventListener("click", () => {
 						if (tournamentModal)
 							tournamentModal.classList.add("hidden");
-						loadTournamentPage(tournamentId);
+						// Store tournament ID and navigate
+						(window as any).currentTournamentId = tournamentId;
+						navigateTo("/tournament");
 					});
 				});
 
@@ -794,7 +798,9 @@ export const loadMenuPage = async (): Promise<void> => {
 				btn.addEventListener("click", () => {
 					if (tournamentModal)
 						tournamentModal.classList.add("hidden");
-					loadTournamentPage(tournamentId);
+					// Store tournament ID and navigate
+					(window as any).currentTournamentId = tournamentId;
+					navigateTo("/tournament");
 				});
 			});
 		}, 500);

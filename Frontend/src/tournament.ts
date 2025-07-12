@@ -1,7 +1,6 @@
 import { tournamentTemplate } from "./templates/tournamentTemplate.js";
 import { getCookie, getUserIdFromToken } from "./utils/auth.js";
 import { API_BASE_URL } from "./config.js";
-import { loadMenuPage } from "./menu.js";
 import { t } from "./locales/localeMiddleware.js";
 import { navigateTo } from "./utils/router.js";
 declare const JSC: any;
@@ -71,7 +70,7 @@ export const loadTournamentPage = async (
 		}
 		const backBtn = document.getElementById("backBtn");
 		if (backBtn) {
-			backBtn.onclick = () => loadMenuPage();
+			backBtn.onclick = () => navigateTo("/menu");
 		}
 
 		// Start auto-refresh to show tournament progression
