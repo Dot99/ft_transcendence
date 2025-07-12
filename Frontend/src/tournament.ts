@@ -292,29 +292,14 @@ async function createCustomBracket(
 
 	// Create tournament bracket with proper layout and connector lines
 	const roundsCount = sortedRounds.length;
-
-	console.log(
-		"Creating bracket with rounds:",
-		sortedRounds,
-		"roundsCount:",
-		roundsCount,
-		"totalRounds:",
-		totalRounds
-	);
-
 	// Create players map once for the entire tournament
 	const playersMap = new Map<string, string>();
-	console.log("playersMap initialized with size:", playersMap.size);
 	for (const player of tournament.tournament.players || []) {
 		// Ensure both the key and value are strings for consistent lookup
 		const playerId = String(player.id);
 		const playerName = player.username || player.name || "Unknown";
 		playersMap.set(playerId, playerName);
-		console.log("Added to playersMap:", playerId, "->", playerName);
 	}
-	console.log("Final playersMap size:", playersMap.size);
-	console.log("PlayersMap entries:", Array.from(playersMap.entries()));
-
 	let bracketHTML = `
 		<div class="relative w-full min-h-screen bg-gradient-to-br from-gray-900 to-teal-900 rounded-lg border-2 border-green-500 shadow-2xl p-8 overflow-x-auto">
 			<div class="flex justify-center items-center min-h-[700px] py-16">
@@ -507,15 +492,6 @@ async function createCustomBracket(
 			// Only determine champion if there's a completed final match
 			if (finalMatch && finalMatch.match_state === "completed") {
 				let winnerId = finalMatch.Winner || finalMatch.winner; // Handle both backend variations
-				console.log(
-					"Final match found with winner:",
-					winnerId,
-					"type:",
-					typeof winnerId,
-					"finalMatch:",
-					finalMatch
-				);
-
 				// If winner is not set but match is completed, determine winner from scores
 				if (
 					!winnerId &&
@@ -529,27 +505,14 @@ async function createCustomBracket(
 					) {
 						winnerId = finalMatch.player2;
 					}
-					console.log("WinnerId determined from scores:", winnerId);
 				}
 
 				if (winnerId) {
 					// Convert winnerId to string to ensure proper map lookup
 					const winnerIdStr = String(winnerId);
-					console.log(
-						"Looking up winnerIdStr:",
-						winnerIdStr,
-						"in playersMap"
-					);
-
 					let mappedName = playersMap.get(winnerIdStr);
-					console.log("Mapped name from playersMap:", mappedName);
-
 					// If mapping failed, try to fetch user data directly
 					if (!mappedName || mappedName === winnerIdStr) {
-						console.log(
-							"Mapping failed, trying to fetch user data for ID:",
-							winnerIdStr
-						);
 						try {
 							const userRes = await fetch(
 								`${API_BASE_URL}/users/${winnerIdStr}`,
@@ -567,10 +530,6 @@ async function createCustomBracket(
 									userData.user?.username ||
 									userData.user?.name ||
 									winnerIdStr;
-								console.log(
-									"Fetched username from API:",
-									mappedName
-								);
 							}
 						} catch (error) {
 							console.error("Error fetching user data:", error);
@@ -578,12 +537,6 @@ async function createCustomBracket(
 					}
 
 					championName = mappedName || winnerIdStr;
-					console.log(
-						"Final championName:",
-						championName,
-						"from winnerId:",
-						winnerIdStr
-					);
 				}
 
 				// Add score information for the final match
@@ -1121,7 +1074,6 @@ export function cleanupTournamentPage() {
 
 // Function to be called when returning from a game to force refresh
 export function forceRefreshTournament(tournamentId: string) {
-	console.log("Forcing tournament refresh after game completion");
 	// Clear any cached data or flags
 	tournamentCompletionNotified = false;
 

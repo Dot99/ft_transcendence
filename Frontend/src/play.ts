@@ -331,13 +331,6 @@ export const loadPlayPage = async (): Promise<void> => {
 		isMultiplayer = true;
 		connectToGame();
 	} else if (gameMode === "multiplayer" && opponentUsername) {
-		// Multiplayer mode but no gameId - this shouldn't happen, log error and fall back to AI
-		console.error("DEBUG: Multiplayer mode detected but no gameId found!", {
-			gameMode,
-			isMultiplayer,
-			opponentUsername,
-			gameIdFromData,
-		});
 		// Fall back to AI mode
 		gameMode = "ai";
 		isMultiplayer = false;

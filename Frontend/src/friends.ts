@@ -412,11 +412,6 @@ async function inviteToGame(): Promise<void> {
 					gameId: data.invitation.match_id,
 					isInviter: true,
 				};
-			} else {
-				console.warn(
-					"DEBUG: No match_id found in invitation response",
-					data
-				);
 			}
 		} else {
 			const errorData = await response.json();
