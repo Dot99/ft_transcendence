@@ -214,25 +214,29 @@ async function renderBracket(tournamentId: string) {
 	]);
 
 	let matches: Match[] = [];
-	
+
 	// Combine upcoming and completed matches
 	if (upcomingRes.ok) {
 		const upcomingData = await upcomingRes.json();
 		if (upcomingData.matches) {
-			matches.push(...upcomingData.matches.map((m: { round_number: any }) => ({
-				...m,
-				round_number: Number(m.round_number),
-			})));
+			matches.push(
+				...upcomingData.matches.map((m: { round_number: any }) => ({
+					...m,
+					round_number: Number(m.round_number),
+				}))
+			);
 		}
 	}
-	
+
 	if (completedRes.ok) {
 		const completedData = await completedRes.json();
 		if (completedData.matches) {
-			matches.push(...completedData.matches.map((m: { round_number: any }) => ({
-				...m,
-				round_number: Number(m.round_number),
-			})));
+			matches.push(
+				...completedData.matches.map((m: { round_number: any }) => ({
+					...m,
+					round_number: Number(m.round_number),
+				}))
+			);
 		}
 	}
 
@@ -251,26 +255,7 @@ async function createCustomBracket(
 	const chartContainer = document.getElementById("bracketContainer");
 	if (!chartContainer) return;
 
-	const rounds = groupBy(matches, "round_number");
-	const expectedRounds = [...Array(totalRounds).keys()].map((i) => i + 1);
-	const sortedRounds = Array.from(
-		new Set([...expectedRounds, ...Object.keys(rounds).map(Number)])
-	).sort((a, b) => a - b);
-
-	sortedRounds.forEach((r) => {
-		if (!rounds[r]) rounds[r] = [];
-	});
-
-	for (let i = 1; i <= totalRounds; i++) {
-		if (!sortedRounds.includes(i)) {
-			sortedRounds.push(i);
-		}
-	}
-	sortedRounds.forEach((r) => {
-		if (!rounds[r]) rounds[r] = [];
-	});
-	sortedRounds.sort((a, b) => a - b);
-
+	// Get tournament info
 	const tournamentRes = await fetch(
 		`${API_BASE_URL}/tournaments/${tournamentId}`,
 		{
@@ -279,24 +264,62 @@ async function createCustomBracket(
 	);
 	const tournament = await tournamentRes.json();
 
-	const expectedMatches =
-		expectedMatchesLeft(
-			tournament.tournament.max_players,
-			tournament.tournament.current_round
-		) - 1;
+	// Group matches by round and clean up the logic
+	const rounds = groupBy(matches, "round_number");
 
-	const upcomingMatches = matches.filter(
-		(match) => match.match_state === "upcoming"
-	);
-	const completedMatches = matches.filter(
-		(match) => match.match_state === "completed"
-	);
-	
+	// Only use the rounds that actually exist in the matches
+	const actualRounds = Object.keys(rounds)
+		.map(Number)
+		.sort((a, b) => a - b);
+
+	// For display purposes, ensure we have all expected rounds up to totalRounds
+	const expectedRounds = [...Array(totalRounds).keys()].map((i) => i + 1);
+
+	// Use the maximum of actual rounds and expected rounds, but avoid duplicates
+	const sortedRounds = Array.from(
+		new Set([...actualRounds, ...expectedRounds])
+	)
+		.sort((a, b) => a - b)
+		.filter((r) => r <= totalRounds);
+
+	// Initialize empty arrays for rounds that don't have matches yet
+	sortedRounds.forEach((r) => {
+		if (!rounds[r]) rounds[r] = [];
+	});
+
 	// Generate chart points with the combined matches
 	chartPoints = await generateChartPoints(matches);
 
+	// Debug logging to understand what's happening
+	console.log("Tournament Debug Info:", {
+		tournamentId,
+		totalRounds,
+		sortedRounds,
+		matchesByRound: sortedRounds.map((r) => ({
+			round: r,
+			matches: rounds[r]?.length || 0,
+			matchStates: rounds[r]?.map((m) => m.match_state) || [],
+		})),
+		allMatches: matches.map((m) => ({
+			round: m.round_number,
+			state: m.match_state,
+			players: `${m.player1} vs ${m.player2}`,
+			winner: m.Winner || m.winner,
+			scores: `${m.player1_score}-${m.player2_score}`,
+		})),
+	});
+
 	// Create tournament bracket with proper layout and connector lines
 	const roundsCount = sortedRounds.length;
+
+	console.log(
+		"Creating bracket with rounds:",
+		sortedRounds,
+		"roundsCount:",
+		roundsCount,
+		"totalRounds:",
+		totalRounds
+	);
 
 	// Create players map once for the entire tournament
 	const playersMap = new Map<string, string>();
@@ -322,24 +345,21 @@ async function createCustomBracket(
 		const roundNumber = Number(round);
 		let roundMatches = rounds[round] || [];
 
-		const isFinalRound = roundNumber === roundsCount;
+		// Check if this is the final round
+		const isFinalRound = roundNumber === totalRounds;
+
+		// For final round, don't create empty matches if none exist
+		// Let the backend handle match creation
 		if (isFinalRound && roundMatches.length === 0) {
-			roundMatches = [
-				{
-					player1: "",
-					player2: "",
-					match_state: "upcoming",
-					player1_score: undefined,
-					player2_score: undefined,
-					winner: "",
-					round_number: 1,
-				},
-			];
+			// Skip creating empty final matches - let the backend handle it
+			continue;
 		}
 
+		// Calculate expected matches for this round
+		const expectedMatchesInRound = Math.pow(2, totalRounds - roundNumber);
 		const matchesInRound = Math.max(
 			roundMatches.length,
-			Math.pow(2, totalRounds - roundNumber)
+			expectedMatchesInRound
 		);
 
 		// Perfect centering logic with normal spacing
@@ -386,12 +406,12 @@ async function createCustomBracket(
 				<div class="${containerClasses} ${verticalGap}">
 		`;
 
-		for (let matchIndex = 0; matchIndex < matchesInRound; matchIndex++) {
-			const match = roundMatches[matchIndex] || {
-				player1: "",
-				player2: "",
-				match_state: "upcoming",
-			};
+		for (
+			let matchIndex = 0;
+			matchIndex < roundMatches.length;
+			matchIndex++
+		) {
+			const match = roundMatches[matchIndex];
 
 			const chartPoint = chartPoints.find(
 				(point) => point.id === `r${round}_m${matchIndex}`
@@ -409,19 +429,19 @@ async function createCustomBracket(
 			// Convert player IDs to strings for consistent map lookup
 			const player1 = playersMap?.get(String(rawPlayer1)) || rawPlayer1;
 			const player2 = playersMap?.get(String(rawPlayer2)) || rawPlayer2;
-		const isCompleted = match.match_state === "completed";
-		const winnerId = match.Winner || match.winner; // Handle both backend variations
-		const player1Score = match.player1_score ?? "";
-		const player2Score = match.player2_score ?? "";
+			const isCompleted = match.match_state === "completed";
+			const winnerId = match.Winner || match.winner; // Handle both backend variations
+			const player1Score = match.player1_score ?? "";
+			const player2Score = match.player2_score ?? "";
 
-		// Fix winner determination - ensure we're comparing the right values
-		const isPlayer1Winner = isCompleted && String(winnerId) === String(match.player1);
-		const isPlayer2Winner = isCompleted && String(winnerId) === String(match.player2);
+			// Fix winner determination - ensure we're comparing the right values
+			const isPlayer1Winner =
+				isCompleted && String(winnerId) === String(match.player1);
+			const isPlayer2Winner =
+				isCompleted && String(winnerId) === String(match.player2);
 
-			const displayPlayer1 =
-				isFinalRound && !match.player1 ? "TBD" : player1;
-			const displayPlayer2 =
-				isFinalRound && !match.player2 ? "TBD" : player2;
+			const displayPlayer1 = player1 === "TBD" ? "TBD" : player1;
+			const displayPlayer2 = player2 === "TBD" ? "TBD" : player2;
 
 			const player1WinnerClasses = isPlayer1Winner
 				? "bg-[#4CF190] text-[#001B26]"
@@ -492,18 +512,16 @@ async function createCustomBracket(
 		bracketHTML += `</div></div>`;
 
 		// Add trophy after final round with retro/pixel art styling
-		if (isFinalRound) {
+		if (isFinalRound && roundMatches.length > 0) {
 			// Find the champion - only show if tournament is actually completed
 			let finalMatch = null;
 			let championName = "TBD";
 			let finalMatchScore = "";
 
-			// Strategy 1: Look for completed match in the final round ONLY
-			if (roundMatches.length > 0) {
-				finalMatch = roundMatches.find(
-					(match) => match.match_state === "completed"
-				);
-			}
+			// Look for completed match in the final round ONLY
+			finalMatch = roundMatches.find(
+				(match) => match.match_state === "completed"
+			);
 
 			// Only determine champion if there's a completed final match
 			if (finalMatch && finalMatch.match_state === "completed") {
@@ -512,7 +530,9 @@ async function createCustomBracket(
 					"Final match found with winner:",
 					winnerId,
 					"type:",
-					typeof winnerId
+					typeof winnerId,
+					"finalMatch:",
+					finalMatch
 				);
 
 				// If winner is not set but match is completed, determine winner from scores
@@ -606,7 +626,8 @@ async function createCustomBracket(
 			}
 
 			// Determine if tournament is completed - only if final match is completed
-			const isCompleted = finalMatch && finalMatch.match_state === "completed";
+			const isCompleted =
+				finalMatch && finalMatch.match_state === "completed";
 			const tournamentStatus = tournament.tournament?.status || "unknown";
 
 			// Debug logging
@@ -615,8 +636,13 @@ async function createCustomBracket(
 				isCompleted,
 				championName,
 				tournamentStatus,
+				roundNumber,
+				totalRounds,
+				roundsCount,
+				actualRoundMatches: roundMatches.length,
 				finalMatch: finalMatch
 					? {
+							match_id: finalMatch.match_id,
 							winner: finalMatch.winner,
 							Winner: finalMatch.Winner,
 							match_state: finalMatch.match_state,
@@ -628,9 +654,7 @@ async function createCustomBracket(
 					  }
 					: null,
 				totalMatches: matches.length,
-				roundMatches: roundMatches.length,
 				playersMapSize: playersMap?.size || 0,
-				roundsCount,
 				conditionCheck: {
 					championNotTBD: championName !== "TBD",
 					tournamentCompleted: tournamentStatus === "completed",
@@ -1152,7 +1176,7 @@ export function forceRefreshTournament(tournamentId: string) {
 	console.log("Forcing tournament refresh after game completion");
 	// Clear any cached data or flags
 	tournamentCompletionNotified = false;
-	
+
 	// Immediately refresh the bracket
 	refreshBracket(tournamentId);
 }
