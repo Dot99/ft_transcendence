@@ -290,25 +290,6 @@ async function createCustomBracket(
 	// Generate chart points with the combined matches
 	chartPoints = await generateChartPoints(matches);
 
-	// Debug logging to understand what's happening
-	console.log("Tournament Debug Info:", {
-		tournamentId,
-		totalRounds,
-		sortedRounds,
-		matchesByRound: sortedRounds.map((r) => ({
-			round: r,
-			matches: rounds[r]?.length || 0,
-			matchStates: rounds[r]?.map((m) => m.match_state) || [],
-		})),
-		allMatches: matches.map((m) => ({
-			round: m.round_number,
-			state: m.match_state,
-			players: `${m.player1} vs ${m.player2}`,
-			winner: m.Winner || m.winner,
-			scores: `${m.player1_score}-${m.player2_score}`,
-		})),
-	});
-
 	// Create tournament bracket with proper layout and connector lines
 	const roundsCount = sortedRounds.length;
 
@@ -629,39 +610,6 @@ async function createCustomBracket(
 			const isCompleted =
 				finalMatch && finalMatch.match_state === "completed";
 			const tournamentStatus = tournament.tournament?.status || "unknown";
-
-			// Debug logging
-			console.log("Tournament bracket debug:", {
-				isFinalRound,
-				isCompleted,
-				championName,
-				tournamentStatus,
-				roundNumber,
-				totalRounds,
-				roundsCount,
-				actualRoundMatches: roundMatches.length,
-				finalMatch: finalMatch
-					? {
-							match_id: finalMatch.match_id,
-							winner: finalMatch.winner,
-							Winner: finalMatch.Winner,
-							match_state: finalMatch.match_state,
-							player1: finalMatch.player1,
-							player2: finalMatch.player2,
-							player1_score: finalMatch.player1_score,
-							player2_score: finalMatch.player2_score,
-							round_number: finalMatch.round_number,
-					  }
-					: null,
-				totalMatches: matches.length,
-				playersMapSize: playersMap?.size || 0,
-				conditionCheck: {
-					championNotTBD: championName !== "TBD",
-					tournamentCompleted: tournamentStatus === "completed",
-					finalMatchCompleted: isCompleted,
-					willShowWinner: isCompleted && championName !== "TBD",
-				},
-			});
 
 			bracketHTML += `
 				<div class="flex flex-col items-center justify-center ml-8">
